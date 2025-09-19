@@ -1,6 +1,28 @@
 # FoundryVTT Sequencer Macro Collection
 
-A comprehensive collection of FoundryVTT macros using the [Sequencer](https://fantasycomputer.works/FoundryVTT-Sequencer) module for creating stunning visual effects, animations, and immersive gameplay experiences.
+A comprehensive collection of FoundryVTT macros using the [Sequencer](https://fantasycomputer.works/FoundryVTT-Sequencer) module for creating stunning visual effects, animations, and immersive gameplay experien**📁 Location**: `/macros/characters/[character-name]/`  
+**📚 Documentation**: Each character has detailed README with tactics and lore
+
+## 📋 Module Requirements Summary
+
+**📄 Complete Module Guide**: See [MODULE-REQUIREMENTS.md](./MODULE-REQUIREMENTS.md) for detailed analysis
+
+### At a Glance:
+- **35 total macros** in this collection
+- **3 essential modules**: Sequencer + JB2A + Warp Gate
+- **100% require Sequencer** (core animation system)
+- **97% require JB2A** (visual effects)
+- **29% require Warp Gate** (character macros only)
+
+### Quick Install:
+```bash
+# Essential modules for all macros
+✅ Sequencer (core)
+✅ JB2A - Jules&Ben's Animated Assets (effects)
+✅ Warp Gate (for character spells)
+```
+
+## 📖 Learning Resources
 
 ## 📁 Project Structure
 
@@ -26,24 +48,84 @@ TestFoundry/
 
 ## 🚀 Prerequisites
 
-### Required Modules
-1. **Sequencer** - Core module for effects and animations
-   - Install from: `https://github.com/FantasyCalendar/FoundryVTT-Sequencer/releases/latest/download/module.json`
+### Core Required Modules
 
-### Recommended Effect Modules
-1. **JB2A - Jules&Ben's Animated Assets** (Free version) ⭐ **Required**
-   - Foundry Package: `JB2A_DnD5e`
-   - Paid version available at: [JB2A Patreon](https://www.patreon.com/JB2A)
-   - Free download: [GitHub Releases](https://github.com/Jules-Bens-Aa/JB2A_DnD5e/releases)
-   - **Contains all effects used in our macros**
+#### 1. **Sequencer** ⭐ **ESSENTIAL**
+- **Description**: Core module for all visual effects and animations
+- **Install URL**: `https://github.com/FantasyCalendar/FoundryVTT-Sequencer/releases/latest/download/module.json`
+- **Usage**: Required for ALL macros in this collection
+- **Version**: Latest stable version recommended
 
-2. **Jack Kerouac's Animated Spell Effects** (Optional)
-   - Foundry Package: `animated-spell-effects`
-   - Used in: Acid Splash example
+#### 2. **JB2A - Jules&Ben's Animated Assets** ⭐ **ESSENTIAL**
+- **Description**: Provides visual effects used in 95% of macros
+- **Free Package**: `jb2a_dnd5e` 
+- **Patreon Package**: `jb2a_patreon` (extended effects)
+- **GitHub**: [Free Version Downloads](https://github.com/Jules-Bens-Aa/JB2A_DnD5e/releases)
+- **Usage**: Required for ALL macros except basic sound-only effects
 
-3. **Jack Kerouac's Animated Cartoon Spell Effects** (Optional)
-   - Foundry Package: `animated-spell-effects-cartoon`
-   - Used in: Some alternative spell effects
+#### 3. **Warp Gate** ⭐ **REQUIRED for Character Macros**
+- **Description**: Provides crosshair targeting and advanced token manipulation
+- **Package**: `warpgate`
+- **Usage**: Required for ALL character-specific spells (Ora & Moctei)
+- **Features**: `warpgate.crosshairs.show()` for spell targeting
+
+### Optional Enhancement Modules
+
+#### 4. **Animated Spell Effects** (Optional)
+- **Package**: `animated-spell-effects`
+- **Usage**: Used in `acid-splash.js` macro only
+- **Alternative**: Can be replaced with JB2A effects
+
+#### 5. **Animated Spell Effects - Cartoon** (Optional)
+- **Package**: `animated-spell-effects-cartoon`
+- **Usage**: Used in `acid-splash.js` macro only
+- **Alternative**: Can be replaced with JB2A effects
+
+### Module Installation Priority
+
+```
+Priority 1 (Essential):
+✅ Sequencer
+✅ JB2A - Jules&Ben's Animated Assets  
+✅ Warp Gate
+
+Priority 2 (Recommended):
+🔸 JB2A Patreon (for enhanced effects)
+
+Priority 3 (Optional):
+🔹 Animated Spell Effects
+🔹 Animated Spell Effects - Cartoon
+```
+
+### Module Dependencies by Macro Category
+
+| Macro Category | Sequencer | JB2A | Warp Gate | Other |
+|----------------|-----------|------|-----------|-------|
+| **Basic** | ✅ | ✅ | ❌ | ❌ |
+| **Intermediate** | ✅ | ✅ | ❌ | Animated Effects (1 macro) |
+| **Advanced** | ✅ | ✅ | ❌ | ❌ |
+| **Spells** | ✅ | ✅ | ❌ | ❌ |
+| **Characters** | ✅ | ✅ | ✅ | ❌ |
+| **Templates** | ✅ | ✅ | ❌ | ❌ |
+
+### Quick Installation Guide
+
+1. **Install Sequencer**:
+   - FoundryVTT → Add-on Modules → Install Module
+   - Paste: `https://github.com/FantasyCalendar/FoundryVTT-Sequencer/releases/latest/download/module.json`
+
+2. **Install JB2A**:
+   - Search "JB2A" in module browser
+   - Install "JB2A - Jules&Ben's Animated Assets"
+
+3. **Install Warp Gate**:
+   - Search "Warp Gate" in module browser
+   - Install for character-specific macros
+
+4. **Enable Modules**:
+   - Go to World Settings → Manage Modules
+   - Enable: Sequencer, JB2A, Warp Gate
+   - Restart world
 
 ## 📋 Quick Start Guide
 
@@ -210,10 +292,39 @@ Feel free to add your own macros and effects! Follow the existing structure:
 
 ## ⚠️ Important Notes
 
+### Module Requirements & Troubleshooting
+
+#### **Missing Module Errors**
+If you encounter errors like:
+- `"Sequencer is not defined"` → Install and enable Sequencer module
+- `"warpgate is not defined"` → Install Warp Gate for character macros
+- `"Cannot find effect file"` → Install JB2A module
+
+#### **Effect File Not Found**
+- **JB2A Free vs Patreon**: Some macros reference Patreon effects
+- **Solution**: Update file paths to use available effects
+- **Use**: Sequencer Database Viewer to find available effects
+
+#### **Crosshair Issues**
+- **Problem**: `warpgate.crosshairs.show()` not working
+- **Solution**: Ensure Warp Gate module is installed and enabled
+- **Alternative**: Replace with `Sequencer.Crosshair.show()` (older syntax)
+
+#### **Performance Issues**
+- **Large effects**: Reduce `.scale()` values
+- **Multiple macros**: Add delays between executions
+- **Persistent effects**: Use cleanup functions to remove old effects
+
+### General Safety
 - Always test macros in a safe environment first
 - Some effects require specific modules to be installed
 - File paths may need adjustment based on your module versions
 - Back up your world before testing complex macros
+
+### Compatibility
+- **FoundryVTT Version**: v10+ recommended
+- **Game Systems**: D&D 5e, Pathfinder 2e, system-agnostic
+- **Module Conflicts**: Test with minimal module setup first
 
 ## 📄 License
 
