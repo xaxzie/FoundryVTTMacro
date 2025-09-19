@@ -14,11 +14,44 @@ This document outlines the specific rules and mechanics of the custom RPG system
 
 The RPG uses a **turn-based combat system** managed by the **Carousel Combat Track** module:
 
-1. **Initiative Order**: Determined by external script (not accessible through macros)
+1. **Initiative Order**: Based on Agilité characteristic with automatic rolls
 2. **Turn Structure**: Each fighter takes turns in order
 3. **Actions per Turn**: 
-   - **1 Action**: Cast a spell or make an attack
-   - **1 Movement**: Move up to 6 squares maximum
+   - **1 Simple Action**: Cast a spell, attack, or interact with environment
+   - **1 Movement Action**: Move up to 6 squares or perform movement-equivalent actions
+
+### Turn Actions Breakdown
+
+#### **Simple Action Options**
+- **Spell Casting**: Launch any known spell
+- **Physical Attack**: Melee or ranged combat
+- **Environmental Interaction**: Manipulate objects, open doors, etc.
+- **Other Actions**: GM discretion for creative actions
+
+#### **Movement Action Options**  
+- **Standard Movement**: Up to 6 squares of movement
+- **Item Management**: Draw/sheathe weapons, retrieve items from inventory
+- **Ground Interaction**: Pick up objects from the ground
+- **Other Physical Actions**: GM discretion for movement-equivalent actions
+
+### Non-Turn Limitations
+- **Passive Phase**: Cannot perform actions when it's not your turn
+- **Exception**: Resistance/dodge rolls against incoming attacks
+- **Reactive Spells**: Only available in Defensive stance
+
+### Combat Communication Rules
+
+#### **Player Communication Guidelines**
+- **Personal Commentary**: Players can comment on combat between themselves
+- **Strategic Limitation**: Cannot share specific action plans during others' turns
+- **Character Communication**: Prefer in-character dialogue during your own turn
+- **Allied Response**: Allies can respond briefly when addressed during your turn
+- **No Action Cost**: Speaking doesn't consume actions but must be realistic
+
+#### **Temporal Framework**
+- **Turn Duration**: Approximately 6 seconds in game world
+- **Simultaneous Actions**: All actions in a full round occur roughly simultaneously
+- **Dialogue Realism**: Speech should fit within the 6-second timeframe
 
 ### Combat Grid System
 
@@ -27,22 +60,91 @@ The RPG uses a **turn-based combat system** managed by the **Carousel Combat Tra
   - **Straight Movement**: 1 square = 1 movement point
   - **Diagonal Movement**: 1 square = 1.5 movement points (rounded down)
   - **Maximum Movement**: 6 squares per turn
+- **Movement Examples** (with 6 movement points):
+  - 6 squares horizontally or vertically
+  - 5 squares straight + 1 diagonal
+  - 3 squares straight + 2 diagonal  
+  - 2 squares straight + 3 diagonal
+  - 4 squares diagonal only
 
 > **Spell Integration**: Some spells may interact with movement actions. Consider diagonal movement costs when designing area effects.
+
+## 📊 Character Resources
+
+### Health and Mana System
+
+#### **Health Points (HP)**
+- **Critical Threshold**: 0 HP = unconscious, life in danger
+- **Starting Value**: 10 HP base
+- **Additional Points**: From the 15 bonus points during character creation
+
+#### **Mana Points (MP)**  
+- **Critical Threshold**: 0 MP = unconscious, life in danger
+- **Starting Value**: 5 MP base
+- **Additional Points**: From the 15 bonus points during character creation
+
+#### **Character Creation Resources**
+- **Base**: 10 HP + 5 MP
+- **Bonus**: 15 additional points to distribute between HP and MP as desired
+- **Storage**: Managed through FoundryVTT character sheet resources
 
 ## 📊 Character Statistics
 
 ### Seven Core Stats
 
-Each character has Seven primary statistics that govern their abilities:
+Each character has seven primary statistics that govern their abilities:
 
-1. **Force** (Strength/Power)
-2. **Dexterité** (Dexterity/Agility) 
-3. **Agilité** (Speed/Reflexes)
-4. **Esprit** (Mind/Intelligence)
+1. **Physique** (Physical Strength)
+2. **Dextérité** (Dexterity/Skill) 
+3. **Agilité** (Agility/Speed/Reflexes)
+4. **Esprit** (Mind/Concentration)
 5. **Sens** (Senses/Perception)
 6. **Volonté** (Will/Determination)
-7. **Charisme** (Charisma/Leadership)
+7. **Charisme** (Charisma/Social Understanding)
+
+### Stat Descriptions and Uses
+
+#### **Physique** (Physical Strength)
+- **Spell Casting**: Used for certain spells requiring physical power
+- **Physical Actions**: Lifting heavy objects, breaking things
+- **Combat**: Melee attacks with heavy weapons, unarmed combat
+
+#### **Dextérité** (Dexterity/Skill)
+- **Spell Casting**: Used for precision-based spells
+- **Ranged Combat**: Aiming and shooting projectiles
+- **Fine Motor Skills**: Precise object manipulation, light weapon combat (daggers)
+
+#### **Agilité** (Agility/Speed/Reflexes)  
+- **Defense**: Primary stat for dodging and evasion
+- **Stealth**: Hiding and moving quietly
+- **Initiative**: Determines turn order in combat
+- **Movement Speed**: Character's action speed
+
+#### **Esprit** (Mind/Concentration)
+- **Spell Casting**: Used for concentration-based spells
+- **Magic Perception**: Sensing magical effects and energies
+- **Intelligence**: Understanding complex concepts and problems
+
+#### **Sens** (Senses/Perception)
+- **Spell Casting**: Used for perception-based spells
+- **Detection**: Spotting hidden objects, enemies, or clues
+- **Awareness**: Environmental perception and alertness
+
+#### **Volonté** (Will/Determination)
+- **Spell Casting**: Used for will-based spells
+- **Resistance**: Resisting physical, magical, mental, or emotional attacks
+- **Determination**: Perseverance through difficult situations
+
+#### **Charisme** (Charisma/Social Understanding)
+- **Spell Casting**: Used for social or emotion-based spells
+- **Social Interaction**: Persuasion, deception, negotiation
+- **Empathy**: Understanding and reading other characters' emotions
+
+### Character Creation Stats
+- **Starting Values**: 2 points in each characteristic
+- **Bonus Points**: 14 additional points to distribute
+- **Maximum Investment**: 4 additional points per characteristic (maximum 6 total)
+- **Dice Formula**: Roll 1d7 per point in the relevant characteristic
 
 ### Stat Usage
 - **Not Accessible**: Stats are not automatically accessible through macro tools
@@ -93,27 +195,65 @@ Hit Resolution:
 At the start of each turn, players choose one of three combat stances:
 
 ### 🗡️ Offensive Stance
-- **Damage Bonus**: All damage dice are maximized (rolled at maximum value)
-- **Defense Penalty**: -3 dice when attempting to dodge attacks
+- **Damage Bonus**: All damage dice are maximized (no damage rolls, all dice become maximum value)
+- **Defense Penalty**: -2 dice when attempting to dodge attacks (Agilité -2)
 - **Best For**: High-damage assault turns
 - **Risk**: Vulnerable to counterattacks
 
 ### 🛡️ Defensive Stance  
-- **Dodge Bonus**: No dodging penalties
-- **Counter Ability**: Can use spells to counter incoming attacks
-- **Mana Cost**: Counter-spells still cost mana
-- **Best For**: Surviving enemy assault rounds
+- **Counter Ability**: Can use spells reactively to defend against incoming attacks
+- **Spell Defense**: Use the spell's associated stat instead of Agilité for defense
+- **Examples**: Defensive spell casting, protective barriers, counter-magic
+- **Best For**: Surviving enemy assault rounds and reactive spell casting
 
 ### 🎯 Focus Stance
 - **Mana Benefit**: Most spell costs are completely removed
-- **Exceptions**: Some spells cannot be focused
-- **Partial Focus**: Some spells have costs reduced by half instead of eliminated
-- **Best For**: Casting expensive spells or sustained casting
+- **Agilité Penalty**: -1 dice to Agilité-based rolls
+- **Exceptions**: 
+  - **Non-focusable spells**: No effect from Focus stance
+  - **Half-focus spells**: Mana cost reduced by half instead of eliminated
+- **Best For**: Casting expensive spells or sustained magical combat
+
+### Stance Rules and Restrictions
+- **Selection Timing**: Stance can only be chosen at the beginning of your turn
+- **No Multi-Stancing**: Cannot benefit from multiple stances simultaneously  
+- **Combat Only**: Stances are only active during combat
+- **Out of Combat**: No active stance, but stance abilities can be used for roleplay actions
+- **Turn Commitment**: Cannot change stance after beginning actions or during others' turns
 
 ### Stance Impact on Animations
 - **Current**: Stance detection is manual
 - **Future**: Visual effects may vary based on active stance
 - **Animation Notes**: Consider stance when designing spell visual intensity
+
+## 🩸 Injury System
+
+### Injury Mechanics
+- **Effect**: Each injury reduces ALL dice rolls by -1 dice
+- **Duration**: Until the injury is healed through medical treatment or magic
+- **Stacking**: Multiple injuries stack their penalties
+- **Maximum**: 3 injuries maximum per character
+- **Incapacitation**: Beyond 3 injuries = character cannot act
+
+### Injury Sources
+- **Combat Damage**: Severe attacks or critical hits
+- **Environmental Hazards**: Falls, traps, exposure
+- **Magic Backlash**: Failed spell casting or magical accidents
+- **Situational**: GM discretion based on narrative circumstances
+
+## 🎯 Spell Level System
+
+### Spell Level Bonuses
+- **Hit Bonus Formula**: +2 × Spell Level to attack rolls
+- **Example Applications**:
+  - Level 1 spell with 6 Dexterity = 6d7 + 2
+  - Level 2 spell with 6 Dexterity = 6d7 + 4
+  - Level 3 spell with 6 Dexterity = 6d7 + 6
+
+### Spell Progression
+- **Starting Level**: All spells begin at Level 1
+- **Evolution**: Spells can evolve and increase in level over time
+- **Power Scaling**: Higher level spells are more reliable but may cost more resources
 
 ## 📋 Spell Animation Guidelines
 
