@@ -1,6 +1,11 @@
-# FoundryVTT Spell Animation Collection for Custom RPG
-
-A specialized collection of FoundryVTT macros using the [Sequencer](https://fantasycomputer.works/FoundryVTT-Sequencer) module designed specifically for a custom tabletop RPG system. This repository focuses exclusively on **spell animation effects** for spells used by both NPCs and players in a turn-based, ta## 📖 Learning Resources
+# FoundryVTT Spell Animation Collection for Custom R### At a Glance:
+- **35 total spell animation macros** (including examples)
+- **Custom RPG focus**: Core macros designed for specific combat mechanics
+- **3 essential modules**: Sequencer + JB2A + Warp Gate
+- **100% require Sequencer** (core animation system)
+- **97% require JB2A** (visual effects)
+- **29% require Warp Gate** (advanced targeting)
+- **Requires Carousel Combat Track** (turn order management)ecialized collection of FoundryVTT macros using the [Sequencer](https://fantasycomputer.works/FoundryVTT-Sequencer) module designed specifically for a custom tabletop RPG system. This repository focuses exclusively on **spell animation effects** for spells used by both NPCs and players in a turn-based, ta## 📖 Learning Resources
 
 - [Official Sequencer Wiki](https://fantasycomputer.works/FoundryVTT-Sequencer)
 - [Sequencer API Reference](./docs/sequencer-reference.md)
@@ -81,15 +86,14 @@ TestFoundry/
 │   ├── sequencer-reference.md # Sequencer API reference
 │   ├── installation-guide.md  # Setup instructions for custom RPG
 │   └── best-practices.md      # RPG-specific animation guidelines
-├── macros/                    # All spell animation macros organized by complexity
+├── macros/                    # RPG-compliant spell animation macros
 │   ├── basic/                 # Simple spell effects and sounds
 │   ├── intermediate/          # Multi-step spell sequences
 │   ├── advanced/              # Complex spells with targeting and interactions
 │   ├── spells/                # Generic spell animations
-│   ├── characters/            # Character-specific spell collections
-│   │   ├── ora/               # Water and ice specialist spells
-│   │   └── moctei/            # Shadow specialist spells
 │   └── utilities/             # Helper functions and reusable components
+├── examples/                  # Non-compliant example animations (for learning only)
+│   └── characters/            # Character-specific examples (Ora, Moctei)
 ├── templates/                 # Spell macro templates for quick development
 └── assets/                    # Custom sounds, images, and effects
 ```
@@ -228,8 +232,9 @@ Priority 3 (Optional):
 | **Intermediate** | ✅ | ✅ | ❌ | 🔸 | Animated Effects (1 macro) |
 | **Advanced** | ✅ | ✅ | ✅ | ✅ | ❌ |
 | **Spells** | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Characters** | ✅ | ✅ | ✅ | ✅ | ❌ |
+| **Utilities** | ✅ | ✅ | ✅ | ✅ | ❌ |
 | **Templates** | ✅ | ✅ | ✅ | ✅ | ❌ |
+| **Examples** | ✅ | ✅ | ✅ | ❌ | ❌ |
 
 > 🔸 = Optional but recommended for RPG integration
 
@@ -434,30 +439,29 @@ Spell macros use different token selection methods:
 - **Turn validation**: Some macros may check current turn before executing
 - **Stance effects**: Visual effects may vary based on character stance (future feature)
 
-## � Character-Specific Macros
+## 📚 Example Animations  
 
-The collection includes complete spell sets for two specialized characters:
+**⚠️ For Learning Purposes Only - Not RPG Compliant**
 
-### 🌊 **Ora - Water & Ice Specialist**
-- **Frost Bolt**: Precise ice projectile with slowing effects
-- **Ice Wall**: Defensive barrier creation with cascading formation
-- **Water Whip**: Line attack striking multiple enemies
-- **Blizzard**: Devastating area ice storm with ongoing damage
-- **Healing Spring**: Continuous area healing for allies
+The `/examples/` directory contains spell animations that demonstrate Sequencer techniques but do **not comply** with the custom RPG rules:
 
-*Perfect for support roles and battlefield control*
+### 🌊 **Ora Examples** - Water & Ice Techniques
+- **Frost Bolt**: Projectile animation patterns
+- **Ice Wall**: Barrier creation sequences  
+- **Water Whip**: Line attack demonstrations
+- **Blizzard**: Area effect timing examples
+- **Healing Spring**: Continuous effect loops
 
-### 🌑 **Moctei - Shadow Specialist**  
-- **Shadow Bolt**: Life-draining dark projectile
-- **Darkness Cloud**: Area denial with blindness effects
-- **Shadow Step**: Stealth teleportation with sneak attack bonus
-- **Umbral Strike**: Shadow-enhanced melee with debuff
-- **Void Prison**: Ultimate crowd control with continuous drain
+### 🌑 **Moctei Examples** - Shadow & Darkness Techniques  
+- **Shadow Bolt**: Life-drain visual effects
+- **Darkness Cloud**: Area denial animations
+- **Shadow Step**: Teleportation mechanics
+- **Umbral Strike**: Enhanced melee sequences
+- **Void Prison**: Complex crowd control timing
 
-*Ideal for tactical positioning and debuff strategies*
-
-**📁 Location**: `/macros/characters/[character-name]/`  
-**📚 Documentation**: Each character has detailed README with tactics, lore, and RPG-specific spell interactions
+**📁 Location**: `/examples/characters/[character-name]/`  
+**📚 Usage**: Study for animation techniques, but convert to RPG-compliant versions before use  
+**⚠️ Missing**: Turn validation, mana integration, combat state checking, stance awareness
 
 ## �📖 Learning Resources
 
@@ -485,14 +489,16 @@ We welcome spell animation contributions that fit our custom RPG system! Please 
 
 ### What We're Looking For:
 - ✅ Spell animations that fit the custom RPG mechanics
-- ✅ Effects that work with the 6-stat system and stance modes
+- ✅ Effects that work with the 7-stat system and stance modes
 - ✅ Animations compatible with turn-based combat flow
 - ✅ Clear documentation and comments
+- ✅ Turn validation and combat state integration
 
 ### What We're Not Looking For:
 - ❌ Generic D&D 5e spell ports without RPG adaptation
 - ❌ Animations that include dice rolling or damage calculation
 - ❌ Effects that contradict established RPG rules
+- ❌ Non-compliant spells (these belong in `/examples/` for reference)
 
 ## ⚠️ Important Notes
 
