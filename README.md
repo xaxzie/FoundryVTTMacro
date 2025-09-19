@@ -16,6 +16,9 @@ TestFoundry/
 │   ├── intermediate/           # Multi-step sequences and spell effects
 │   ├── advanced/               # Complex macros with crosshairs and animations
 │   ├── spells/                 # Spell-specific macros
+│   ├── characters/             # Character-specific spell collections
+│   │   ├── ora/                # Water and ice specialist spells
+│   │   └── moctei/             # Shadow specialist spells
 │   └── utilities/              # Helper functions and reusable components
 ├── templates/                  # Macro templates for quick development
 └── assets/                     # Custom sounds, images, and effects
@@ -164,7 +167,32 @@ Macros use different token selection methods:
 - `game.user.targets` - All targeted tokens
 - `token` - Current token (in character sheets)
 
-## 📖 Learning Resources
+## � Character-Specific Macros
+
+The collection includes complete spell sets for two specialized characters:
+
+### 🌊 **Ora - Water & Ice Specialist**
+- **Frost Bolt**: Precise ice projectile with slowing effects
+- **Ice Wall**: Defensive barrier creation with cascading formation
+- **Water Whip**: Line attack striking multiple enemies
+- **Blizzard**: Devastating area ice storm with ongoing damage
+- **Healing Spring**: Continuous area healing for allies
+
+*Perfect for support roles and battlefield control*
+
+### 🌑 **Moctei - Shadow Specialist**  
+- **Shadow Bolt**: Life-draining dark projectile
+- **Darkness Cloud**: Area denial with blindness effects
+- **Shadow Step**: Stealth teleportation with sneak attack bonus
+- **Umbral Strike**: Shadow-enhanced melee with debuff
+- **Void Prison**: Ultimate crowd control with continuous drain
+
+*Ideal for tactical positioning and debuff strategies*
+
+**📁 Location**: `/macros/characters/[character-name]/`  
+**📚 Documentation**: Each character has detailed README with tactics and lore
+
+## �📖 Learning Resources
 
 - [Official Sequencer Wiki](https://fantasycomputer.works/FoundryVTT-Sequencer)
 - [Sequencer API Reference](./docs/sequencer-reference.md)

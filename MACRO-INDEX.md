@@ -43,7 +43,29 @@ This file provides a quick reference to all available macros in this collection.
 | `cure-wounds.js` | D&D 5e Cure Wounds spell | D&D 5e | JB2A, 1 caster, 1 target |
 | `lightning-strike.js` | Random lightning strike effect | Any | JB2A, 1 selected token |
 
-## 🛠️ Utilities (`/macros/utilities/`)
+## � Character-Specific Macros (`/macros/characters/`)
+
+### 🌊 Ora - Water/Ice Specialist
+
+| Macro | Description | Requirements |
+|-------|-------------|--------------|
+| `frost-bolt.js` | Precise ice projectile with slowing effect | JB2A, 1 target |
+| `ice-wall.js` | Creates protective barrier of ice | JB2A, crosshair placement |
+| `water-whip.js` | Flexible water tendril striking multiple enemies | JB2A, crosshair direction |
+| `blizzard.js` | Devastating area ice storm with ongoing damage | JB2A, crosshair targeting |
+| `healing-spring.js` | Magical spring providing continuous healing | JB2A, crosshair placement |
+
+### 🌑 Moctei - Shadow Specialist
+
+| Macro | Description | Requirements |
+|-------|-------------|--------------|
+| `shadow-bolt.js` | Dark projectile that drains life energy | JB2A, 1 target |
+| `darkness-cloud.js` | Area of magical darkness that blinds enemies | JB2A, crosshair targeting |
+| `shadow-step.js` | Teleport through shadows for sneak attacks | JB2A, crosshair destination |
+| `umbral-strike.js` | Shadow-infused melee attack with debuff | JB2A, 1 target |
+| `void-prison.js` | Prison of shadow that traps and drains enemies | JB2A, crosshair targeting |
+
+## �🛠️ Utilities (`/macros/utilities/`)
 
 | File | Description | Usage |
 |------|-------------|-------|
@@ -62,18 +84,24 @@ This file provides a quick reference to all available macros in this collection.
 1. **lightning-teleport.js** - Spectacular teleportation effect
 2. **fireball.js** - Classic D&D fireball spell
 3. **chain-lightning.js** - Multi-target lightning
-4. **aoe-spell.js** - Flexible area of effect template
+4. **ora/blizzard.js** - Devastating ice storm effect
+5. **moctei/void-prison.js** - Epic shadow prison
 
 ### Best for Learning
 1. **simple-explosion.js** - Basic Sequencer concepts
 2. **magic-missile.js** - Projectile effects
 3. **token-flash.js** - Simple visual effects
-4. **basic-sound.js** - Audio integration
+4. **ora/frost-bolt.js** - Character-specific spell basics
 
 ### Most Advanced
 1. **environmental-trap.js** - Interactive systems
 2. **mass-teleport.js** - Complex multi-token operations
-3. **summon-creature.js** - Actor creation and effects
+3. **moctei/void-prison.js** - Reality-bending effects
+4. **ora/blizzard.js** - Persistent area effects with ongoing damage
+
+### Character Showcases
+1. **Ora's Combo**: frost-bolt.js → ice-wall.js → blizzard.js
+2. **Moctei's Combo**: shadow-step.js → umbral-strike.js → void-prison.js
 
 ## File Path Updates Needed
 
