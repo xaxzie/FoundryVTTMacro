@@ -246,16 +246,31 @@
     // Display damage results in chat
     const targetText = targets.length > 1 ? "2 different targets" : "same target (both projectiles)";
     
+    let damageDisplay;
+    if (targets.length > 1) {
+        // Two different targets - show individual projectile damage
+        damageDisplay = `
+            <p><strong>Projectile 1 Damage:</strong> ${damage1.total} 
+               <span style="font-size: 0.8em;">(${damage1.formula}: ${damage1.result})</span></p>
+            <p><strong>Projectile 2 Damage:</strong> ${damage2.total} 
+               <span style="font-size: 0.8em;">(${damage2.formula}: ${damage2.result})</span></p>
+        `;
+    } else {
+        // Same target - show total damage
+        const totalDamage = damage1.total + damage2.total;
+        damageDisplay = `
+            <p><strong>Total Damage:</strong> ${totalDamage} 
+               <span style="font-size: 0.8em;">(${damage1.total} + ${damage2.total} from both projectiles)</span></p>
+        `;
+    }
+    
     const chatContent = `
         <div class="spell-result">
             <h3>🫧 Bubbles Spell (${elementDescription})</h3>
             <p><strong>Caster:</strong> ${actor.name}</p>
             <p><strong>Targets:</strong> ${targetText}</p>
             <hr>
-            <p><strong>Projectile 1 Damage:</strong> ${damage1.total} 
-               <span style="font-size: 0.8em;">(${damage1.formula}: ${damage1.result})</span></p>
-            <p><strong>Projectile 2 Damage:</strong> ${damage2.total} 
-               <span style="font-size: 0.8em;">(${damage2.formula}: ${damage2.result})</span></p>
+            ${damageDisplay}
             <hr>
             <p><strong>Element Effect:</strong> ${getElementEffect(elementChoice)}</p>
         </div>
