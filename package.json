@@ -1,0 +1,37 @@
+{
+  "name": "foundryvtt-macro-development",
+  "version": "1.0.0",
+  "description": "Local development environment for FoundryVTT macros with TypeScript support",
+  "main": "open-foundry.js",
+  "scripts": {
+    "start:foundry": "cd ../FoundryVTT-Local && ./start-foundry-dev.sh",
+    "build": "cd macro-dev && node build-macros.js",
+    "deploy": "npm run build && cp -r macro-dev/dist/* ../FoundryVTT-Local/foundrydata/Data/worlds/macro-development/scripts/",
+    "dev": "npm run build && npm run deploy",
+    "test": "cd macro-dev && node test-macros.js",
+    "open": "node open-foundry.js",
+    "setup": "npm install && mkdir -p macro-dev/{src,dist,tests}",
+    "clean": "rm -rf macro-dev/dist/* && rm -f test-results.json",
+    "watch": "npm run dev && echo 'Watching for changes...' && fswatch -o macro-dev/src | xargs -n1 -I{} npm run dev",
+    "install-types": "npm install -D fvtt-types@github:League-of-Foundry-Developers/foundry-vtt-types#main"
+  },
+  "keywords": [
+    "foundryvtt",
+    "macros",
+    "sequencer",
+    "typescript",
+    "development"
+  ],
+  "author": "Development Team",
+  "license": "MIT",
+  "devDependencies": {
+    "fvtt-types": "github:League-of-Foundry-Developers/foundry-vtt-types#main"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xaxzie/FoundryVTTMacro.git"
+  }
+}

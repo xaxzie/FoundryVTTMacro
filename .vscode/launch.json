@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Open FoundryVTT in Browser",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/open-foundry.js",
+            "console": "integratedTerminal"
+        }
+    ]
+}
