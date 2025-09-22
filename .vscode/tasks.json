@@ -22,7 +22,11 @@
             "label": "Install FoundryVTT Types",
             "type": "shell",
             "command": "npm",
-            "args": ["install", "-D", "fvtt-types@github:League-of-Foundry-Developers/foundry-vtt-types#main"],
+            "args": [
+                "install",
+                "-D",
+                "fvtt-types@github:League-of-Foundry-Developers/foundry-vtt-types#main"
+            ],
             "group": "build",
             "presentation": {
                 "echo": true,
@@ -35,7 +39,9 @@
             "label": "Build Macros",
             "type": "shell",
             "command": "node",
-            "args": ["build-macros.js"],
+            "args": [
+                "build-macros.js"
+            ],
             "group": "build",
             "presentation": {
                 "echo": true,

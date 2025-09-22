@@ -23,11 +23,11 @@ class MacroTester {
     async runAllTests() {
         console.log('🧪 Starting FoundryVTT Macro Test Suite...');
         this.startTime = Date.now();
-        
+
         for (const suite of this.testSuites) {
             await this.runSuite(suite);
         }
-        
+
         this.generateReport();
         return this.getPassRate() === 100;
     }
@@ -37,7 +37,7 @@ class MacroTester {
      */
     async runSuite(suite) {
         console.log(`\n📋 Running test suite: ${suite.name}`);
-        
+
         for (const test of suite.tests) {
             await this.runTest(test, suite.name);
         }
@@ -49,17 +49,17 @@ class MacroTester {
     async runTest(test, suiteName) {
         const testName = `${suiteName}: ${test.name}`;
         console.log(`   Testing: ${test.name}`);
-        
+
         try {
             // Setup test environment
             await this.setupTest(test);
-            
+
             // Run the test function
             const result = await test.fn();
-            
+
             // Validate result
             const passed = result === true || result === undefined;
-            
+
             this.testResults.push({
                 suite: suiteName,
                 name: test.name,
@@ -68,9 +68,9 @@ class MacroTester {
                 timestamp: new Date(),
                 duration: Date.now() - this.testStartTime
             });
-            
+
             console.log(`   ${passed ? '✅' : '❌'} ${test.name}`);
-            
+
         } catch (error) {
             this.testResults.push({
                 suite: suiteName,
@@ -80,7 +80,7 @@ class MacroTester {
                 timestamp: new Date(),
                 duration: Date.now() - this.testStartTime
             });
-            
+
             console.log(`   ❌ ${test.name}: ${error.message}`);
         }
     }
@@ -90,12 +90,12 @@ class MacroTester {
      */
     async setupTest(test) {
         this.testStartTime = Date.now();
-        
+
         // Clear previous test artifacts
         if (canvas && canvas.effects) {
             canvas.effects.removeChildren();
         }
-        
+
         // Setup test tokens if needed
         if (test.requiresToken && canvas.tokens.controlled.length === 0) {
             // Try to select first available token
@@ -115,7 +115,7 @@ class MacroTester {
         const failed = this.testResults.filter(r => r.status === 'FAIL').length;
         const errors = this.testResults.filter(r => r.status === 'ERROR').length;
         const total = this.testResults.length;
-        
+
         console.log('\n📊 Test Report');
         console.log('='.repeat(50));
         console.log(`Total tests: ${total}`);
@@ -124,7 +124,7 @@ class MacroTester {
         console.log(`💥 Errors: ${errors}`);
         console.log(`⏱️  Duration: ${(duration / 1000).toFixed(2)}s`);
         console.log(`📈 Pass rate: ${this.getPassRate().toFixed(1)}%`);
-        
+
         if (failed > 0 || errors > 0) {
             console.log('\n❌ Failed/Error Tests:');
             this.testResults
@@ -134,7 +134,7 @@ class MacroTester {
                     console.log(`      ${r.error}`);
                 });
         }
-        
+
         // Generate JSON report for CI/CD
         this.generateJsonReport();
     }
@@ -164,7 +164,7 @@ class MacroTester {
             },
             results: this.testResults
         };
-        
+
         if (typeof require !== 'undefined') {
             const fs = require('fs');
             fs.writeFileSync('./test-results.json', JSON.stringify(report, null, 2));
@@ -184,9 +184,9 @@ class DefaultTestSuites {
                 {
                     name: 'FoundryVTT APIs Available',
                     fn: () => {
-                        return typeof game !== 'undefined' && 
-                               typeof canvas !== 'undefined' && 
-                               typeof ui !== 'undefined';
+                        return typeof game !== 'undefined' &&
+                            typeof canvas !== 'undefined' &&
+                            typeof ui !== 'undefined';
                     }
                 },
                 {
@@ -198,8 +198,8 @@ class DefaultTestSuites {
                 {
                     name: 'JB2A Database Accessible',
                     fn: () => {
-                        return game.modules.get('jb2a_patreon')?.active || 
-                               game.modules.get('JB2A_DnD5e')?.active;
+                        return game.modules.get('jb2a_patreon')?.active ||
+                            game.modules.get('JB2A_DnD5e')?.active;
                     }
                 },
                 {
@@ -231,14 +231,14 @@ class DefaultTestSuites {
                         if (canvas.tokens.controlled.length === 0) {
                             throw new Error('No token selected for test');
                         }
-                        
+
                         const token = canvas.tokens.controlled[0];
                         const seq = new Sequence()
                             .effect()
-                                .file("jb2a.explosion.01.orange")
-                                .atLocation(token)
-                                .duration(1000);
-                        
+                            .file("jb2a.explosion.01.orange")
+                            .atLocation(token)
+                            .duration(1000);
+
                         return seq !== null;
                     }
                 },
@@ -248,9 +248,9 @@ class DefaultTestSuites {
                     fn: async () => {
                         const seq = new Sequence()
                             .sound()
-                                .file("assets/sounds/test.wav")
-                                .volume(0.1);
-                        
+                            .file("assets/sounds/test.wav")
+                            .volume(0.1);
+
                         return seq !== null;
                     }
                 }
@@ -268,12 +268,12 @@ class DefaultTestSuites {
                     fn: () => {
                         // Test the common token selection pattern
                         const caster = canvas.tokens.controlled[0];
-                        
+
                         if (!caster) {
                             // This should handle gracefully
                             return true; // Expected behavior
                         }
-                        
+
                         return typeof caster.name === 'string';
                     }
                 },
@@ -283,7 +283,7 @@ class DefaultTestSuites {
                     fn: () => {
                         // Test notification without actually showing it
                         return typeof ui.notifications !== 'undefined' &&
-                               typeof ui.notifications.warn === 'function';
+                            typeof ui.notifications.warn === 'function';
                     }
                 },
                 {
@@ -291,7 +291,7 @@ class DefaultTestSuites {
                     requiresToken: false,
                     fn: () => {
                         return typeof game.settings !== 'undefined' &&
-                               typeof game.settings.get === 'function';
+                            typeof game.settings.get === 'function';
                     }
                 }
             ]
@@ -304,15 +304,15 @@ class DefaultTestSuites {
  */
 async function runMacroTests() {
     const tester = new MacroTester();
-    
+
     // Add default test suites
     tester.addSuite('Basic Functionality', DefaultTestSuites.getBasicTests().tests);
     tester.addSuite('Sequencer Functionality', DefaultTestSuites.getSequencerTests().tests);
     tester.addSuite('Macro Integration', DefaultTestSuites.getMacroTests().tests);
-    
+
     // Run all tests
     const success = await tester.runAllTests();
-    
+
     return success;
 }
 

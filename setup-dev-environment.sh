@@ -38,7 +38,7 @@ print_error() {
 
 check_requirements() {
     print_step 1 "Checking system requirements"
-    
+
     # Check Node.js
     if command -v node &> /dev/null; then
         NODE_VERSION=$(node --version)
@@ -47,7 +47,7 @@ check_requirements() {
         print_error "Node.js not found. Please install Node.js 18+ from https://nodejs.org/"
         exit 1
     fi
-    
+
     # Check npm
     if command -v npm &> /dev/null; then
         NPM_VERSION=$(npm --version)
@@ -56,7 +56,7 @@ check_requirements() {
         print_error "npm not found. Please install npm"
         exit 1
     fi
-    
+
     # Check if FoundryVTT directory exists
     if [ -d "$FOUNDRY_DIR" ]; then
         print_success "FoundryVTT directory found: $FOUNDRY_DIR"
@@ -68,7 +68,7 @@ check_requirements() {
 
 setup_node_environment() {
     print_step 2 "Setting up Node.js environment"
-    
+
     # Install dependencies
     if [ -f "package.json" ]; then
         print_success "Installing npm dependencies..."
@@ -77,7 +77,7 @@ setup_node_environment() {
         print_error "package.json not found!"
         exit 1
     fi
-    
+
     # Install FoundryVTT types
     print_success "Installing FoundryVTT TypeScript definitions..."
     npm run install-types
@@ -85,13 +85,13 @@ setup_node_environment() {
 
 create_development_structure() {
     print_step 3 "Creating development directory structure"
-    
+
     # Create macro development directories
     mkdir -p macro-dev/{src,dist,tests}
     mkdir -p macro-dev/src/{basic,intermediate,advanced,characters,utilities}
-    
+
     print_success "Created macro development directories"
-    
+
     # Create example macro if none exists
     if [ ! -f "macro-dev/src/basic/example-spell.js" ]; then
         cat > macro-dev/src/basic/example-spell.js << 'EOF'
@@ -135,18 +135,18 @@ EOF
 
 setup_vscode_integration() {
     print_step 4 "Setting up VS Code integration"
-    
+
     # Check if VS Code is installed
     if command -v code &> /dev/null; then
         print_success "VS Code found"
-        
+
         # Install recommended extensions
         echo "Installing recommended VS Code extensions..."
         code --install-extension ms-vscode.vscode-typescript-next --force
         code --install-extension GitHub.copilot --force
         code --install-extension GitHub.copilot-chat --force
         code --install-extension ms-vscode.vscode-json --force
-        
+
         print_success "VS Code extensions installed"
     else
         print_warning "VS Code not found. Install from https://code.visualstudio.com/"
@@ -159,18 +159,18 @@ setup_vscode_integration() {
 
 test_setup() {
     print_step 5 "Testing development environment"
-    
+
     # Test TypeScript compilation
     if npx tsc --noEmit; then
         print_success "TypeScript configuration valid"
     else
         print_warning "TypeScript configuration needs adjustment"
     fi
-    
+
     # Test build system
     echo "Testing macro build system..."
     npm run build
-    
+
     if [ $? -eq 0 ]; then
         print_success "Build system working correctly"
     else
@@ -180,7 +180,7 @@ test_setup() {
 
 create_startup_script() {
     print_step 6 "Creating development startup script"
-    
+
     cat > start-dev.sh << 'EOF'
 #!/bin/bash
 

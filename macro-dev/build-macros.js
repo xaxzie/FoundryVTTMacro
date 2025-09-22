@@ -19,16 +19,16 @@ class MacroBuilder {
      */
     async build() {
         console.log('🏗️  Starting macro build process...');
-        
+
         // Ensure dist directory exists
         this.ensureDirectory(this.distDir);
-        
+
         // Process all source files
         this.processDirectory('');
-        
+
         // Generate build report
         this.generateReport();
-        
+
         return this.errors.length === 0;
     }
 
@@ -37,15 +37,15 @@ class MacroBuilder {
      */
     processDirectory(dir) {
         const srcPath = path.join(this.srcDir, dir);
-        
+
         if (!fs.existsSync(srcPath)) {
             console.log('📁 Source directory not found, creating example structure...');
             this.createExampleStructure();
             return;
         }
-        
+
         const entries = fs.readdirSync(srcPath, { withFileTypes: true });
-        
+
         for (const entry of entries) {
             if (entry.isDirectory()) {
                 this.processDirectory(path.join(dir, entry.name));
@@ -62,27 +62,27 @@ class MacroBuilder {
         try {
             const srcPath = path.join(this.srcDir, dir, filename);
             const distPath = path.join(this.distDir, dir, filename);
-            
+
             let content = fs.readFileSync(srcPath, 'utf8');
-            
+
             // Transform development code to production
             content = this.transformCode(content, filename);
-            
+
             // Ensure dist subdirectory exists
             const distSubDir = path.dirname(distPath);
             this.ensureDirectory(distSubDir);
-            
+
             // Write transformed code
             fs.writeFileSync(distPath, content);
-            
+
             this.builtFiles.push({
                 src: srcPath,
                 dist: distPath,
                 size: content.length
             });
-            
+
             console.log(`✅ Built: ${srcPath} -> ${distPath}`);
-            
+
         } catch (error) {
             this.errors.push({
                 file: path.join(dir, filename),
@@ -97,36 +97,36 @@ class MacroBuilder {
      */
     transformCode(content, filename) {
         let transformed = content;
-        
+
         // Remove development comments and JSDoc
         transformed = transformed.replace(/\/\*\*[\s\S]*?\*\//g, '');
         transformed = transformed.replace(/\/\*[\s\S]*?\*\//g, '');
         transformed = transformed.replace(/\/\/.*$/gm, '');
-        
+
         // Remove type annotations and comments
         transformed = transformed.replace(/\/\*\* @type \{.*?\} \*\//g, '');
         transformed = transformed.replace(/\/\/ Type-safe.*$/gm, '');
-        
+
         // Remove development-only code blocks
         transformed = transformed.replace(
-            /if \(game\.settings\.get\("core", "debug"\)\) \{[\s\S]*?\}/g, 
+            /if \(game\.settings\.get\("core", "debug"\)\) \{[\s\S]*?\}/g,
             ''
         );
-        
+
         // Remove console.log statements
         transformed = transformed.replace(/console\.log\([^)]*\);?/g, '');
         transformed = transformed.replace(/console\.debug\([^)]*\);?/g, '');
-        
+
         // Remove development assertions
         transformed = transformed.replace(/console\.assert\([^)]*\);?/g, '');
-        
+
         // Clean up extra whitespace
         transformed = transformed.replace(/\n\s*\n\s*\n/g, '\n\n');
         transformed = transformed.trim();
-        
+
         // Add production header
         const header = `/**\n * Macro: ${this.getDisplayName(filename)}\n * Built: ${new Date().toISOString()}\n */\n\n`;
-        
+
         return header + transformed;
     }
 
@@ -155,11 +155,11 @@ class MacroBuilder {
      */
     createExampleStructure() {
         const exampleDirs = ['basic', 'intermediate', 'advanced', 'characters', 'utilities'];
-        
+
         for (const dir of exampleDirs) {
             this.ensureDirectory(path.join(this.srcDir, dir));
         }
-        
+
         // Create example macro
         const exampleMacro = `/**
  * @file Example Spell Macro
@@ -195,7 +195,7 @@ new Sequence()
         .volume(0.3)
     .play();
 `;
-        
+
         fs.writeFileSync(path.join(this.srcDir, 'basic', 'example-spell.js'), exampleMacro);
         console.log('📝 Created example macro structure');
     }
@@ -207,7 +207,7 @@ new Sequence()
         console.log('\n📊 Build Report:');
         console.log(`✅ Successfully built: ${this.builtFiles.length} files`);
         console.log(`❌ Errors: ${this.errors.length}`);
-        
+
         if (this.builtFiles.length > 0) {
             console.log('\n📁 Built files:');
             for (const file of this.builtFiles) {
@@ -215,14 +215,14 @@ new Sequence()
                 console.log(`   ${file.dist} (${sizeKB} KB)`);
             }
         }
-        
+
         if (this.errors.length > 0) {
             console.log('\n❌ Build errors:');
             for (const error of this.errors) {
                 console.log(`   ${error.file}: ${error.error}`);
             }
         }
-        
+
         console.log('\n🎉 Build complete!');
     }
 }

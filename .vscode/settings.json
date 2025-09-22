@@ -1,35 +1,35 @@
 {
-  "typescript.preferences.includePackageJsonAutoImports": "auto",
-  "typescript.suggest.autoImports": true,
-  "javascript.preferences.includePackageJsonAutoImports": "auto",
-  "javascript.suggest.autoImports": true,
-  "files.associations": {
-    "*.js": "javascript"
-  },
-  "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit"
-  },
-  "typescript.validate.enable": true,
-  "javascript.validate.enable": true,
-  "editor.formatOnSave": true,
-  "editor.tabSize": 4,
-  "editor.insertSpaces": true,
-  "files.trimTrailingWhitespace": true,
-  "files.insertFinalNewline": true,
-  "explorer.fileNesting.enabled": true,
-  "explorer.fileNesting.patterns": {
-    "*.js": "${capture}.md, ${capture}.txt",
-    "package.json": "package-lock.json, tsconfig*.json, .gitignore, .prettierrc*, .eslintrc*"
-  },
-  "search.exclude": {
-    "**/node_modules": true,
-    "**/foundrydata": true,
-    "**/dist": true,
-    "**/.git": true
-  },
-  "files.watcherExclude": {
-    "**/foundrydata/**": true,
-    "**/node_modules/**": true,
-    "**/dist/**": true
-  }
+    "typescript.preferences.includePackageJsonAutoImports": "auto",
+    "typescript.suggest.autoImports": true,
+    "javascript.preferences.includePackageJsonAutoImports": "auto",
+    "javascript.suggest.autoImports": true,
+    "files.associations": {
+        "*.js": "javascript"
+    },
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit"
+    },
+    "typescript.validate.enable": true,
+    "javascript.validate.enable": true,
+    "editor.formatOnSave": true,
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.patterns": {
+        "*.js": "${capture}.md, ${capture}.txt",
+        "package.json": "package-lock.json, tsconfig*.json, .gitignore, .prettierrc*, .eslintrc*"
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/foundrydata": true,
+        "**/dist": true,
+        "**/.git": true
+    },
+    "files.watcherExclude": {
+        "**/foundrydata/**": true,
+        "**/node_modules/**": true,
+        "**/dist/**": true
+    }
 }
