@@ -1,11 +1,11 @@
 # FoundryVTT Spell Animation Collection for Custom R### At a Glance:
 - **35 total spell animation macros** (including examples)
 - **Custom RPG focus**: Core macros designed for specific combat mechanics
-- **3 essential modules**: Sequencer + JB2A + Warp Gate
-- **100% require Sequencer** (core animation system)
-- **97% require JB2A** (visual effects)
-- **29% require Warp Gate** (advanced targeting)
-- **Requires Carousel Combat Track** (turn order management)ecialized collection of FoundryVTT macros using the [Sequencer](https://fantasycomputer.works/FoundryVTT-Sequencer) module designed specifically for a custom tabletop RPG system. This repository focuses exclusively on **spell animation effects** for spells used by both NPCs and players in a turn-based, ta## 📖 Learning Resources
+- **All modules pre-installed**: Complete effect library available on server
+- **100% use Sequencer** (core animation system)
+- **Multiple effect libraries**: JB2A Free + Patreon + Animated Spell Effects available
+- **Advanced targeting**: Warp Gate crosshair system ready
+- **Combat integration**: Carousel Combat Track for turn order managementecialized collection of FoundryVTT macros using the [Sequencer](https://fantasycomputer.works/FoundryVTT-Sequencer) module designed specifically for a custom tabletop RPG system. This repository focuses exclusively on **spell animation effects** for spells used by both NPCs and players in a turn-based, ta## 📖 Learning Resources
 
 - [Official Sequencer Wiki](https://fantasycomputer.works/FoundryVTT-Sequencer)
 - [Sequencer API Reference](./docs/sequencer-reference.md)
@@ -98,35 +98,56 @@ TestFoundry/
 └── assets/                    # Custom sounds, images, and effects
 ```
 
-## 🚀 Prerequisites
+## 🚀 Server Setup
 
-### Core Required Modules
+### Pre-Installed Modules ✅
 
-#### 1. **Sequencer** ⭐ **ESSENTIAL**
-- **Description**: Core module for all visual effects and animations
-- **Install URL**: `https://github.com/FantasyCalendar/FoundryVTT-Sequencer/releases/latest/download/module.json`
-- **Usage**: Required for ALL macros in this collection
-- **Version**: Latest stable version recommended
+All required modules are **already installed and enabled** on the server:
 
-#### 2. **JB2A - Jules&Ben's Animated Assets** ⭐ **ESSENTIAL**
-- **Description**: Provides visual effects used in 95% of macros
-- **Free Package**: `jb2a_dnd5e` 
-- **Patreon Package**: `jb2a_patreon` (extended effects)
-- **GitHub**: [Free Version Downloads](https://github.com/Jules-Bens-Aa/JB2A_DnD5e/releases)
-- **Usage**: Required for ALL macros except basic sound-only effects
+#### Core Animation System
+- ✅ **Sequencer** - Essential animation framework (latest stable version)
 
-#### 3. **Warp Gate** ⭐ **REQUIRED for Spell Targeting**
-- **Description**: Provides crosshair targeting and advanced token manipulation for spell casting
-- **Package**: `warpgate`
-- **Usage**: Required for ALL character-specific spells and targeted effects
-- **Features**: `warpgate.crosshairs.show()` for spell targeting system
+#### Visual Effects Libraries  
+- ✅ **JB2A - Jules&Ben's Animated Assets (Free)** - Comprehensive free effect library
+- ✅ **JB2A - Jules&Ben's Animated Assets (Patreon)** - Extended premium effects
+- ✅ **Animated Spell Effects** - Additional spell effect options
+- ✅ **Animated Spell Effects - Cartoon** - Cartoon-style visual effects
 
-#### 4. **Carousel Combat Track** ⭐ **REQUIRED for RPG System**
-- **Description**: Turn order management for the custom RPG combat system
-- **Package**: Search "carousel" or "combat track" in FoundryVTT modules
-- **Usage**: Required for turn-based combat mechanics and initiative tracking
-- **Documentation**: [Carousel Combat Track Documentation](https://wiki.theripper93.com/free/combat-tracker-dock)
-- **API Integration**: Full combat state access with verified turn validation capabilities
+#### Targeting & Combat Systems
+- ✅ **Warp Gate** - Advanced crosshair targeting for spell casting
+- ✅ **Carousel Combat Track** - Turn order management for RPG system
+
+### Effect Library Access
+
+With multiple effect libraries installed, spells can choose from:
+
+```javascript
+// JB2A Free effects
+"jb2a.magic_missile.01.blue"
+
+// JB2A Patreon effects  
+"jb2a.healing_generic.burst.greenorange"
+
+// Animated Spell Effects
+"modules/animated-spell-effects/spell-effects/ice-spear.webm"
+
+// Animated Spell Effects Cartoon
+"modules/animated-spell-effects-cartoon/spell-effects/fireball-cartoon.webm"
+```
+
+### Module Dependencies by Macro Category
+
+| Macro Category | Sequencer | JB2A | Warp Gate | Carousel Combat | Animated Effects |
+|----------------|-----------|------|-----------|-----------------|------------------|
+| **Basic** | ✅ | ✅ | ❌ | 🔸 | ❌ |
+| **Intermediate** | ✅ | ✅ | ❌ | 🔸 | Available |
+| **Advanced** | ✅ | ✅ | ✅ | ✅ | Available |
+| **Spells** | ✅ | ✅ | ✅ | ✅ | Available |
+| **Utilities** | ✅ | ✅ | ✅ | ✅ | Available |
+| **Templates** | ✅ | ✅ | ✅ | ✅ | Available |
+| **Examples** | ✅ | ✅ | ✅ | ❌ | Available |
+
+> ✅ = Always used | 🔸 = Optional for RPG integration | Available = Can be used as alternative or enhancement
 
 ## 🔗 Combat Integration API
 
@@ -171,11 +192,6 @@ function validateSpellCasting(casterToken, spellName) {
         return false;
     }
     
-    // Additional checks can be added here:
-    // - Combatant not defeated: !activeCombatant.defeated
-    // - Specific round requirements: combat.round >= requiredRound
-    // - Initiative-based effects: activeCombatant.initiative
-    
     return true;
 }
 
@@ -194,72 +210,6 @@ function getCombatInfo() {
     };
 }
 ```
-
-### Optional Enhancement Modules
-
-#### 5. **Animated Spell Effects** (Optional)
-- **Package**: `animated-spell-effects`
-- **Usage**: Used in `acid-splash.js` macro only
-- **Alternative**: Can be replaced with JB2A effects
-
-#### 6. **Animated Spell Effects - Cartoon** (Optional)
-- **Package**: `animated-spell-effects-cartoon`
-- **Usage**: Used in `acid-splash.js` macro only
-- **Alternative**: Can be replaced with JB2A effects
-
-### Module Installation Priority
-
-```
-Priority 1 (Essential for RPG System):
-✅ Sequencer
-✅ JB2A - Jules&Ben's Animated Assets  
-✅ Warp Gate
-✅ Carousel Combat Track
-
-Priority 2 (Recommended):
-🔸 JB2A Patreon (for enhanced effects)
-
-Priority 3 (Optional):
-🔹 Animated Spell Effects
-🔹 Animated Spell Effects - Cartoon
-```
-
-### Module Dependencies by Macro Category
-
-| Macro Category | Sequencer | JB2A | Warp Gate | Carousel Combat | Other |
-|----------------|-----------|------|-----------|-----------------|-------|
-| **Basic** | ✅ | ✅ | ❌ | 🔸 | ❌ |
-| **Intermediate** | ✅ | ✅ | ❌ | 🔸 | Animated Effects (1 macro) |
-| **Advanced** | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Spells** | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Utilities** | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Templates** | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Examples** | ✅ | ✅ | ✅ | ❌ | ❌ |
-
-> 🔸 = Optional but recommended for RPG integration
-
-### Quick Installation Guide
-
-1. **Install Sequencer**:
-   - FoundryVTT → Add-on Modules → Install Module
-   - Paste: `https://github.com/FantasyCalendar/FoundryVTT-Sequencer/releases/latest/download/module.json`
-
-2. **Install JB2A**:
-   - Search "JB2A" in module browser
-   - Install "JB2A - Jules&Ben's Animated Assets"
-
-3. **Install Warp Gate**:
-   - Search "Warp Gate" in module browser
-   - Install for spell targeting and character macros
-
-4. **Install Carousel Combat Track**:
-   - Search "carousel" or "combat track" in module browser
-   - Install for turn order management in RPG system
-
-5. **Enable Modules**:
-   - Go to World Settings → Manage Modules
-   - Enable: Sequencer, JB2A, Warp Gate, Carousel Combat Track
-   - Restart world
 
 ## 📋 Quick Start Guide
 
@@ -423,10 +373,32 @@ Add your spell sound files to `/assets/sounds/`:
 ## 🔧 Customization
 
 ### File Paths
-Most spell macros use placeholder paths. Update these to match your installed effect modules:
-- **JB2A Free**: `modules/jb2a_patreon/Library/...`
-- **JB2A Patreon**: `modules/JB2A_DnD5e/Library/...`
-- **Animated Spell Effects**: `modules/animated-spell-effects/...`
+Effect macros can use any of the pre-installed libraries:
+
+**JB2A Free Effects**:
+```javascript
+"jb2a.magic_missile.01.blue"
+"jb2a.explosion.01.orange"
+```
+
+**JB2A Patreon Effects**:
+```javascript
+"jb2a.healing_generic.burst.greenorange" 
+"jb2a.cast_generic.01.blue.0"
+```
+
+**Animated Spell Effects**:
+```javascript
+"modules/animated-spell-effects/spell-effects/ice-spear.webm"
+"modules/animated-spell-effects/spell-effects/fireball.webm"
+```
+
+**Animated Spell Effects Cartoon**:
+```javascript
+"modules/animated-spell-effects-cartoon/spell-effects/explosion-cartoon.webm"
+```
+
+Use the **Sequencer Database Viewer** to browse all available effects from installed libraries.
 
 ### Token Selection for Spells
 Spell macros use different token selection methods:
@@ -505,21 +477,21 @@ We welcome spell animation contributions that fit our custom RPG system! Please 
 ### Module Requirements & Troubleshooting
 
 #### **Missing Module Errors**
-If you encounter errors like:
-- `"Sequencer is not defined"` → Install and enable Sequencer module
-- `"warpgate is not defined"` → Install Warp Gate for spell targeting
-- `"Cannot find effect file"` → Install JB2A module
-- `"Carousel Combat Track not found"` → Install carousel combat module
+All required modules are pre-installed on the server. If you encounter errors:
+- `"Sequencer is not defined"` → Contact server admin (module may be disabled)
+- `"warpgate is not defined"` → Contact server admin (module may be disabled)
+- `"Cannot find effect file"` → Check file path or use Sequencer Database Viewer
+- `"Carousel Combat Track not found"` → Contact server admin (module may be disabled)
 
 #### **Spell Effect File Not Found**
-- **JB2A Free vs Patreon**: Some spell macros reference Patreon effects
-- **Solution**: Update file paths to use available effects
-- **Use**: Sequencer Database Viewer to find available spell effects
+- **Multiple Libraries**: Choose from JB2A Free, JB2A Patreon, Animated Spell Effects, or Cartoon variants
+- **Solution**: Use Sequencer Database Viewer to find available spell effects
+- **Path Examples**: See [File Paths](#file-paths) section for correct syntax
 
 #### **Spell Targeting Issues**
 - **Problem**: `warpgate.crosshairs.show()` not working
-- **Solution**: Ensure Warp Gate module is installed and enabled
-- **Alternative**: Replace with `Sequencer.Crosshair.show()` (older syntax)
+- **Solution**: Warp Gate is pre-installed - contact server admin if issues persist
+- **Alternative**: Use `Sequencer.Crosshair.show()` (older syntax) if needed
 
 #### **Turn Order Integration**
 - **Verified API**: Carousel Combat Track provides full combat state access
