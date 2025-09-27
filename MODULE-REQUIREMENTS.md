@@ -1,17 +1,183 @@
 # FoundryVTT Module Requirements
 
-## Quick Reference for All Macros
+## Core System
+- **Simple World Building System** - [Documentation](https://github.com/foundryvtt/worldbuilding)
+  - Base system for world creation and management
+  - Provides flexible framework for custom content
+  - Perfect for custom macro development and testing
 
-This document provides a comprehensive list of all FoundryVTT modules available for the macros in this collection.
+## Essential Animation Framework
+- **The Sequencer** - [Documentation](https://github.com/fantasycalendar/FoundryVTT-Sequencer)
+  - Core animation framework for all effects
+  - Powerful API for creating complex animation sequences
+  - Timeline-based effect management
+  - Effect preloading and caching
+  - Sound synchronization capabilities
 
-## Pre-Installed Modules on Server ✅
+## Visual Effect Libraries
+
+### Primary Asset Collections
+- **JB2A - Jules&Ben's Animated Assets**
+  - [Free Version](https://github.com/Jules-Bens-Aa/JB2A_DnD5e)
+  - [Premium Version](https://www.patreon.com/JB2A)
+  - Extensive library of high-quality animations
+  - Perfect for spell effects, weapon attacks, and environmental effects
+  - Premium version includes additional variants and higher quality assets
+
+### Additional Effect Collections
+- **Jack Kerouac's Animated Spell Effects**
+  - [Base Collection](https://github.com/jackkerouac/animated-spell-effects)
+  - [Cartoon Collection](https://github.com/jackkerouac/animated-spell-effects-cartoon)
+  - Alternative style for spell animations
+  - Great for unique visual variations
+
+- **Jinker's Animated Art Pack** - [Documentation](https://github.com/jinkergm/JAA)
+  - Complementary animated assets
+  - Additional visual styles and effects
+
+### Visual Enhancement Tools
+- **Token Magic FX** - [Documentation](https://github.com/Feu-Secret/Tokenmagic)
+  - Token-specific visual effects and filters
+  - Perfect for status effects and persistent animations
+  - Can enhance existing animations with filters
+
+- **Gambit FXMaster** - [Documentation](https://github.com/gambit07/fxmaster)
+  - Weather effects and environmental animations
+  - Scene-wide particle systems
+  - Atmospheric effects for enhanced immersion
+
+- **Parallax Tiles** - [Documentation](https://github.com/EndlesNights/parallax-tiles)
+  - Depth effects for scenes
+  - Moving backgrounds and environmental elements
+  - Enhanced visual depth for animations
+
+## Animation Automation & Control
+
+### Animation Automation
+- **Automated Animations** - [Documentation](https://github.com/theripper93/autoanimations)
+  - Automatic triggering of animations based on actions
+  - Integration with combat and item usage
+  - Streamlined workflow for common effects
+
+### Token Control & Enhancement
+- **Token Attacher** - [Documentation](https://github.com/KayelGee/token-attacher)
+  - Attach effects and elements to tokens
+  - Create complex moving animations
+  - Perfect for persistent effects that follow tokens
+
+- **Token Mold** - [Documentation](https://github.com/Moerill/token-mold)
+  - Token customization and automation
+  - Can be used to enhance token-based animations
+  - Useful for mass token modifications
+
+## Combat & Interface Enhancement
+- **Combat Tracker Dock** - [Documentation](https://github.com/theripper93/combat-tracker-dock)
+  - Enhanced combat interface
+  - Better visualization of turn order
+  - Can be used to trigger combat-based animations
+
+## Audio Enhancement
+- **SoundFx Library** - [Documentation](https://github.com/MaterialFoundry/SoundFxLibrary)
+  - Extensive collection of sound effects
+  - Perfect for enhancing animations with audio
+  - Can be synchronized with Sequencer animations
+
+## Technical Utilities
+
+### Core Utilities
+- **Advanced Macros** - [Documentation](https://github.com/mclemente/fvtt-advanced-macros)
+  - Enhanced macro capabilities
+  - Better argument handling
+  - Improved macro organization
+
+- **libWrapper** - [Documentation](https://github.com/ruipin/fvtt-lib-wrapper)
+  - Safe module patching
+  - Essential for complex module interactions
+  - Helps prevent conflicts between modules
+
+- **socketlib** - [Documentation](https://github.com/farling42/foundryvtt-socketlib)
+  - Simplified socket handling
+  - Perfect for multi-user animations
+  - Synchronization of effects across clients
+
+### World Building Enhancement
+- **Simple WorldBuilding Plus** - [Documentation](https://gitlab.com/asacolips-projects/foundry-mods/simple-worldbuilding-plus)
+  - Enhanced world building features
+  - Additional customization options
+  - Extended system capabilities
+
+### Special Mention
+- **Warpgate** - [Forked Version](https://github.com/anandamideio/warp-gate-2)
+  - Advanced token spawning and manipulation
+  - Crosshair targeting system
+  - Token transformation effects
+  - Note: Using community-maintained fork
+
+## Module Usage Matrix for Macro Creation
+
+| Module Category | Animation Creation | Effect Enhancement | Technical Support | Audio Support |
+|----------------|-------------------|-------------------|-------------------|---------------|
+| Core Animation | Sequencer         | FXMaster          | libWrapper        | SoundFx Library |
+| Visual Assets  | JB2A, Animated Spell Effects | Token Magic FX | Advanced Macros | - |
+| Automation     | Automated Animations | Token Attacher  | socketlib         | - |
+| Enhancement    | Parallax Tiles    | Token Mold        | Warpgate          | - |
+
+## Best Practices for Macro Creation
+
+### Visual Effects
+1. Start with Sequencer as your base animation framework
+2. Use JB2A assets as primary effect source
+3. Enhance with Token Magic FX for persistent effects
+4. Add environmental effects using FXMaster
+5. Implement parallax for depth when appropriate
+
+### Audio Integration
+1. Use SoundFx Library for effect audio
+2. Synchronize with Sequencer's timeline
+3. Layer multiple sounds for complex effects
+
+### Automation
+1. Implement Automated Animations for common effects
+2. Use Token Attacher for moving effects
+3. Enhance with Token Mold for mass applications
+4. Utilize Warpgate for advanced token manipulation
+
+### Technical Implementation
+1. Use Advanced Macros for complex logic
+2. Implement socketlib for multi-user synchronization
+3. Use libWrapper for safe module integration
+4. Leverage Simple WorldBuilding Plus features
+
+## Performance Considerations
+
+### High Impact Modules
+- FXMaster with multiple particle effects
+- Token Magic FX with multiple filters
+- Automated Animations with many triggers
+
+### Low Impact Modules
+- libWrapper
+- Advanced Macros
+- socketlib
+- Token Mold
+
+### Medium Impact Modules
+- Sequencer (depends on effect complexity)
+- JB2A (depends on asset size)
+- Token Attacher
+- Parallax Tiles
+
+---
+
+*Last Updated: September 27, 2025*
+*Note: All modules listed are tested and compatible with the current FoundryVTT version*
 
 All required modules are **already installed and enabled** on the server:
 
 ### Core Animation System
 - ✅ **Sequencer** - Essential animation framework (latest stable version)
 
-### Visual Effects Libraries  
+### Visual Effects Libraries
 - ✅ **JB2A - Jules&Ben's Animated Assets (Free)** - Comprehensive free effect library (~1.5GB, 2000+ effects)
 - ✅ **JB2A - Jules&Ben's Animated Assets (Patreon)** - Extended premium effects (~8GB+, 5000+ effects)
 - ✅ **Animated Spell Effects** - Additional spell effect animations
@@ -39,18 +205,18 @@ With all libraries pre-installed, macros can choose from multiple effect sources
 | **Templates** | 2 templates | ✅ Always | ✅ Always | � Optional | Available |
 | **Utilities** | 2 utilities | ✅ Always | ✅ Always | ❌ Not used | Available |
 
-**Total Macros**: 31 files + examples  
-**Use Sequencer**: 100% (core animation system)  
-**Use JB2A**: 97% (primary effect library)  
-**Use Warp Gate**: Character macros (advanced targeting)  
-**Animated Effects**: Available as alternative/enhancement  
+**Total Macros**: 31 files + examples
+**Use Sequencer**: 100% (core animation system)
+**Use JB2A**: 97% (primary effect library)
+**Use Warp Gate**: Character macros (advanced targeting)
+**Animated Effects**: Available as alternative/enhancement
 
 ## Server Configuration ✅
 
 ### All Modules Pre-Enabled
 No installation required! All modules are already:
 - ✅ **Installed** on the server
-- ✅ **Enabled** in the world settings  
+- ✅ **Enabled** in the world settings
 - ✅ **Updated** to latest compatible versions
 - ✅ **Configured** for optimal performance
 
@@ -142,8 +308,8 @@ For spell development:
 
 ---
 
-*Server Configuration: All modules pre-installed and optimized*  
-*Last updated: September 2025*  
+*Server Configuration: All modules pre-installed and optimized*
+*Last updated: September 2025*
 *Effect libraries: 7000+ combined effects available*
 
 ## Potential Enhancement Modules (Not Yet Installed)
@@ -160,7 +326,7 @@ For spell development:
 - **Best For**: Persistent spell effects, token-attached auras, multi-part animations
 - **Compatibility**: Works perfectly with Sequencer for token-attached effects
 
-#### **Tagger** (FREE)  
+#### **Tagger** (FREE)
 - **Purpose**: Tag scene objects and retrieve them programmatically
 - **Sequencer Benefits**: Target multiple objects by tags instead of manual selection, organize spell targets
 - **Best For**: Area effect spells, multi-target animations, scene organization
@@ -218,7 +384,7 @@ For spell development:
 - **Best For**: Scene transitions, dramatic moments, combat start sequences
 
 #### **PSFX - Peri's Sound Effects for JB2A** (FREE)
-- **Purpose**: Curated sound effects specifically for JB2A animations  
+- **Purpose**: Curated sound effects specifically for JB2A animations
 - **Sequencer Benefits**: Professional audio pairing with visual effects
 - **Best For**: Complete audio-visual spell experiences
 - **Quality**: High-quality sounds designed for animation synchronization
@@ -226,7 +392,7 @@ For spell development:
 ### Installation Priority
 
 1. **High Priority** (Free, High Impact): Token Attacher, Tagger, Monk's Active Tiles
-2. **Medium Priority** (Enhanced Features): Advanced Macros, FXMaster, Times Up  
+2. **Medium Priority** (Enhanced Features): Advanced Macros, FXMaster, Times Up
 3. **Visual Enhancement**: Parallax Tiles, Token Animator, Battle Transitions
 4. **Audio Enhancement**: PSFX Sound Effects
 5. **Advanced Features**: Levels (if 3D effects needed)
