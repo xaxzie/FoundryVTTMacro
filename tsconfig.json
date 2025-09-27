@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "types": ["fvtt-types"],
+    "target": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "lib": ["esnext", "dom"],
+    "allowJs": true,
+    "checkJs": false,
+    "declaration": false,
+    "outDir": "./dist",
+    "rootDir": "./",
+    "removeComments": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "macros/**/*",
+    "utilities/**/*",
+    "src/**/*",
+    "macro-dev/src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "foundrydata",
+    "examples/**/*"
+  ]
+}

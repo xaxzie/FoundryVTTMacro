@@ -1,0 +1,91 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start FoundryVTT Dev Server",
+            "type": "shell",
+            "command": "./start-foundry-dev.sh",
+            "group": "build",
+            "isBackground": true,
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/../FoundryVTT-Local"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Install FoundryVTT Types",
+            "type": "shell",
+            "command": "npm",
+            "args": [
+                "install",
+                "-D",
+                "fvtt-types@github:League-of-Foundry-Developers/foundry-vtt-types#main"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Build Macros",
+            "type": "shell",
+            "command": "node",
+            "args": [
+                "build-macros.js"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "options": {
+                "cwd": "${workspaceFolder}/macro-dev"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Deploy Macros to FoundryVTT",
+            "type": "shell",
+            "command": "cp",
+            "args": [
+                "-r",
+                "macro-dev/dist/*",
+                "../FoundryVTT-Local/foundrydata/Data/worlds/macro-development/scripts/"
+            ],
+            "group": "build",
+            "dependsOn": "Build Macros",
+            "problemMatcher": []
+        },
+        {
+            "label": "Full Development Cycle",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Build Macros",
+                "Deploy Macros to FoundryVTT"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "Setup Development Environment",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Install FoundryVTT Types"
+            ],
+            "group": "build"
+        }
+    ]
+}
