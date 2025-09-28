@@ -107,11 +107,12 @@
   - Extended system capabilities
 
 ### Special Mention
-- **Warpgate** - [Forked Version](https://github.com/anandamideio/warp-gate-2)
+- **Portal** - [Documentation](https://wiki.theripper93.com/free/portal-lib)
   - Advanced token spawning and manipulation
-  - Crosshair targeting system
-  - Token transformation effects
-  - Note: Using community-maintained fork
+  - Location picking with templates
+  - Token transformation and teleportation
+  - Built-in dialog system for complex interactions
+  - Note: Free module by TheRipper93
 
 ## Module Usage Matrix for Macro Creation
 
@@ -119,8 +120,8 @@
 |----------------|-------------------|-------------------|-------------------|---------------|
 | Core Animation | Sequencer         | FXMaster          | libWrapper        | SoundFx Library |
 | Visual Assets  | JB2A, Animated Spell Effects | Token Magic FX | Advanced Macros | - |
-| Automation     | Automated Animations | Token Attacher  | socketlib         | - |
-| Enhancement    | Parallax Tiles    | Token Mold        | Warpgate          | - |
+| Automation     | Automated Animations | Token Attacher  | Portal          | - |
+| Enhancement    | Parallax Tiles    | Token Mold        | socketlib        | - |
 
 ## Best Practices for Macro Creation
 
@@ -193,16 +194,16 @@ With all libraries pre-installed, macros can choose from multiple effect sources
 
 ## Module Requirements by Macro Category
 
-| Category | File Count | Sequencer | JB2A | Warp Gate | Animated Effects |
-|----------|------------|-----------|------|-----------|------------------|
+| Category | File Count | Sequencer | JB2A | Portal | Animated Effects |
+|----------|------------|-----------|------|---------|------------------|
 | **Basic** | 7 macros | ✅ Always | ✅ Always | ❌ Not used | Available |
 | **Intermediate** | 6 macros | ✅ Always | ✅ Always | ❌ Not used | Available (used in 1 macro) |
-| **Advanced** | 5 macros | ✅ Always | ✅ Always | ❌ Not used | Available |
-| **Spells** | 3 macros | ✅ Always | ✅ Always | ❌ Not used | Available |
+| **Advanced** | 5 macros | ✅ Always | ✅ Always | ✅ Optional | Available |
+| **Spells** | 3 macros | ✅ Always | ✅ Always | ✅ Optional | Available |
 | **Characters/Ora** | 1 macro | ✅ Always | ✅ Always | ✅ Always | Available |
 | **Examples/Ora** | 5 macros | ✅ Always | ✅ Always | ✅ Always | Available |
 | **Examples/Moctei** | 5 macros | ✅ Always | ✅ Always | ✅ Always | Available |
-| **Templates** | 2 templates | ✅ Always | ✅ Always | � Optional | Available |
+| **Templates** | 2 templates | ✅ Always | ✅ Always | ✅ Optional | Available |
 | **Utilities** | 2 utilities | ✅ Always | ✅ Always | ❌ Not used | Available |
 
 **Total Macros**: 31 files + examples
@@ -234,9 +235,11 @@ All Macros
 ├── JB2A (ASSETS - provides effect files)
 │   ├── Free version: 1.5GB, 2000+ effects
 │   └── Patreon version: 8GB+, 5000+ effects
-└── Character Macros Only
-    └── Warp Gate (TARGETING - crosshair system)
-        └── Used for spell placement and targeting
+└── Advanced/Character Macros
+    └── Portal (CORE - targeting and spawning)
+        ├── Creature spawning and transformation
+        ├── Location picking with templates
+        └── Token teleportation
 ```
 
 ## Troubleshooting Module Issues
@@ -245,8 +248,8 @@ All Macros
 - **Cause**: Sequencer module disabled (all modules are pre-installed)
 - **Solution**: Contact server administrator - module may need re-enabling
 
-### Error: "warpgate is not defined"
-- **Cause**: Warp Gate module disabled (module is pre-installed)
+### Error: "Portal is not defined"
+- **Cause**: Portal module disabled (module is pre-installed)
 - **Solution**: Contact server administrator - module may need re-enabling
 
 ### Error: "Effect file not found"
@@ -256,9 +259,10 @@ All Macros
   2. Check file path syntax for chosen effect library
   3. Try alternative effect from different library
 
-### Error: "Cannot read property 'crosshairs'"
-- **Cause**: Warp Gate temporarily disabled or script error
+### Error: "Cannot read property 'pick' or 'spawn'"
+- **Cause**: Portal temporarily disabled or script error
 - **Solution**: Contact server administrator or use alternative targeting method
+- **Alternative**: Use `new Portal().pick()` or `Portal.spawn()` syntax
 
 ## Module Resource Information
 
