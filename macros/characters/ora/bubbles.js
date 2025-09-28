@@ -26,7 +26,7 @@
 (async () => {
     // Validate basic requirements
     if (!canvas.tokens.controlled.length) {
-        ui.notifications.error("Please select your character token first!");
+        ui.notifications.error("Veuillez d'abord sélectionner le jeton de votre personnage !");
         return;
     }
 
@@ -34,38 +34,38 @@
     const actor = caster.actor;
 
     if (!actor) {
-        ui.notifications.error("No valid actor found!");
+        ui.notifications.error("Aucun acteur valide trouvé !");
         return;
     }
 
     // Element Selection Dialog
     const elementChoice = await new Promise((resolve) => {
         new Dialog({
-            title: "Bubbles Spell - Choose Element",
+            title: "Sort de Bulles - Choisir un Élément",
             content: `
-                <h3>Select the element for your bubbles:</h3>
-                <p><strong>Mana Cost:</strong> 4 mana (focusable - free in Focus stance, except Living Water)</p>
+                <h3>Sélectionnez l'élément pour vos bulles :</h3>
+                <p><strong>Coût en Mana :</strong> 4 mana (focalisable - gratuit en Position Focus, sauf Eau Vivante)</p>
                 <div style="margin: 10px 0;">
                     <label><input type="radio" name="element" value="water" checked>
-                        <strong>Water</strong> - Decreases target speed by 1 square (2 projectiles)</label><br>
+                        <strong>Eau</strong> - Augmente les futurs dégâts électriques (2 projectiles)</label><br>
                     <label><input type="radio" name="element" value="ice">
-                        <strong>Ice</strong> - Increases future electrical damage (2 projectiles)</label><br>
+                        <strong>Glace</strong> - Diminue la vitesse de la cible de 1 case (2 projectiles)</label><br>
                     <label><input type="radio" name="element" value="oil">
-                        <strong>Oil</strong> - Increases future fire damage (2 projectiles)</label><br>
+                        <strong>Huile</strong> - Augmente les futurs dégâts de feu (2 projectiles)</label><br>
                     <label><input type="radio" name="element" value="living_water">
-                        <strong>Living Water</strong> - Heals target (1 projectile, can target self, NOT focusable)</label>
+                        <strong>Eau Vivante</strong> - Soigne la cible (1 projectile, peut se cibler soi-même, NON focalisable)</label>
                 </div>
             `,
             buttons: {
                 confirm: {
-                    label: "Confirm",
+                    label: "Confirmer",
                     callback: (html) => {
                         const element = html.find('input[name="element"]:checked').val();
                         resolve(element);
                     }
                 },
                 cancel: {
-                    label: "Cancel",
+                    label: "Annuler",
                     callback: () => resolve(null)
                 }
             }
@@ -73,50 +73,56 @@
     });
 
     if (!elementChoice) {
-        ui.notifications.info("Spell cancelled.");
+        ui.notifications.info("Sort annulé.");
         return;
     }
 
-    // Get Esprit stat and manual damage bonus
-    const spellStats = await new Promise((resolve) => {
+    // Get Esprit stat from character sheet
+    const espritAttribute = actor.system.attributes?.esprit;
+    if (!espritAttribute) {
+        ui.notifications.error("Caractéristique Esprit non trouvée ! Veuillez d'abord exécuter l'utilitaire de Configuration des Statistiques de Personnage.");
+        return;
+    }
+    const espritStat = espritAttribute.value || 3;
+
+    // Get manual damage bonus (spell level is fixed at 1)
+    const spellLevel = 1;
+    const damageBonus = await new Promise((resolve) => {
         new Dialog({
-            title: "Bubbles Spell - Stats & Damage",
+            title: "Sort de Bulles - Bonus de Dégâts",
             content: `
-                <h3>Spell Statistics</h3>
-                <p>Each projectile deals: <strong>1d6 + (Esprit + bonus)/2</strong></p>
+                <h3>Statistiques du Sort</h3>
+                <p><strong>Caractéristique Esprit :</strong> ${espritStat} (récupérée automatiquement)</p>
+                <p><strong>Niveau du Sort :</strong> 1 (fixe)</p>
+                <p>Chaque projectile inflige : <strong>1d6 + (Esprit + bonus)/2</strong></p>
+                <p>Jet d'attaque : <strong>${espritStat}d7 + 2</strong></p>
                 <div style="margin: 10px 0;">
-                    <label>Your Esprit stat:
-                        <input type="number" id="esprit" value="11" min="1"style="width: 60px;">
-                    </label><br><br>
-                    <label>Manual bonus damage:
-                        <input type="number" id="bonus" value="3" min="0" style="width: 60px;">
+                    <label>Bonus de dégâts manuel :
+                        <input type="number" id="bonus" value="0" min="0" style="width: 60px;">
                     </label>
                 </div>
-                <p><small>Note: (Esprit + bonus) will be divided by 2 and added to 1d6</small></p>
+                <p><small>Note : Le bonus manuel peut provenir d'objets, d'effets temporaires, etc.</small></p>
             `,
             buttons: {
                 confirm: {
-                    label: "Continue",
+                    label: "Continuer",
                     callback: (html) => {
-                        const esprit = parseInt(html.find('#esprit').val()) || 3;
                         const bonus = parseInt(html.find('#bonus').val()) || 0;
-                        resolve({ esprit, bonus });
+                        resolve(bonus);
                     }
                 },
                 cancel: {
-                    label: "Cancel",
+                    label: "Annuler",
                     callback: () => resolve(null)
                 }
             }
         }).render(true);
     });
 
-    if (!spellStats) {
-        ui.notifications.info("Spell cancelled.");
+    if (damageBonus === null) {
+        ui.notifications.info("Sort annulé.");
         return;
     }
-
-    const { esprit: espritStat, bonus: damageBonus } = spellStats;
 
     // Special handling for Living Water - only one projectile, can target self
     const isLivingWater = elementChoice === 'living_water';
@@ -159,15 +165,15 @@
             // Ask for second target
             const secondTarget = await new Promise((resolve) => {
                 new Dialog({
-                    title: "Second Target?",
-                    content: `<p>Do you want to target a second location, or send both projectiles to the first target?</p>`,
+                    title: "Deuxième Cible ?",
+                    content: `<p>Voulez-vous cibler un deuxième emplacement, ou envoyer les deux projectiles sur la première cible ?</p>`,
                     buttons: {
                         second: {
-                            label: "Second Target",
+                            label: "Deuxième Cible",
                             callback: () => resolve(true)
                         },
                         same: {
-                            label: "Same Target (Both Projectiles)",
+                            label: "Même Cible (Deux Projectiles)",
                             callback: () => resolve(false)
                         }
                     }
@@ -185,14 +191,14 @@
                 const target2 = await portal2.pick();
 
                 if (!target2) {
-                    ui.notifications.info("Second target cancelled - using first target only.");
+                    ui.notifications.info("Deuxième cible annulée - utilisation de la première cible uniquement.");
                 } else {
                     targets.push({ x: target2.x, y: target2.y });
                 }
             }
         }
     } catch (error) {
-        ui.notifications.error("Error during targeting. Make sure Portal module is installed and enabled.");
+        ui.notifications.error("Erreur lors du ciblage. Assurez-vous que le module Portal est installé et activé.");
         return;
     }
 
@@ -203,23 +209,23 @@
             effectFile = "jb2a.bullet.03.blue";
             explosionFile = "jb2a.explosion.04.blue";
             effectColor = "blue";
-            elementDescription = "Water (+Electrical dmg)";
+            elementDescription = "Eau (+Dégâts électriques)";
             break;
         case 'ice':
             effectFile = "jb2a.bullet.03.blue";
             explosionFile = "jb2a.explosion.02.blue";
             effectColor = "blue";
-            elementDescription = "Ice (Speed -1 square)";
+            elementDescription = "Glace (Vitesse -1 case)";
             break;
         case 'oil':
             effectFile = "jb2a.explosion.03.blueyellow";
             effectColor = "orange";
-            elementDescription = "Oil (+Fire dmg)";
+            elementDescription = "Huile (+Dégâts de feu)";
             break;
         case 'living_water':
             effectFile = "jb2a.healing_generic.burst.greenorange";
             effectColor = "green";
-            elementDescription = "Living Water (Healing)";
+            elementDescription = "Eau Vivante (Soin)";
             break;
     }
 
@@ -296,48 +302,81 @@
     // Play the sequence
     await sequence.play();
 
+    // Attack Resolution for non-healing spells
+    let attackResolution = null;
+    if (!isLivingWater) {
+        // Roll attack resolution: Esprit stat × d7 + (2 × spell level)
+        const levelBonus = 2 * spellLevel;
+        const attackRoll = new Roll(`${espritStat}d7 + ${levelBonus}`);
+        await attackRoll.evaluate({ async: true });
+        attackResolution = {
+            roll: attackRoll,
+            total: attackRoll.total,
+            formula: attackRoll.formula,
+            result: attackRoll.result,
+            levelBonus: levelBonus
+        };
+    }
+
     // Display damage/healing results in chat
     const targetText = isLivingWater ?
-        (allowSelfTarget ? "self-healing" : "healing target") :
-        (targets.length > 1 ? "2 different targets" : "same target (both projectiles)");
+        (allowSelfTarget ? "auto-soin" : "cible de soin") :
+        (targets.length > 1 ? "2 cibles différentes" : "même cible (deux projectiles)");
 
     let damageDisplay;
     if (isLivingWater) {
         // Living Water - show healing
         damageDisplay = `
-            <p><strong>Healing:</strong> ${damage1.total}
+            <p><strong>Soin :</strong> ${damage1.total}
                <span style="font-size: 0.8em;">(${damage1.formula}: ${damage1.result})</span></p>
         `;
     } else if (targets.length > 1) {
         // Two different targets - show individual projectile damage
         damageDisplay = `
-            <p><strong>Projectile 1 Damage:</strong> ${damage1.total}
+            <p><strong>Dégâts Projectile 1 :</strong> ${damage1.total}
                <span style="font-size: 0.8em;">(${damage1.formula}: ${damage1.result})</span></p>
-            <p><strong>Projectile 2 Damage:</strong> ${damage2.total}
+            <p><strong>Dégâts Projectile 2 :</strong> ${damage2.total}
                <span style="font-size: 0.8em;">(${damage2.formula}: ${damage2.result})</span></p>
         `;
     } else {
         // Same target - show total damage
         const totalDamage = damage1.total + damage2.total;
         damageDisplay = `
-            <p><strong>Total Damage:</strong> ${totalDamage}
-               <span style="font-size: 0.8em;">(${damage1.total} + ${damage2.total} from both projectiles)</span></p>
+            <p><strong>Dégâts Totaux :</strong> ${totalDamage}
+               <span style="font-size: 0.8em;">(${damage1.total} + ${damage2.total} des deux projectiles)</span></p>
+        `;
+    }
+
+    // Add attack resolution info for merged message
+    let attackResolutionInfo = '';
+    if (attackResolution) {
+        attackResolutionInfo = `
+            <hr>
+            <h4>🎯 Résolution d'Attaque</h4>
+            <p><strong>Jet d'Attaque :</strong> ${attackResolution.total}
+               <span style="font-size: 0.8em;">(${attackResolution.formula} = ${attackResolution.result})</span></p>
+            <p><strong>Bonus de Niveau :</strong> +${attackResolution.levelBonus} (Niveau ${spellLevel})</p>
+            <p><em><strong>Défenseurs :</strong> Lancez votre contre-caractéristique (généralement Agilité) pour vous défendre !</em></p>
+            <p><em>Si votre jet ≥ ${attackResolution.total}, vous évitez les effets du sort.</em></p>
         `;
     }
 
     const chatContent = `
         <div class="spell-result">
-            <h3>🫧 Bubbles Spell (${elementDescription})</h3>
-            <p><strong>Caster:</strong> ${actor.name}</p>
-            <p><strong>Targets:</strong> ${targetText}</p>
-            <p><strong>Mana Cost:</strong> ${isLivingWater ? '4 (not focusable)' : '4 (focusable - free in Focus stance)'}</p>
+            <h3>🫧 Sort de Bulles (${elementDescription}) - Niveau ${spellLevel}</h3>
+            <p><strong>Lanceur :</strong> ${actor.name}</p>
+            <p><strong>Cibles :</strong> ${targetText}</p>
+            <p><strong>Coût en Mana :</strong> ${isLivingWater ? '4 (non focalisable)' : '4 (focalisable - gratuit en Position Focus)'}</p>
+            <p><strong>Caractéristique Esprit :</strong> ${espritStat}</p>
+            ${attackResolutionInfo}
             <hr>
             ${damageDisplay}
             <hr>
-            <p><strong>Element Effect:</strong> ${getElementEffect(elementChoice)}</p>
+            <p><strong>Effet Élémentaire :</strong> ${getElementEffect(elementChoice)}</p>
         </div>
     `;
 
+    // Create single merged chat message
     await ChatMessage.create({
         user: game.user.id,
         speaker: ChatMessage.getSpeaker({ token: caster }),
@@ -345,15 +384,16 @@
         type: CONST.CHAT_MESSAGE_TYPES.OTHER
     });
 
-    ui.notifications.info(`Bubbles spell cast! ${isLivingWater ? damage1.total + ' healing' : (damage1.total + (damage2?.total || 0)) + ' total damage'} dealt.`);
+    const attackInfo = attackResolution ? ` Jet d'attaque : ${attackResolution.total}.` : '';
+    ui.notifications.info(`Sort de Bulles lancé ! ${isLivingWater ? damage1.total + ' soin' : (damage1.total + (damage2?.total || 0)) + ' dégâts totaux'} prêt.${attackInfo}`);
 
     function getElementEffect(element) {
         switch (element) {
-            case 'water': return "Target speed reduced by 1 square for next movement";
-            case 'ice': return "Target takes +2 damage from next electrical attack";
-            case 'oil': return "Target takes +2 damage from next fire attack";
-            case 'living_water': return allowSelfTarget ? "Self-healing restored vitality" : "Target restored to health";
-            default: return "Unknown element effect";
+            case 'water': return "La cible prend +2 dégâts de la prochaine attaque électrique";
+            case 'ice': return "Vitesse de la cible réduite de 1 case pour le prochain mouvement";
+            case 'oil': return "La cible prend +2 dégâts de la prochaine attaque de feu";
+            case 'living_water': return allowSelfTarget ? "Auto-soin a restauré la vitalité" : "Cible soignée et restaurée";
+            default: return "Effet élémentaire inconnu";
         }
     }
 })();
