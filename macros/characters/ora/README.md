@@ -17,39 +17,54 @@ RPG-compliant spell animations for Ora, designed to work with the custom RPG sys
 ### Bubbles
 **File**: `bubbles.js`
 **Type**: Dual projectile attack / Single healing
-**Mana Cost**: 4 mana (focusable - free in Focus stance, except Living Water)
+**Mana Cost**: Stance-dependent (see Combat Stance Integration below)
 **Range**: Crosshair targeting (unlimited range)
 
-**Description**: Launches elemental projectiles that can be customized for different tactical effects or healing.
+**Description**: Launches elemental projectiles that can be customized for different tactical effects or healing. **Now features automatic stance detection and stance-specific mechanics.**
 
 **Element Options**:
-- **Water**: Reduces target movement by 1 square (2 projectiles)
-- **Ice**: Increases vulnerability to electrical damage (+2 next electrical attack) (2 projectiles)
+- **Water**: Increases vulnerability to electrical damage (+2 next electrical attack) (2 projectiles)
+- **Ice**: Reduces target movement by 1 square (2 projectiles)
 - **Oil**: Increases vulnerability to fire damage (+2 next fire attack) (2 projectiles)
-- **Living Water**: Heals target for 1d6 + (Esprit + bonus)/2 (1 projectile, can target self, NOT focusable - always costs 4 mana)
+- **Living Water**: Heals target for 1d6 + (Esprit + bonus)/2 (1 projectile, can target self, special mana cost)
 
-**Damage**: Each damage projectile deals `1d6 + (Esprit + bonus)/2`
-**Healing**: Living Water heals `1d6 + (Esprit + bonus)/2`
+**Damage**: Each damage projectile deals `1d6 + (Esprit + bonus)/2` OR **maximized in Offensive stance**
+**Healing**: Living Water heals `1d6 + (Esprit + bonus)/2` (unaffected by stance)
 
 **Targeting**:
 - **Damage variants**: 1 target (both projectiles) or 2 targets (one each)
 - **Living Water**: Single target only, can target self by clicking near caster token
 
-**Focus Mechanics**:
-- **Water/Ice/Oil**: Focusable (free mana cost in Focus stance)
-- **Living Water**: NOT focusable (always costs 4 mana regardless of stance)
+**Combat Stance Integration** ⚔️:
+- **Focus Stance**:
+  - Water/Ice/Oil variants: **FREE** (0 mana)
+  - Living Water: **2 mana** (reduced cost)
+  - Normal dice rolling for damage/healing
+- **Offensive Stance**:
+  - All variants: **4 mana**
+  - Damage dice **MAXIMIZED** (6 + stat bonus per projectile)
+  - Living Water unaffected (normal dice rolling)
+- **Defensive Stance**:
+  - All variants: **4 mana**
+  - Normal dice rolling
+- **No Stance**:
+  - All variants: **4 mana**
+  - Normal dice rolling
 
 **RPG Integration**:
-- ✅ Proper damage/healing calculation display
+- ✅ **Automatic stance detection** from Active Effects
+- ✅ **Stance-specific damage mechanics** (Offensive = maximized dice)
+- ✅ **Stance-specific mana costs** (Focus = free/reduced, others = 4 mana)
+- ✅ Proper damage/healing calculation display with stance indicators
 - ✅ Four element options with distinct tactical effects
-- ✅ Manual bonus damage input (Esprit is now automatically read from the character sheet)
-- ✅ Attack resolution added: Esprit-based d7 roll with spell level bonus
-- ✅ Focus stance mechanics (free cost for 3 variants, Living Water exception)
+- ✅ Manual bonus damage input (Esprit automatically read from character sheet)
+- ✅ Attack resolution: Esprit-based d7 roll with spell level bonus
 - ✅ Self-targeting capability for Living Water variant
-- ✅ Chat message with complete spell results (including attack roll details)
+- ✅ Chat message with complete spell results and stance information
 - ✅ Visual effects synchronized with game mechanics
+- ✅ UI shows current stance in dialog titles and descriptions
 - ⚠️ Turn validation bypassed (as per spell requirements)
-- 🔄 Mana cost integration (planned for character sheet integration)
+- 🔄 Mana resource deduction (planned for character sheet integration)
 
 **Required Modules**:
 - Sequencer (core animation)
@@ -57,19 +72,24 @@ RPG-compliant spell animations for Ora, designed to work with the custom RPG sys
 - Portal (crosshair/targeting - replaced previous Warp Gate usage)
 
 **Usage Example**:
-1. Select Ora's token
+1. Select Ora's token (stance will be automatically detected)
 2. Activate the Bubbles macro
-3. Choose element type (Water/Ice/Oil/Living Water)
-4. Spell reads Esprit automatically from the selected token's character sheet; enter spell level and manual damage bonus when prompted
-5. Target first location (can target self for Living Water)
-6. For damage variants: Choose second target or same target
-7. Watch animation and check chat for results (an attack-resolution message will appear for damage variants)
+3. **Stance information displayed** in dialog titles and mana cost descriptions
+4. Choose element type (Water/Ice/Oil/Living Water)
+5. Review stance-specific damage information (maximized in Offensive stance)
+6. Enter manual damage bonus when prompted
+7. Target first location (can target self for Living Water)
+8. For damage variants: Choose second target or same target
+9. Watch animation and check chat for results with stance information
 
 **Special Notes**:
-- **Living Water**: Only healing variant, single projectile, can target self, not affected by Focus stance
-- **Focus Stance**: Water/Ice/Oil variants become free in Focus stance
+- **Stance Detection**: Automatically detects Focus/Offensif/Defensif from Active Effects
+- **Offensive Stance**: Damage dice are maximized (6 + stat bonus), shown as "MAXIMISÉ" in results
+- **Focus Stance**: Water/Ice/Oil become free, Living Water costs only 2 mana
+- **Living Water**: Only healing variant, single projectile, can target self
+- **Stance Display**: Current stance shown in dialog titles and chat output
 - **Self-Targeting**: For Living Water, click within 1 square of your token to heal yourself
-- **Damage Formula**: Corrected to `1d6 + (Esprit + bonus)/2` for all variants
+- **Damage Formula**: `1d6 + (Esprit + bonus)/2` or maximized in Offensive stance
 
 ## 🎯 RPG Compliance Features
 

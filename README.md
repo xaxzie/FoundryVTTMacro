@@ -272,7 +272,34 @@ Helper functions and reusable spell components:
 - Common spell effect patterns
 - Token targeting utilities
 - Spell effect management tools
-- RPG integration helpers
+- **RPG integration helpers** - Combat stance and injury detection
+- **Quick status detection** - One-line console commands for development
+
+#### Combat Status Detection
+Essential utilities for integrating with the custom RPG system:
+
+**Quick Stance Check** (`macros/utilities/oneLineStanceCheck.js`):
+```javascript
+// Get current combat stance (console command)
+canvas.tokens.controlled[0]?.document?.actor?.effects?.contents?.find(e =>
+    ['focus', 'offensif', 'defensif'].includes(e.name?.toLowerCase())
+)?.name || 'No stance'
+
+// Get injury count (console command)
+canvas.tokens.controlled[0]?.document?.actor?.effects?.contents?.find(e =>
+    e.name?.toLowerCase().includes('blessures')
+)?.flags?.statuscounter?.value || 0
+```
+
+**Comprehensive Status Check** (`macros/utilities/quickStanceCheck.js`):
+- Detailed stance and injury analysis
+- Debug information for development
+- Multi-token support
+
+These utilities integrate with:
+- **Status Icon Counters** module for injury stacking
+- **Custom Status Effects** module for stance management
+- **Carousel Combat Track** for turn-based combat
 
 ## 🎮 Usage Examples
 

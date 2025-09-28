@@ -366,6 +366,111 @@ function playFireSpell(caster, target, intensity = 1.0) {
 }
 ```
 
+### RPG Integration Utilities
+
+#### Stance and Status Detection
+For integrating with the custom RPG system's combat stances and injury mechanics, use the provided utility functions:
+
+```javascript
+// ⚔️ Detect current combat stance (Offensif, Defensif, Focus)
+const stance = canvas.tokens.controlled[0]?.document?.actor?.effects?.contents?.find(e =>
+    ['focus', 'offensif', 'defensif'].includes(e.name?.toLowerCase())
+)?.name || 'No stance';
+
+// 🩸 Get injury stack count (for dice penalty calculation)
+const injuryStacks = canvas.tokens.controlled[0]?.document?.actor?.effects?.contents?.find(e =>
+    e.name?.toLowerCase().includes('blessures')
+)?.flags?.statuscounter?.value || 0;
+
+// ✅ Use in spell macros for stance-dependent effects
+const caster = canvas.tokens.controlled[0];
+const currentStance = caster?.document?.actor?.effects?.contents?.find(e =>
+    ['focus', 'offensif', 'defensif'].includes(e.name?.toLowerCase())
+)?.name?.toLowerCase();
+
+// Scale spell effects based on stance
+let spellIntensity = 1.0;
+if (currentStance === 'offensif') {
+    spellIntensity = 1.3; // More dramatic effects in offensive stance
+} else if (currentStance === 'focus') {
+    spellIntensity = 0.8; // Subtler effects in focus stance
+}
+
+new Sequence()
+    .effect()
+        .file("jb2a.fire_bolt.orange")
+        .atLocation(caster)
+        .stretchTo(target)
+        .scale(spellIntensity)
+    .play();
+```
+
+#### Quick Development Tools
+For rapid testing and debugging during macro development:
+
+**Stance Detection (Console)**:
+```javascript
+// Quick stance check - paste in browser console (F12)
+canvas.tokens.controlled[0]?.document?.actor?.effects?.contents?.find(e => ['focus', 'offensif', 'defensif'].includes(e.name?.toLowerCase()))?.name || 'No stance'
+```
+
+**Injury Detection (Console)**:
+```javascript
+// Quick injury check - returns number of injury stacks
+canvas.tokens.controlled[0]?.document?.actor?.effects?.contents?.find(e => e.name?.toLowerCase().includes('blessures'))?.flags?.statuscounter?.value || 0
+```
+
+**Comprehensive Status Check**:
+Use `macros/utilities/quickStanceCheck.js` for detailed status analysis during development.
+
+#### Integration with Combat Mechanics
+- **Offensive Stance**: Damage dice maximized, visual effects should be more intense
+- **Defensive Stance**: Can use reactive spells, effects may be more protective/subdued
+- **Focus Stance**: Reduced mana costs, effects can be more elaborate/sustained
+- **Injuries**: Each stack = -1 dice penalty, consider visual indicators of weakness
+
+```javascript
+// ✅ Example: Stance-aware spell animation
+function castStanceAwareSpell(caster, target) {
+    const stance = caster?.document?.actor?.effects?.contents?.find(e =>
+        ['focus', 'offensif', 'defensif'].includes(e.name?.toLowerCase())
+    )?.name?.toLowerCase();
+
+    const injuries = caster?.document?.actor?.effects?.contents?.find(e =>
+        e.name?.toLowerCase().includes('blessures')
+    )?.flags?.statuscounter?.value || 0;
+
+    // Adjust effects based on stance and injuries
+    const baseScale = Math.max(0.5, 1.0 - (injuries * 0.1)); // Weaker with more injuries
+
+    let effectFile = "jb2a.fire_bolt.orange";
+    let effectScale = baseScale;
+
+    switch(stance) {
+        case 'offensif':
+            effectFile = "jb2a.fire_bolt.red"; // More aggressive color
+            effectScale *= 1.2;
+            break;
+        case 'defensif':
+            effectFile = "jb2a.fire_bolt.blue"; // More controlled color
+            effectScale *= 0.9;
+            break;
+        case 'focus':
+            effectFile = "jb2a.fire_bolt.purple"; // Magical focus color
+            effectScale *= 1.1;
+            break;
+    }
+
+    new Sequence()
+        .effect()
+            .file(effectFile)
+            .atLocation(caster)
+            .stretchTo(target)
+            .scale(effectScale)
+        .play();
+}
+```
+
 ## 🔍 Quality Assurance
 
 ### Code Review Checklist

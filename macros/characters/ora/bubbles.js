@@ -38,13 +38,28 @@
         return;
     }
 
+    // Detect current stance using the simplest method
+    const currentStance = actor?.effects?.contents?.find(e =>
+        ['focus', 'offensif', 'defensif'].includes(e.name?.toLowerCase())
+    )?.name?.toLowerCase() || null;
+
+    console.log(`[DEBUG] Current stance detected: ${currentStance || 'No stance'}`);
+
+    // Calculate mana costs based on stance
+    let manaCostInfo;
+    if (currentStance === 'focus') {
+        manaCostInfo = "<strong>Coût en Mana :</strong> GRATUIT (Position Focus) - sauf Eau Vivante: 2 mana";
+    } else {
+        manaCostInfo = "<strong>Coût en Mana :</strong> 4 mana";
+    }
+
     // Element Selection Dialog
     const elementChoice = await new Promise((resolve) => {
         new Dialog({
-            title: "Sort de Bulles - Choisir un Élément",
+            title: `Sort de Bulles - Choisir un Élément${currentStance ? ` (Position: ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : ''}`,
             content: `
                 <h3>Sélectionnez l'élément pour vos bulles :</h3>
-                <p><strong>Coût en Mana :</strong> 4 mana (focalisable - gratuit en Position Focus, sauf Eau Vivante)</p>
+                <p>${manaCostInfo}</p>
                 <div style="margin: 10px 0;">
                     <label><input type="radio" name="element" value="water" checked>
                         <strong>Eau</strong> - Augmente les futurs dégâts électriques (2 projectiles)</label><br>
@@ -83,32 +98,76 @@
         ui.notifications.error("Caractéristique Esprit non trouvée ! Veuillez d'abord exécuter l'utilitaire de Configuration des Statistiques de Personnage.");
         return;
     }
-    const espritStat = espritAttribute.value || 3;
+    const baseEspritStat = espritAttribute.value || 3;
+
+    // Detect injury stacks and reduce Esprit accordingly
+    const injuryEffect = actor?.effects?.contents?.find(e =>
+        e.name?.toLowerCase() === 'blessures'
+    );
+    const injuryStacks = injuryEffect?.flags?.statuscounter?.value || 0;
+
+    console.log(`[DEBUG] Base Esprit: ${baseEspritStat}, Injury stacks: ${injuryStacks}`);
+
+    // Each injury reduces Esprit by 1, minimum of 1
+    const espritStat = Math.max(1, baseEspritStat - injuryStacks);
+
+    if (injuryStacks > 0) {
+        console.log(`[DEBUG] Esprit reduced from ${baseEspritStat} to ${espritStat} due to ${injuryStacks} injuries`);
+    }
 
     // Get manual damage bonus (spell level is fixed at 1)
     const spellLevel = 1;
-    const damageBonus = await new Promise((resolve) => {
+
+    // Stance-specific damage info
+    let damageInfo;
+    if (currentStance === 'offensif') {
+        damageInfo = "Chaque projectile inflige : <strong>6 dégâts (MAXIMISÉ en Position Offensive)</strong>";
+    } else {
+        damageInfo = "Chaque projectile inflige : <strong>1d6 + (Esprit + bonus)/2</strong>";
+    }
+
+    const bonusValues = await new Promise((resolve) => {
         new Dialog({
-            title: "Sort de Bulles - Bonus de Dégâts",
+            title: `Sort de Bulles - Bonus de Combat${currentStance ? ` (Position: ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : ''}`,
             content: `
                 <h3>Statistiques du Sort</h3>
-                <p><strong>Caractéristique Esprit :</strong> ${espritStat} (récupérée automatiquement)</p>
+                <p><strong>Position de Combat :</strong> ${currentStance ? currentStance.charAt(0).toUpperCase() + currentStance.slice(1) : 'Aucune'}</p>
+                <p><strong>Caractéristique Esprit :</strong> ${espritStat}${injuryStacks > 0 ? ` <em>(${baseEspritStat} - ${injuryStacks} blessures)</em>` : ' (récupérée automatiquement)'}</p>
                 <p><strong>Niveau du Sort :</strong> 1 (fixe)</p>
-                <p>Chaque projectile inflige : <strong>1d6 + (Esprit + bonus)/2</strong></p>
-                <p>Jet d'attaque : <strong>${espritStat}d7 + 2</strong></p>
-                <div style="margin: 10px 0;">
-                    <label>Bonus de dégâts manuel :
-                        <input type="number" id="bonus" value="0" min="0" style="width: 60px;">
-                    </label>
+                <p>${damageInfo}</p>
+                <p>Jet d'attaque de base : <strong>${espritStat}d7 + 2</strong></p>
+                <div style="margin: 10px 0; border: 1px solid #ccc; padding: 10px; background: #f9f9f9;">
+                    <h4>Bonus Manuels</h4>
+                    <div style="margin: 5px 0;">
+                        <label>Bonus de dégâts :
+                            <input type="number" id="damageBonus" value="0" min="0" style="width: 60px;">
+                        </label>
+                        <small style="display: block; margin-left: 20px;">Objets, effets temporaires, etc.</small>
+                    </div>
+                    <div style="margin: 5px 0;">
+                        <label>Bonus de résolution d'attaque :
+                            <input type="number" id="attackBonus" value="0" min="0" style="width: 60px;">
+                        </label>
+                        <small style="display: block; margin-left: 20px;">Dés d7 supplémentaires pour l'attaque</small>
+                    </div>
                 </div>
-                <p><small>Note : Le bonus manuel peut provenir d'objets, d'effets temporaires, etc.</small></p>
+                <p><strong>Jet d'attaque final :</strong> <span id="finalAttack">${espritStat}d7 + 2</span></p>
+                <script>
+                    document.getElementById('attackBonus').addEventListener('input', function() {
+                        const base = ${espritStat};
+                        const bonus = parseInt(this.value) || 0;
+                        const total = base + bonus;
+                        document.getElementById('finalAttack').textContent = total + 'd7 + 2';
+                    });
+                </script>
             `,
             buttons: {
                 confirm: {
                     label: "Continuer",
                     callback: (html) => {
-                        const bonus = parseInt(html.find('#bonus').val()) || 0;
-                        resolve(bonus);
+                        const damageBonus = parseInt(html.find('#damageBonus').val()) || 0;
+                        const attackBonus = parseInt(html.find('#attackBonus').val()) || 0;
+                        resolve({ damageBonus, attackBonus });
                     }
                 },
                 cancel: {
@@ -119,10 +178,12 @@
         }).render(true);
     });
 
-    if (damageBonus === null) {
+    if (bonusValues === null) {
         ui.notifications.info("Sort annulé.");
         return;
     }
+
+    const { damageBonus, attackBonus } = bonusValues;
 
     // Special handling for Living Water - only one projectile, can target self
     const isLivingWater = elementChoice === 'living_water';
@@ -305,17 +366,28 @@
 
 
 
-    // Roll damage/healing for display with corrected formula: 1d6 + (Esprit + bonus)/2
-    const statBonus = Math.floor((espritStat + damageBonus) / 2);
-    const damage1 = new Roll("1d6 + @statBonus", { statBonus: statBonus });
-    let damage2 = null;
+    // Roll damage/healing based on stance
+    let damage1, damage2 = null;
 
-    await damage1.evaluate({ async: true });
+    if (currentStance === 'offensif' && !isLivingWater) {
+        // Offensive stance: damage is maximized (6 + stat bonus)
+        const statBonus = Math.floor((espritStat + damageBonus) / 2);
+        const maxDamage = 6 + statBonus;
 
-    // Living Water only has one projectile
-    if (!isLivingWater) {
-        damage2 = new Roll("1d6 + @statBonus", { statBonus: statBonus });
-        await damage2.evaluate({ async: true });
+        // Create fake rolls that show the maximized result
+        damage1 = { total: maxDamage, formula: `6 + ${statBonus}`, result: `6 + ${statBonus}`, isMaximized: true };
+        damage2 = { total: maxDamage, formula: `6 + ${statBonus}`, result: `6 + ${statBonus}`, isMaximized: true };
+    } else {
+        // Normal dice rolling for other stances or healing
+        const statBonus = Math.floor((espritStat + damageBonus) / 2);
+        damage1 = new Roll("1d6 + @statBonus", { statBonus: statBonus });
+        await damage1.evaluate({ async: true });
+
+        // Living Water only has one projectile
+        if (!isLivingWater) {
+            damage2 = new Roll("1d6 + @statBonus", { statBonus: statBonus });
+            await damage2.evaluate({ async: true });
+        }
     }
 
     // Create the spell animation sequence
@@ -379,16 +451,20 @@
     // Attack Resolution for non-healing spells
     let attackResolution = null;
     if (!isLivingWater) {
-        // Roll attack resolution: Esprit stat × d7 + (2 × spell level)
+        // Roll attack resolution: (Esprit stat + attack bonus) × d7 + (2 × spell level)
+        const totalAttackDice = espritStat + attackBonus;
         const levelBonus = 2 * spellLevel;
-        const attackRoll = new Roll(`${espritStat}d7 + ${levelBonus}`);
+        const attackRoll = new Roll(`${totalAttackDice}d7 + ${levelBonus}`);
         await attackRoll.evaluate({ async: true });
         attackResolution = {
             roll: attackRoll,
             total: attackRoll.total,
             formula: attackRoll.formula,
             result: attackRoll.result,
-            levelBonus: levelBonus
+            levelBonus: levelBonus,
+            baseDice: espritStat,
+            bonusDice: attackBonus,
+            totalDice: totalAttackDice
         };
     }
 
@@ -412,31 +488,43 @@
         }
     }
 
+    // Format damage display based on stance and targeting
     let damageDisplay;
+    const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
+
     if (isLivingWater) {
         // Living Water - show healing with target name
         const healingTargetName = allowSelfTarget ? actor.name : (targetActors[0] ? targetActors[0].name : "cible");
         damageDisplay = `
-            <p><strong>Soin pour ${healingTargetName} :</strong> ${damage1.total}
-               <span style="font-size: 0.8em;">(${damage1.formula}: ${damage1.result})</span></p>
+            <div style="text-align: center; margin: 15px 0; padding: 10px; background: #d4edda; border-radius: 5px;">
+                <h2 style="margin: 5px 0; color: #155724;">💚 Soin : ${damage1.total} <span style="font-size: 0.6em; color: #666;">(${damage1.formula}: ${damage1.result})</span></h2>
+                <p style="margin: 5px 0;"><strong>Cible :</strong> ${healingTargetName}</p>
+            </div>
         `;
     } else if (targets.length > 1) {
         // Two different targets - show individual projectile damage with target names
         const target1Name = targetActors[0] ? targetActors[0].name : "cible";
         const target2Name = targetActors[1] ? targetActors[1].name : "cible";
         damageDisplay = `
-            <p><strong>Dégâts vs ${target1Name} :</strong> ${damage1.total}
-               <span style="font-size: 0.8em;">(${damage1.formula}: ${damage1.result})</span></p>
-            <p><strong>Dégâts vs ${target2Name} :</strong> ${damage2.total}
-               <span style="font-size: 0.8em;">(${damage2.formula}: ${damage2.result})</span></p>
+            <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f8d7da; border-radius: 5px;">
+                <h2 style="margin: 5px 0; color: #721c24;">⚔️ Dégâts${stanceNote}</h2>
+                <p style="margin: 5px 0;"><strong>${target1Name} :</strong> ${damage1.total} <span style="font-size: 0.7em; color: #666;">(${damage1.formula}: ${damage1.result})</span></p>
+                <p style="margin: 5px 0;"><strong>${target2Name} :</strong> ${damage2.total} <span style="font-size: 0.7em; color: #666;">(${damage2.formula}: ${damage2.result})</span></p>
+            </div>
         `;
     } else {
         // Same target - show total damage with target name
         const totalDamage = damage1.total + damage2.total;
         const targetName = targetActors[0] ? targetActors[0].name : "cible";
         damageDisplay = `
-            <p><strong>Dégâts Totaux vs ${targetName} :</strong> ${totalDamage}
-               <span style="font-size: 0.8em;">(${damage1.total} + ${damage2.total} des deux projectiles)</span></p>
+            <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f8d7da; border-radius: 5px;">
+                <h2 style="margin: 5px 0; color: #721c24;">⚔️ Dégâts Totaux : ${totalDamage}${stanceNote}</h2>
+                <p style="margin: 5px 0;"><strong>Cible :</strong> ${targetName}</p>
+                <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
+                    Projectile 1: ${damage1.total} <span style="font-size: 0.9em;">(${damage1.formula}: ${damage1.result})</span> +
+                    Projectile 2: ${damage2.total} <span style="font-size: 0.9em;">(${damage2.formula}: ${damage2.result})</span>
+                </p>
+            </div>
         `;
     }
 
@@ -444,25 +532,54 @@
     let attackResolutionInfo = '';
     if (attackResolution) {
         attackResolutionInfo = `
-            <hr>
-            <h4>🎯 Résolution d'Attaque</h4>
-            <p><strong>Jet d'Attaque :</strong> ${attackResolution.total}
-               <span style="font-size: 0.8em;">(${attackResolution.formula} = ${attackResolution.result})</span></p>
-            <p><strong>Bonus de Niveau :</strong> +${attackResolution.levelBonus} (Niveau ${spellLevel})</p>
-            <p><em><strong>Défenseurs :</strong> Lancez votre contre-caractéristique (généralement Agilité) pour vous défendre !</em></p>
-            <p><em>Si votre jet ≥ ${attackResolution.total}, vous évitez les effets du sort.</em></p>
+            <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                <p style="margin: 5px 0; font-size: 0.8em; color: #666;">(${attackResolution.formula} = ${attackResolution.result})</p>
+                <h2 style="margin: 5px 0; color: #d9534f;">🎯 Jet d'Attaque : ${attackResolution.total}</h2>
+            </div>
         `;
+    }
+
+    // Calculate actual mana cost based on stance and element
+    let actualManaCost;
+    if (currentStance === 'focus') {
+        actualManaCost = isLivingWater ? '2 mana (Position Focus - coût réduit)' : 'GRATUIT (Position Focus)';
+    } else {
+        actualManaCost = '4 mana';
+    }
+
+    // Build injury info if present
+    const injuryInfo = injuryStacks > 0 ?
+        `<p><strong>⚠️ Blessures :</strong> ${injuryStacks} (Esprit réduit de ${baseEspritStat} à ${espritStat})</p>` :
+        '';
+
+    // Get elemental effect description
+    function getElementEffect(element) {
+        switch (element) {
+            case 'water': return "La cible prend +2 dégâts de la prochaine attaque électrique";
+            case 'ice': return "Vitesse de la cible réduite de 1 case pour le prochain mouvement";
+            case 'oil': return "La cible prend +2 dégâts de la prochaine attaque de feu";
+            case 'living_water': return allowSelfTarget ? "Auto-soin a restauré la vitalité" : "Cible soignée et restaurée";
+            default: return "Effet élémentaire inconnu";
+        }
+    }
+
+    // Get element name for title
+    function getElementName(element) {
+        switch (element) {
+            case 'water': return "Eau";
+            case 'ice': return "Glace";
+            case 'oil': return "Huile";
+            case 'living_water': return "Eau Vivante";
+            default: return "Élément";
+        }
     }
 
     const chatContent = `
         <div class="spell-result">
-            <h3>🫧 Sort de Bulles (${elementDescription}) - Niveau ${spellLevel}</h3>
-            <p><strong>Lanceur :</strong> ${actor.name}</p>
-            <p><strong>Cibles :</strong> ${targetText}</p>
-            <p><strong>Coût en Mana :</strong> ${isLivingWater ? '4 (non focalisable)' : '4 (focalisable - gratuit en Position Focus)'}</p>
-            <p><strong>Caractéristique Esprit :</strong> ${espritStat}</p>
+            <h3>🫧 Sort de Bulles - ${getElementName(elementChoice)}</h3>
+            <p><strong>Coût en Mana :</strong> ${actualManaCost}</p>
+            ${injuryInfo}
             ${attackResolutionInfo}
-            <hr>
             ${damageDisplay}
             <hr>
             <p><strong>Effet Élémentaire :</strong> ${getElementEffect(elementChoice)}</p>
@@ -478,15 +595,9 @@
     });
 
     const attackInfo = attackResolution ? ` Jet d'attaque : ${attackResolution.total}.` : '';
-    ui.notifications.info(`Sort de Bulles lancé ! ${isLivingWater ? damage1.total + ' soin' : (damage1.total + (damage2?.total || 0)) + ' dégâts totaux'} prêt.${attackInfo}`);
+    const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
+    const damageInfo2 = isLivingWater ? damage1.total + ' soin' : (damage1.total + (damage2?.total || 0)) + ' dégâts totaux';
+    const maximizedInfo = currentStance === 'offensif' && !isLivingWater ? ' MAXIMISÉ' : '';
 
-    function getElementEffect(element) {
-        switch (element) {
-            case 'water': return "La cible prend +2 dégâts de la prochaine attaque électrique";
-            case 'ice': return "Vitesse de la cible réduite de 1 case pour le prochain mouvement";
-            case 'oil': return "La cible prend +2 dégâts de la prochaine attaque de feu";
-            case 'living_water': return allowSelfTarget ? "Auto-soin a restauré la vitalité" : "Cible soignée et restaurée";
-            default: return "Effet élémentaire inconnu";
-        }
-    }
+    ui.notifications.info(`Sort de Bulles lancé !${stanceInfo} ${damageInfo2}${maximizedInfo} prêt.${attackInfo}`);
 })();
