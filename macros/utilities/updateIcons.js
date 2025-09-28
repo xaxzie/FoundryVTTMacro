@@ -228,13 +228,19 @@
             </div>
         `;
 
-        new Dialog({
+        // Keep a reference to the manager dialog so we can close it before opening sub-dialogs
+        let managerDialog = null;
+
+        managerDialog = new Dialog({
             title: "Status Effects Manager",
             content,
             buttons: {
                 add: {
                     label: "<i class='fas fa-plus'></i> Add New",
                     callback: async () => {
+                        // Close the manager before opening the Add dialog to avoid stacked panels
+                        if (managerDialog) managerDialog.close();
+
                         const data = await inputDialog("Add New Status Effect", [
                             { name: 'id', label: 'Status ID', placeholder: 'unique-id-no-spaces' },
                             { name: 'label', label: 'Display Label', placeholder: 'Visible name' },
@@ -242,7 +248,8 @@
                             { name: 'icon', label: 'Icon Path', type: 'filepicker', placeholder: 'icons/svg/example.svg' }
                         ]);
 
-                        if (!data || !data.id) return;
+                        // If user cancelled, re-open the manager
+                        if (!data || !data.id) { renderManager(); return; }
 
                         const cur = getEffects();
                         if (cur.find(x => (x.statusId || x.id) === data.id)) {
@@ -331,6 +338,9 @@
                     const cur = getEffects();
                     const entry = cur[idx];
 
+                    // Close the manager before opening the Edit dialog to avoid stacked panels
+                    if (managerDialog) managerDialog.close();
+
                     const data = await inputDialog("Edit Status Effect", [
                         { name: 'id', label: 'Status ID' },
                         { name: 'label', label: 'Display Label' },
@@ -343,7 +353,8 @@
                         icon: getEffectIcon(entry)
                     });
 
-                    if (!data) return;
+                    // If user cancelled the edit, re-open the manager and return
+                    if (!data) { renderManager(); return; }
 
                     cur[idx] = {
                         ...entry,
