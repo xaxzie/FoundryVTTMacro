@@ -8,7 +8,8 @@ This guide outlines best practices for developing effective, maintainable, and p
 
 Before developing any spell animation, you must understand:
 - **Custom RPG rules**: Read [GAME-RULES.md](../GAME-RULES.md) completely
-- **6-stat system**: Force, Dexterité, Agilité, Esprit, Sens, Volonté, Charisme
+- **7-stat system**: Physique, Dextérité, Agilité, Esprit, Sens, Volonté, Charisme
+- **Character statistics**: Accessible via `actor.system.attributes.[stat_name].value`
 - **Combat stances**: Offensive, Defensive, Focus modes
 - **Turn-based mechanics**: Integration with Carousel Combat Track
 - **Animation scope**: Visual effects only, no automation of dice/damage
@@ -42,24 +43,24 @@ Before developing any spell animation, you must understand:
 ```javascript
 /**
  * [SPELL NAME] - Custom RPG Spell Animation
- * 
+ *
  * Description: [Visual effect description and RPG context]
  * Associated Stat: [Which of 6 stats this spell uses - Force/Dexterité/etc.]
  * Stance Compatibility: [How different stances affect this spell]
  * Target Type: [Single/Multiple/Area/Self]
  * Character: [Generic/Ora/Moctei/etc.]
- * 
+ *
  * Requirements:
  * - Sequencer module
  * - JB2A effects
  * - Warp Gate (for targeting)
  * - Carousel Combat Track (for turn validation)
- * 
+ *
  * RPG Integration:
  * - Mana cost: [X points] (handled manually)
  * - Stance effects: [Describe stance-dependent behavior]
  * - Turn requirement: [Whether turn validation is enforced]
- * 
+ *
  * @author [Your Name]
  * @version 1.0
  * @gamemaster_approved [Date of approval if required]
@@ -70,7 +71,7 @@ Before developing any spell animation, you must understand:
 if (game.combat?.started && ENFORCE_TURN_ORDER) {
     const activeToken = game.combat.current?.token;
     const selectedToken = canvas.tokens.controlled[0];
-    
+
     if (activeToken?.id !== selectedToken?.id) {
         ui.notifications.warn("Wait for your turn to cast spells!");
         return;
@@ -109,13 +110,13 @@ function validatePlayerTurn(caster, enforceOrder = true) {
     if (!enforceOrder || !game.combat?.started) {
         return true; // Allow casting outside combat or when not enforcing
     }
-    
+
     const activeCombatant = game.combat.current;
     if (activeCombatant?.token?.id !== caster.id) {
         ui.notifications.warn(`Wait for ${caster.name}'s turn to cast spells!`);
         return false;
     }
-    
+
     return true;
 }
 
@@ -134,15 +135,15 @@ function checkCharacterResources(actor, requiredMana = 0) {
         ui.notifications.warn("Character sheet not properly configured for RPG system!");
         return false;
     }
-    
+
     const currentMana = actor.system.resources.power?.value || 0;
     const currentHealth = actor.system.resources.health?.value || 0;
-    
+
     if (requiredMana > 0 && currentMana < requiredMana) {
         ui.notifications.warn(`Insufficient mana! Need ${requiredMana}, have ${currentMana}.`);
         return false;
     }
-    
+
     // Display current resources for manual tracking
     ui.notifications.info(`Current: ${currentMana} mana, ${currentHealth} health`);
     return true;
@@ -165,19 +166,19 @@ async function getSpellTarget(config = {}) {
         maxRange = null,
         spellName = "spell"
     } = config;
-    
+
     if (requireTarget && !game.user.targets.size) {
         ui.notifications.warn(`Select target(s) for ${spellName}!`);
         return null;
     }
-    
+
     const targets = Array.from(game.user.targets);
-    
+
     if (!allowMultiple && targets.length > 1) {
         ui.notifications.warn(`${spellName} can only target one enemy!`);
         return null;
     }
-    
+
     // Check range if specified (for future range validation)
     if (maxRange && caster) {
         const distance = canvas.grid.measureDistance(caster, targets[0]);
@@ -186,7 +187,7 @@ async function getSpellTarget(config = {}) {
             return null;
         }
     }
-    
+
     return allowMultiple ? targets : targets[0];
 }
 ```
@@ -196,12 +197,12 @@ async function getSpellTarget(config = {}) {
 // Validate character-specific spells
 function validateCharacterSpell(actor, requiredCharacter) {
     const characterName = actor?.name?.toLowerCase() || "";
-    
+
     if (!characterName.includes(requiredCharacter.toLowerCase())) {
         ui.notifications.warn(`This spell is specific to ${requiredCharacter}!`);
         return false;
     }
-    
+
     return true;
 }
 
@@ -256,11 +257,11 @@ function getStanceEffectScale(stance) {
 // Optimized multi-target spells for RPG system
 function createMultiTargetSpell(caster, targets, effectConfig) {
     let sequence = new Sequence();
-    
+
     // Limit simultaneous effects for performance
     const maxSimultaneous = 5;
     const staggerDelay = 150; // Milliseconds between targets
-    
+
     targets.slice(0, maxSimultaneous).forEach((target, index) => {
         sequence.effect()
             .file(effectConfig.projectile)
@@ -274,7 +275,7 @@ function createMultiTargetSpell(caster, targets, effectConfig) {
             .delay(1000 + (index * staggerDelay))
             .scale(0.8);
     });
-    
+
     return sequence;
 }
 ```
@@ -303,7 +304,7 @@ if (PERFORMANCE_SETTINGS.particles === "low") {
 // RPG-aware user notifications
 function notifySpellCast(spellName, manaCost, casterName) {
     ui.notifications.info(`${casterName} casts ${spellName}!`);
-    
+
     if (manaCost > 0) {
         ui.notifications.warn(`Manually deduct ${manaCost} mana from ${casterName}.`);
     }
@@ -321,14 +322,14 @@ function checkAndNotifyTurn(caster) {
         ui.notifications.info("Casting outside of combat - no turn restrictions.");
         return true;
     }
-    
+
     const activeCombatant = game.combat.current;
     if (activeCombatant?.token?.id !== caster.id) {
         const activeName = activeCombatant?.name || "Unknown";
         ui.notifications.warn(`Currently ${activeName}'s turn. Wait for your turn to cast.`);
         return false;
     }
-    
+
     ui.notifications.success(`${caster.name}'s turn - spell ready to cast!`);
     return true;
 }
@@ -344,7 +345,7 @@ async function showSpellCrosshairs(spellConfig) {
         spellColor = "blue",
         requiresLineOfSight = true
     } = spellConfig;
-    
+
     return await warpgate.crosshairs.show({
         size: areaSize,
         icon: `modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_${spellColor}_400x400.webm`,
@@ -373,7 +374,7 @@ function getStanceNotification(currentStance) {
         "defensive": "Can counter-spell! No dodge penalty.",
         "focus": "Reduced mana costs! Some spells cost-free."
     };
-    
+
     return stanceEffects[currentStance] || "Stance effects unknown.";
 }
 
@@ -397,27 +398,27 @@ const SpellUtils = {
             requiredCharacter = null,
             maxTargets = 1
         } = config;
-        
+
         if (!caster) {
             ui.notifications.warn("No caster selected!");
             return false;
         }
-        
+
         if (requiresTurn && !this.validateTurn(caster)) {
             return false;
         }
-        
+
         if (requiredCharacter && !this.validateCharacter(caster.actor, requiredCharacter)) {
             return false;
         }
-        
+
         if (manaCost > 0 && !this.checkMana(caster.actor, manaCost)) {
             return false;
         }
-        
+
         return true;
     },
-    
+
     // Create standardized spell projectile
     createSpellProjectile: function(caster, target, effectFile, duration = 1000) {
         return new Sequence()
@@ -428,7 +429,7 @@ const SpellUtils = {
                 .duration(duration)
                 .waitUntilFinished(-200);
     },
-    
+
     // Create standardized spell impact
     createSpellImpact: function(target, effectFile, scale = 1.0) {
         return new Sequence()
@@ -438,7 +439,7 @@ const SpellUtils = {
                 .scale(scale)
                 .duration(1500);
     },
-    
+
     // Combine projectile + impact for complete spell
     createCompleteSpell: function(config) {
         const {
@@ -450,39 +451,39 @@ const SpellUtils = {
             manaCost = 0,
             spellName = "Unknown Spell"
         } = config;
-        
+
         let sequence = new Sequence();
-        
+
         // Add sound if provided
         if (soundEffect) {
             sequence.sound()
                 .file(soundEffect)
                 .volume(0.4);
         }
-        
+
         // Handle multiple targets
         const targetArray = Array.isArray(targets) ? targets : [targets];
-        
+
         targetArray.forEach((target, index) => {
             // Projectile
             sequence.addSequence(
                 this.createSpellProjectile(caster, target, projectileEffect)
             );
-            
+
             // Impact (delayed for projectile travel)
             sequence.addSequence(
                 this.createSpellImpact(target, impactEffect)
                     .delay(1000 + (index * 200))
             );
         });
-        
+
         // Add completion notification
         sequence.thenDo(() => {
             if (manaCost > 0) {
                 ui.notifications.warn(`${spellName} cast! Deduct ${manaCost} mana from ${caster.name}.`);
             }
         });
-        
+
         return sequence;
     }
 };
@@ -505,7 +506,7 @@ const OraSpells = {
                 sound: "assets/sounds/ice-spells/blizzard.wav"
             }
         };
-        
+
         const effect = iceEffects[spellType];
         return SpellUtils.createCompleteSpell({
             caster,
@@ -533,7 +534,7 @@ const MocteiSpells = {
                 sound: "assets/sounds/shadow/void-prison.wav"
             }
         };
-        
+
         const effect = shadowEffects[spellType];
         return SpellUtils.createCompleteSpell({
             caster,
@@ -551,24 +552,24 @@ const MocteiSpells = {
 ```javascript
 // Helper functions for RPG system integration
 const RPGHelpers = {
-    // Get character stats (for future automation)
+    // Get character stats (now available via individual attributes)
     getCharacterStat: function(actor, statName) {
-        // Placeholder for future stat access
-        return actor?.system?.attributes?.[statName]?.value || 0;
+        // Access individual characteristic attributes
+        return actor?.system?.attributes?.[statName]?.value || 3;
     },
-    
+
     // Calculate spell dice (for future automation)
     calculateSpellDice: function(actor, statName) {
         const statValue = this.getCharacterStat(actor, statName);
         return `${statValue}d7`; // RPG uses d7 dice
     },
-    
+
     // Check combat stance (for future implementation)
     getCombatStance: function(actor) {
         // Placeholder for future stance detection
         return actor?.flags?.rpg?.stance || "neutral";
     },
-    
+
     // Apply stance effects to spell visuals
     applyStanceEffects: function(sequence, stance) {
         switch(stance) {
@@ -576,7 +577,7 @@ const RPGHelpers = {
                 // More intense, aggressive visuals
                 return sequence.effect().scale(1.3).tint("#ff4500");
             case "defensive":
-                // Subdued, protective visuals  
+                // Subdued, protective visuals
                 return sequence.effect().scale(0.8).tint("#4169e1");
             case "focus":
                 // Clean, precise visuals
@@ -597,7 +598,7 @@ const RPG_DEBUG = true;
 
 function debugRPG(category, message, data = null) {
     if (!RPG_DEBUG) return;
-    
+
     const timestamp = new Date().toLocaleTimeString();
     console.log(`[RPG-${category}] ${timestamp}: ${message}`, data);
 }
@@ -645,7 +646,7 @@ function testSpellScenarios(spellFunction) {
             expect: "Should execute spell animation"
         }
     ];
-    
+
     scenarios.forEach(scenario => {
         console.log(`Testing: ${scenario.name}`);
         scenario.setup();
@@ -664,27 +665,27 @@ function testSpellScenarios(spellFunction) {
 // Test character-specific spell requirements
 function testCharacterSpell(characterName, spellName) {
     debugRPG("TEST", `Testing ${characterName}'s ${spellName}`);
-    
+
     // Validate character
     const caster = canvas.tokens.controlled[0];
     if (!caster?.name?.toLowerCase().includes(characterName.toLowerCase())) {
         console.warn(`Wrong character: Expected ${characterName}, got ${caster?.name}`);
         return false;
     }
-    
+
     // Test character sheet setup
     const resources = caster.actor?.system?.resources;
     if (!resources?.power || !resources?.health) {
         console.error("Character sheet not configured for RPG system");
         return false;
     }
-    
-    debugRPG("TEST", "Character validation passed", { 
-        character: caster.name, 
+
+    debugRPG("TEST", "Character validation passed", {
+        character: caster.name,
         mana: resources.power.value,
-        health: resources.health.value 
+        health: resources.health.value
     });
-    
+
     return true;
 }
 ```
@@ -700,14 +701,14 @@ function testCombatPerformance() {
             const end = performance.now();
             return end - start;
         },
-        
+
         multiTarget: () => {
             const start = performance.now();
             // Execute multi-target spell with 5 enemies
             const end = performance.now();
             return end - start;
         },
-        
+
         complexSpell: () => {
             const start = performance.now();
             // Execute complex spell with multiple effects
@@ -715,11 +716,11 @@ function testCombatPerformance() {
             return end - start;
         }
     };
-    
+
     Object.entries(performanceTests).forEach(([testName, testFn]) => {
         const timing = testFn();
         debugRPG("PERFORMANCE", `${testName} took ${timing.toFixed(2)}ms`);
-        
+
         if (timing > 5000) { // 5 second threshold
             console.warn(`${testName} may be too slow for turn-based combat`);
         }
@@ -734,7 +735,7 @@ function testCombatPerformance() {
 /**
  * Spell: Ora's Frost Bolt
  * Description: Fires a precision ice projectile that can slow enemies
- * 
+ *
  * RPG Integration:
  * - Associated Stat: Dexterité (for accuracy)
  * - Mana Cost: 15 points (handled manually)
@@ -745,19 +746,19 @@ function testCombatPerformance() {
  *   * Offensive: Damage maximized, -3 dodge dice
  *   * Defensive: Can be used as counter-spell
  *   * Focus: Mana cost reduced to 7 points
- * 
+ *
  * Requirements:
  * - Sequencer module
  * - JB2A effects (ice shard, impact)
  * - Warp Gate (targeting)
  * - Character: Ora only
- * 
+ *
  * Usage:
  * 1. Select Ora's token during her turn
  * 2. Target enemy within range
  * 3. Execute macro
  * 4. Manually deduct 15 mana (or 7 if in Focus stance)
- * 
+ *
  * @author [Your Name]
  * @version 1.0
  * @character Ora
@@ -793,7 +794,7 @@ const manaCost = currentStance === "focus" ? 7 : 15;
 
 // === SPELL MECHANICS ===
 // Dexterité-based spell: Player will roll [Dex Value]d7
-// Target rolls Agilité defense: [Agi Value]d7  
+// Target rolls Agilité defense: [Agi Value]d7
 // Hit if Attacker > Defender
 // Animation shows visual effect only, dice handled externally
 
@@ -844,21 +845,21 @@ new Sequence()
 ```javascript
 /**
  * RPG INTEGRATION NOTES:
- * 
+ *
  * Current Implementation:
  * ✅ Visual animation only
  * ✅ Turn validation
  * ✅ Character restriction (Ora only)
  * ✅ Range checking
  * ✅ Manual mana cost notification
- * 
+ *
  * Future Automation (requires GameMaster approval):
  * 🔄 Automatic mana deduction
  * 🔄 Stance detection and cost adjustment
  * 🔄 Dice rolling integration
  * 🔄 Damage calculation
  * 🔄 Status effect application
- * 
+ *
  * Testing Checklist:
  * ✅ Works with Ora's token
  * ✅ Rejects non-Ora characters
@@ -866,7 +867,7 @@ new Sequence()
  * ✅ Validates target range
  * ✅ Shows appropriate notifications
  * ✅ Animation timing appropriate for combat
- * 
+ *
  * GameMaster Notes:
  * - Frost Bolt is Ora's signature spell
  * - Dexterité-based for precision theme
@@ -895,13 +896,13 @@ Keep track of changes with RPG-specific notes:
 ```javascript
 /**
  * GameMaster Approval Log:
- * 
+ *
  * @gamemaster_approved_date 2025-09-19
  * @gamemaster_approved_by [GameMaster Name]
  * @approval_scope Visual effects, mana costs, character restrictions
  * @pending_approval Automatic dice rolling integration
  * @rejected_features Automatic damage application (per GM ruling)
- * 
+ *
  * Notes from GameMaster:
  * - Animation timing approved for combat flow
  * - Mana cost balanced for Ora's playstyle
@@ -921,16 +922,16 @@ const getRPGCompatibleEffect = (spellType) => {
             "modules/animated-spell-effects/spell-effects/ice/ice-bolt.webm"  // Alternative
         ]
     };
-    
+
     const paths = effectPaths[spellType] || [];
-    
+
     for (const path of paths) {
         if (Sequencer.Database.entryExists(path)) {
             debugRPG("EFFECTS", `Using effect path: ${path}`);
             return path;
         }
     }
-    
+
     ui.notifications.error(`No compatible effect found for ${spellType}! Check module installations.`);
     return null;
 };
@@ -951,20 +952,20 @@ function validateRPGInput(input, type) {
             // Only allow known character names
             const validCharacters = ["ora", "moctei"];
             return validCharacters.includes(input.toLowerCase());
-            
+
         case "spell_name":
             // Validate against known spell list
             return input.match(/^[a-zA-Z\s_-]+$/) && input.length <= 30;
-            
+
         case "mana_cost":
             // Validate mana cost range
             return Number.isInteger(input) && input >= 0 && input <= 100;
-            
+
         case "stat_name":
-            // Validate against 6-stat system
-            const validStats = ["force", "dexterite", "agilite", "esprit", "sens", "volonte", "charisme"];
+            // Validate against 7-stat system
+            const validStats = ["physique", "dexterite", "agilite", "esprit", "sens", "volonte", "charisme"];
             return validStats.includes(input.toLowerCase());
-            
+
         default:
             return false;
     }
@@ -987,21 +988,21 @@ const RPGPermissions = {
             ui.notifications.warn("You don't have permission to control this character!");
             return false;
         }
-        
+
         // RPG rule: high-level spells may require GM approval
         if (spellLevel > 3 && !game.user.isGM) {
             ui.notifications.warn("High-level spells require GameMaster presence!");
             return false;
         }
-        
+
         return true;
     },
-    
+
     canModifyCharacter: function(user, character) {
         // Only GMs and character owners can modify character sheets
         return character.isOwner || game.user.isGM;
     },
-    
+
     canAccessCombatFeatures: function(user) {
         // Advanced combat features may require specific permissions
         return game.user.hasRole("GAMEMASTER") || game.user.hasRole("ASSISTANT");
@@ -1022,21 +1023,21 @@ function getSecureCharacterData(actor) {
         debugRPG("SECURITY", "Invalid actor data access attempt");
         return null;
     }
-    
+
     // Only access approved RPG data fields
     const approvedFields = {
         resources: actor.system.resources,
         attributes: actor.system.attributes,
         name: actor.name
     };
-    
+
     // Sanitize output
     Object.keys(approvedFields).forEach(key => {
         if (approvedFields[key] === undefined) {
             delete approvedFields[key];
         }
     });
-    
+
     debugRPG("SECURITY", "Secure character data accessed", { actorName: actor.name });
     return approvedFields;
 }
@@ -1053,7 +1054,8 @@ function checkResourcesSafely(actor, resourceName) {
 By following these RPG-specific best practices, your spell animation macros will:
 
 ### ✅ **Respect RPG Mechanics**
-- Integrate with 6-stat system and combat stances
+- Integrate with 7-stat system and combat stances
+- Access character statistics via individual attributes
 - Honor turn-based combat flow and timing
 - Maintain character-specific spell restrictions
 - Provide clear feedback for manual resource management

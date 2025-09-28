@@ -107,7 +107,7 @@ All required modules are **already installed and enabled** on the server:
 #### Core Animation System
 - ✅ **Sequencer** - Essential animation framework (latest stable version)
 
-#### Visual Effects Libraries  
+#### Visual Effects Libraries
 - ✅ **JB2A - Jules&Ben's Animated Assets (Free)** - Comprehensive free effect library
 - ✅ **JB2A - Jules&Ben's Animated Assets (Patreon)** - Extended premium effects
 - ✅ **Animated Spell Effects** - Additional spell effect options
@@ -125,7 +125,7 @@ With multiple effect libraries installed, spells can choose from:
 // JB2A Free effects
 "jb2a.magic_missile.01.blue"
 
-// JB2A Patreon effects  
+// JB2A Patreon effects
 "jb2a.healing_generic.burst.greenorange"
 
 // Animated Spell Effects
@@ -155,11 +155,11 @@ With multiple effect libraries installed, spells can choose from:
 
 The Carousel Combat Track module provides comprehensive API access for RPG spell validation:
 
-**✅ Turn Validation**: `game.combat.combatant` provides active combatant data  
-**✅ Combat State**: `game.combat.started` confirms combat is active  
-**✅ Initiative Access**: Full access to `game.combat.combatants` and turn order  
-**✅ Round Tracking**: `game.combat.round` for duration spells  
-**✅ Combatant Status**: Access to defeated status and initiative values  
+**✅ Turn Validation**: `game.combat.combatant` provides active combatant data
+**✅ Combat State**: `game.combat.started` confirms combat is active
+**✅ Initiative Access**: Full access to `game.combat.combatants` and turn order
+**✅ Round Tracking**: `game.combat.round` for duration spells
+**✅ Combatant Status**: Access to defeated status and initiative values
 
 ### Combat Integration Examples
 
@@ -167,31 +167,31 @@ The Carousel Combat Track module provides comprehensive API access for RPG spell
 // Complete spell validation function
 function validateSpellCasting(casterToken, spellName) {
     const combat = game.combat;
-    
+
     // Check combat state
     if (!combat) {
         ui.notifications.warn(`${spellName} requires combat to be initiated`);
         return false;
     }
-    
+
     if (!combat.started) {
         ui.notifications.warn(`${spellName} requires active combat`);
         return false;
     }
-    
+
     // Check turn order
     const activeCombatant = combat.combatant;
     if (!activeCombatant) {
         ui.notifications.warn("No active combatant found");
         return false;
     }
-    
+
     // Validate caster's turn
     if (activeCombatant.token?.id !== casterToken.id) {
         ui.notifications.warn(`${spellName}: Wait for your turn!`);
         return false;
     }
-    
+
     return true;
 }
 
@@ -199,7 +199,7 @@ function validateSpellCasting(casterToken, spellName) {
 function getCombatInfo() {
     const combat = game.combat;
     if (!combat) return null;
-    
+
     return {
         round: combat.round,
         turn: combat.turn,
@@ -308,22 +308,22 @@ mySequence.play();
 // Verified API: Check if it's player's turn before casting spell
 function validateTurnAndCastSpell(casterToken) {
     const combat = game.combat;
-    
+
     // Check if combat is active
     if (!combat?.started) {
         ui.notifications.warn("Combat must be active to cast spells");
         return false;
     }
-    
+
     // Get current combatant
     const activeCombatant = combat.combatant;
-    
+
     // Validate it's the caster's turn
     if (activeCombatant?.token?.id !== casterToken.id) {
         ui.notifications.warn("It's not your turn!");
         return false;
     }
-    
+
     // Proceed with spell animation
     new Sequence()
         .effect()
@@ -333,7 +333,7 @@ function validateTurnAndCastSpell(casterToken) {
         .sound()
             .file("assets/sounds/healing.wav")
         .play();
-    
+
     return true;
 }
 
@@ -383,7 +383,7 @@ Effect macros can use any of the pre-installed libraries:
 
 **JB2A Patreon Effects**:
 ```javascript
-"jb2a.healing_generic.burst.greenorange" 
+"jb2a.healing_generic.burst.greenorange"
 "jb2a.cast_generic.01.blue.0"
 ```
 
@@ -406,12 +406,42 @@ Spell macros use different token selection methods:
 - `game.user.targets` - All targeted tokens (spell targets)
 - `token` - Current token (in character sheets)
 
+### Character Statistics Access
+All character statistics are now stored as individual attributes in the FoundryVTT character sheet and can be accessed programmatically:
+
+```javascript
+// Access individual characteristics
+const esprit = actor.system.attributes.esprit?.value || 3;
+const physique = actor.system.attributes.physique?.value || 3;
+const agilite = actor.system.attributes.agilite?.value || 3;
+const dexterite = actor.system.attributes.dexterite?.value || 3;
+const sens = actor.system.attributes.sens?.value || 3;
+const volonte = actor.system.attributes.volonte?.value || 3;
+const charisme = actor.system.attributes.charisme?.value || 3;
+
+// Example usage in spell macros
+const spellPower = actor.system.attributes.esprit?.value || 3;
+ui.notifications.info(`Casting with ${spellPower} Esprit power!`);
+```
+
+**Available Characteristics**:
+- `physique` - Physical Strength
+- `dexterite` - Dexterity/Skill
+- `agilite` - Agility/Speed/Reflexes
+- `esprit` - Mind/Concentration
+- `sens` - Senses/Perception
+- `volonte` - Will/Determination
+- `charisme` - Charisma/Social Understanding
+
+**Setup**: Use the character statistics setup utility in `/macros/utilities/character-stats-setup.js` to configure character stats, then edit them directly in the character sheet under "Attributes".
+
 ### RPG Integration Notes
+- **Character Stats**: Accessible via `actor.system.attributes.[stat_name].value`
 - **Mana/Power costs**: Not handled by animations - manage via character sheets
 - **Turn validation**: Some macros may check current turn before executing
 - **Stance effects**: Visual effects may vary based on character stance (future feature)
 
-## 📚 Example Animations  
+## 📚 Example Animations
 
 **⚠️ For Learning Purposes Only - Not RPG Compliant**
 
@@ -419,20 +449,20 @@ The `/examples/` directory contains spell animations that demonstrate Sequencer 
 
 ### 🌊 **Ora Examples** - Water & Ice Techniques
 - **Frost Bolt**: Projectile animation patterns
-- **Ice Wall**: Barrier creation sequences  
+- **Ice Wall**: Barrier creation sequences
 - **Water Whip**: Line attack demonstrations
 - **Blizzard**: Area effect timing examples
 - **Healing Spring**: Continuous effect loops
 
-### 🌑 **Moctei Examples** - Shadow & Darkness Techniques  
+### 🌑 **Moctei Examples** - Shadow & Darkness Techniques
 - **Shadow Bolt**: Life-drain visual effects
 - **Darkness Cloud**: Area denial animations
 - **Shadow Step**: Teleportation mechanics
 - **Umbral Strike**: Enhanced melee sequences
 - **Void Prison**: Complex crowd control timing
 
-**📁 Location**: `/examples/characters/[character-name]/`  
-**📚 Usage**: Study for animation techniques, but convert to RPG-compliant versions before use  
+**📁 Location**: `/examples/characters/[character-name]/`
+**📚 Usage**: Study for animation techniques, but convert to RPG-compliant versions before use
 **⚠️ Missing**: Turn validation, mana integration, combat state checking, stance awareness
 
 ## �📖 Learning Resources
@@ -501,11 +531,11 @@ All required modules are pre-installed on the server. If you encounter errors:
 - **Implementation**: See [Combat Integration API](#-combat-integration-api) section above
 
 #### **RPG Integration Status**
-- **Character Stats**: Access stats from FoundryVTT character sheets manually  
-- **Mana/Power**: Use character sheet resources, not automation  
-- **Stance Detection**: Currently manual - future automation planned  
-- **✅ Turn Validation**: Fully implemented with verified API access  
-- **✅ Combat State**: Complete combat status and round tracking available  
+- **Character Stats**: Access stats from FoundryVTT character sheets manually
+- **Mana/Power**: Use character sheet resources, not automation
+- **Stance Detection**: Currently manual - future automation planned
+- **✅ Turn Validation**: Fully implemented with verified API access
+- **✅ Combat State**: Complete combat status and round tracking available
 - **✅ Initiative Order**: Full access to combatant turn order and status
 
 #### **Performance Issues**

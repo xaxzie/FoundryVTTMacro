@@ -26,10 +26,11 @@ Before contributing, you **MUST** read and understand:
 
 ### Key RPG Mechanics to Consider
 - **Turn-based combat** with Carousel Combat Track integration
-- **6-stat system**: Force, Dexterité, Agilité, Esprit, Sens, Volonté, Charisme
+- **7-stat system**: Physique, Dextérité, Agilité, Esprit, Sens, Volonté, Charisme
 - **3-stance combat**: Offensive, Defensive, Focus modes
 - **D7 dice system** for attack/defense resolution
 - **Mana-based spellcasting** with stance-dependent costs
+- **Character statistics**: Accessible via individual attributes in character sheets
 
 ## 👨‍⚔️ GameMaster Authority
 
@@ -72,7 +73,7 @@ git checkout -b feature/new-spell-animation
 # 4. Install FoundryVTT modules (see installation guide)
 # - Sequencer
 # - JB2A
-# - Warp Gate  
+# - Warp Gate
 # - Carousel Combat Track
 ```
 
@@ -147,19 +148,28 @@ git checkout -b feature/new-spell-animation
 
 #### Code Standards
 ```javascript
-// ✅ Good: Clear, commented spell animation
+// ✅ Good: Clear, commented spell animation with stat access
 /**
  * Frost Bolt Spell Animation
  * Associated Stat: Esprit (mental focus for ice magic)
  * Stance Compatibility: All stances (visual intensity may vary)
  * Target Type: Single target with crosshair selection
  */
+
+// Access character statistics
+const caster = canvas.tokens.controlled[0];
+const actor = caster?.actor;
+const espritStat = actor?.system.attributes.esprit?.value || 3;
+
+// Scale effect based on character's Esprit
+const spellScale = 0.8 + (espritStat * 0.1); // Higher Esprit = larger effect
+
 new Sequence()
     .effect()
         .file("jb2a.ice_shard.01.blue")
-        .atLocation(token)
+        .atLocation(caster)
         .stretchTo(target)
-        .scale(1.2)
+        .scale(spellScale)
         .waitUntilFinished(-200)
     .effect()
         .file("jb2a.impact.ice.blue")
@@ -181,7 +191,7 @@ target.actor.update({"system.health.value": newHealth}); // DON'T DO THIS
 ```
 macros/
 ├── basic/           # Simple, single-effect spells
-├── intermediate/    # Multi-step spell sequences  
+├── intermediate/    # Multi-step spell sequences
 ├── advanced/        # Complex targeting and interactions
 ├── spells/          # Generic spell effects
 ├── characters/      # Character-specific spell sets
@@ -230,25 +240,31 @@ macros/
 ```javascript
 /**
  * [SPELL NAME] - [CHARACTER/GENERIC]
- * 
+ *
  * Description: [What the spell does visually and in RPG context]
- * Associated Stat: [Which of the 6 stats this spell uses]
+ * Associated Stat: [Which of the 7 stats this spell uses - physique, dexterite, agilite, esprit, sens, volonte, charisme]
  * Stance Compatibility: [How different stances affect this spell]
  * Target Type: [Single, Multiple, Area, Self, etc.]
- * 
+ *
  * Requirements:
  * - Sequencer module
  * - JB2A effects
+ * - Character statistics setup (use character-stats-setup.js utility)
  * - [Any other specific requirements]
- * 
+ *
  * Usage:
- * 1. Select caster token
+ * 1. Select caster token (with configured characteristics)
  * 2. Target enemy/area (if applicable)
  * 3. Execute macro
- * 
+ *
+ * Character Stats Access:
+ * - Uses actor.system.attributes.[stat_name].value for spell power
+ * - Example: actor.system.attributes.esprit.value for mind-based spells
+ *
  * RPG Notes:
  * - [Any special interactions with RPG mechanics]
  * - [Stance-specific behaviors]
+ * - [How character stats affect the spell]
  * - [Integration notes]
  */
 ```
@@ -257,7 +273,7 @@ macros/
 
 #### Pull Request Requirements
 1. **Clear title**: `Add [Spell Name] animation for [Character/Generic]`
-2. **Description**: 
+2. **Description**:
    - What spell is being added/modified
    - RPG context and mechanics
    - Testing performed
@@ -333,7 +349,7 @@ async function getSpellTarget() {
         size: 1,
         icon: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Blue_400x400.webm"
     });
-    
+
     if (crosshairs.cancelled) return null;
     return crosshairs;
 }
