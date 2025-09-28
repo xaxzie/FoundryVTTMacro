@@ -1,0 +1,6 @@
+{
+    "CUSTOM_STATUS_EFFECTS": {
+        "SettingName": "Status Effects Configuration",
+        "SettingHint": "Custom status effects configuration registered by the Custom Status Effects Override module. Use the Status Effects Manager macro to modify these settings."
+    }
+}

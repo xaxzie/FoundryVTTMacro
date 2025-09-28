@@ -1,0 +1,30 @@
+{
+    "id": "custom-status-effects",
+    "title": "Custom Status Effects Override",
+    "description": "Allows persistent customization of status effects by registering core.statusEffects as a world setting.",
+    "version": "1.0.0",
+    "compatibility": {
+        "minimum": "12",
+        "verified": "13",
+        "maximum": "13"
+    },
+    "authors": [
+        {
+            "name": "Custom",
+            "email": "custom@local.dev"
+        }
+    ],
+    "esmodules": [
+        "scripts/main.js"
+    ],
+    "languages": [
+        {
+            "lang": "en",
+            "name": "English",
+            "path": "lang/en.json"
+        }
+    ],
+    "url": "",
+    "manifest": "",
+    "download": ""
+}
