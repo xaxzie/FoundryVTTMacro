@@ -148,7 +148,7 @@
         const target1 = await portal1.pick();
 
         if (!target1) {
-            ui.notifications.info("Spell cancelled.");
+            ui.notifications.info("Sort annulé.");
             return;
         }
 
@@ -201,6 +201,80 @@
         ui.notifications.error("Erreur lors du ciblage. Assurez-vous que le module Portal est installé et activé.");
         return;
     }
+
+    // Helper function to find actor at target location
+    function getActorAtLocation(targetX, targetY) {
+        console.log(`[DEBUG] Recherche d'acteur à la position: x=${targetX}, y=${targetY}`);
+
+        const tolerance = canvas.grid.size; // Full grid size tolerance (instead of half)
+        console.log(`[DEBUG] Tolérance de détection: ${tolerance} (taille de grille: ${canvas.grid.size})`);        // Find tokens at or near the target location
+        const tokensAtLocation = canvas.tokens.placeables.filter(token => {
+            // Calculate token center coordinates (token.x and token.y are top-left corner)
+            // Most tokens are 1x1 grid unit, so center is at +50 pixels (half grid size)
+            const tokenCenterX = token.x + (token.document.width * canvas.grid.size) / 2;
+            const tokenCenterY = token.y + (token.document.height * canvas.grid.size) / 2;
+
+            const tokenDistance = Math.sqrt(
+                Math.pow(tokenCenterX - targetX, 2) + Math.pow(tokenCenterY - targetY, 2)
+            );
+            console.log(`[DEBUG] Token "${token.name}" à distance ${tokenDistance} (centre: x=${tokenCenterX}, y=${tokenCenterY}, coin: x=${token.x}, y=${token.y}, taille: ${token.document.width}x${token.document.height} grid)`);
+            return tokenDistance <= tolerance;
+        });
+
+        console.log(`[DEBUG] Nombre de tokens trouvés dans la zone: ${tokensAtLocation.length}`);
+
+        if (tokensAtLocation.length === 0) {
+            console.log(`[DEBUG] Aucun token trouvé à la position cible`);
+            return null;
+        }
+
+        // Get the first token found
+        const targetToken = tokensAtLocation[0];
+        const targetActor = targetToken.actor;
+
+        console.log(`[DEBUG] Token sélectionné: "${targetToken.name}" (ID: ${targetToken.id})`);
+        console.log(`[DEBUG] Actor du token:`, targetActor ? `"${targetActor.name}" (ID: ${targetActor.id})` : "null");
+
+        if (!targetActor) {
+            console.log(`[DEBUG] Aucun acteur associé au token`);
+            return null;
+        }
+
+        // Check if the actor is visible/owned by the current user
+        const isOwner = targetActor.isOwner;
+        const isVisible = targetToken.visible;
+        const isGM = game.user.isGM;
+
+        console.log(`[DEBUG] Permissions - isOwner: ${isOwner}, isVisible: ${isVisible}, isGM: ${isGM}`);
+        console.log(`[DEBUG] Utilisateur actuel: "${game.user.name}" (ID: ${game.user.id})`);
+
+        if (isOwner || isVisible || isGM) {
+            console.log(`[DEBUG] Accès autorisé - retour du nom réel: "${targetActor.name}"`);
+            return {
+                name: targetActor.name,
+                token: targetToken,
+                actor: targetActor
+            };
+        } else {
+            console.log(`[DEBUG] Accès refusé - retour de "cible"`);
+            return {
+                name: "cible",
+                token: targetToken,
+                actor: targetActor
+            };
+        }
+    }
+
+    // Detect actors at target locations
+    const targetActors = [];
+    for (let i = 0; i < targets.length; i++) {
+        console.log(`[DEBUG] Analyse de la cible ${i + 1}: x=${targets[i].x}, y=${targets[i].y}`);
+        const actorInfo = getActorAtLocation(targets[i].x, targets[i].y);
+        console.log(`[DEBUG] Résultat pour cible ${i + 1}:`, actorInfo);
+        targetActors.push(actorInfo);
+    }
+
+    console.log(`[DEBUG] Liste finale des acteurs cibles:`, targetActors);
 
     // Determine effect files based on element
     let effectFile, explosionFile, effectColor, elementDescription;
@@ -318,31 +392,50 @@
         };
     }
 
-    // Display damage/healing results in chat
-    const targetText = isLivingWater ?
-        (allowSelfTarget ? "auto-soin" : "cible de soin") :
-        (targets.length > 1 ? "2 cibles différentes" : "même cible (deux projectiles)");
+    // Generate target text with actor names
+    let targetText;
+    if (isLivingWater) {
+        if (allowSelfTarget) {
+            targetText = "auto-soin";
+        } else {
+            const target1Actor = targetActors[0];
+            targetText = target1Actor ? target1Actor.name : "cible de soin";
+        }
+    } else {
+        if (targets.length > 1) {
+            const target1Name = targetActors[0] ? targetActors[0].name : "cible";
+            const target2Name = targetActors[1] ? targetActors[1].name : "cible";
+            targetText = `${target1Name} et ${target2Name}`;
+        } else {
+            const targetName = targetActors[0] ? targetActors[0].name : "cible";
+            targetText = `${targetName} (deux projectiles)`;
+        }
+    }
 
     let damageDisplay;
     if (isLivingWater) {
-        // Living Water - show healing
+        // Living Water - show healing with target name
+        const healingTargetName = allowSelfTarget ? actor.name : (targetActors[0] ? targetActors[0].name : "cible");
         damageDisplay = `
-            <p><strong>Soin :</strong> ${damage1.total}
+            <p><strong>Soin pour ${healingTargetName} :</strong> ${damage1.total}
                <span style="font-size: 0.8em;">(${damage1.formula}: ${damage1.result})</span></p>
         `;
     } else if (targets.length > 1) {
-        // Two different targets - show individual projectile damage
+        // Two different targets - show individual projectile damage with target names
+        const target1Name = targetActors[0] ? targetActors[0].name : "cible";
+        const target2Name = targetActors[1] ? targetActors[1].name : "cible";
         damageDisplay = `
-            <p><strong>Dégâts Projectile 1 :</strong> ${damage1.total}
+            <p><strong>Dégâts vs ${target1Name} :</strong> ${damage1.total}
                <span style="font-size: 0.8em;">(${damage1.formula}: ${damage1.result})</span></p>
-            <p><strong>Dégâts Projectile 2 :</strong> ${damage2.total}
+            <p><strong>Dégâts vs ${target2Name} :</strong> ${damage2.total}
                <span style="font-size: 0.8em;">(${damage2.formula}: ${damage2.result})</span></p>
         `;
     } else {
-        // Same target - show total damage
+        // Same target - show total damage with target name
         const totalDamage = damage1.total + damage2.total;
+        const targetName = targetActors[0] ? targetActors[0].name : "cible";
         damageDisplay = `
-            <p><strong>Dégâts Totaux :</strong> ${totalDamage}
+            <p><strong>Dégâts Totaux vs ${targetName} :</strong> ${totalDamage}
                <span style="font-size: 0.8em;">(${damage1.total} + ${damage2.total} des deux projectiles)</span></p>
         `;
     }
