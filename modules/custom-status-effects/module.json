@@ -1,8 +1,8 @@
 {
     "id": "custom-status-effects",
     "title": "Custom Status Effects Override",
-    "description": "Allows persistent customization of status effects by registering core.statusEffects as a world setting.",
-    "version": "1.0.0",
+    "description": "Allows persistent customization of status effects by registering core.statusEffects as a world setting. Compatible with Foundry VTT V13.",
+    "version": "1.0.1",
     "compatibility": {
         "minimum": "12",
         "verified": "13",
