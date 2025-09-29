@@ -322,9 +322,8 @@
         }
 
         // Main vortex effect - PERSISTENT
-        sequence.effect()
+        let vortexEffect = sequence.effect()
             .file("jb2a_patreon.whirlwind.blue")
-            .atLocation(targets[i])
             .scale(vortexScale)
             .belowTokens() // Places the effect under tokens
             .duration(120000) // 2 minutes duration (120 seconds)
@@ -333,21 +332,40 @@
             .name(`tourbillon_${i + 1}_${Date.now()}`) // Unique identifier for destruction
             .delay(800);
 
+        // Attach to token if one exists at target location, otherwise use fixed position
+        if (targetToken) {
+            vortexEffect.attachTo(targetToken);
+        } else {
+            vortexEffect.atLocation(targets[i]);
+        }
+
         // Initial impact effect
-        sequence.effect()
+        let impactEffect = sequence.effect()
             .file("jb2a.impact.water.02.blue.0")
-            .atLocation(targets[i])
             .scale(vortexScale * 0.8) // Scale proportionally to vortex
             .belowTokens()
             .delay(800);
 
+        // Attach impact to token or use fixed position
+        if (targetToken) {
+            impactEffect.attachTo(targetToken);
+        } else {
+            impactEffect.atLocation(targets[i]);
+        }
+
         // Water splash effect
-        sequence.effect()
+        let splashEffect = sequence.effect()
             .file("animated-spell-effects-cartoon.water.water splash.01")
-            .atLocation(targets[i])
             .scale(vortexScale * 0.6) // Scale proportionally to vortex
             .belowTokens()
             .delay(1200);
+
+        // Attach splash to token or use fixed position
+        if (targetToken) {
+            splashEffect.attachTo(targetToken);
+        } else {
+            splashEffect.atLocation(targets[i]);
+        }
     }
 
     // Play the sequence
