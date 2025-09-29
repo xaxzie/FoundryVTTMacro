@@ -5,10 +5,12 @@ This guide will help you set up FoundryVTT with all required modules for the cus
 ## 🎯 Custom RPG Context
 
 This installation guide is specifically tailored for our custom RPG system. Unlike generic FoundryVTT setups, this installation includes:
+
 - **Turn-based combat integration** (Carousel Combat Track)
 - **Character sheet resource management** (mana/power and health tracking)
-- **Spell targeting systems** (Warp Gate integration)
-- **Custom combat stances** (integration points for future automation)
+- **Spell targeting systems** (Portal for RPG-compliant spells, Warp Gate for legacy support)
+- **Custom combat stances** (fully implemented in bubbles.js)
+- **Injury system integration** (character stat adjustments)
 
 > **Important**: Read [GAME-RULES.md](../GAME-RULES.md) to understand the RPG context before installation.
 
@@ -24,12 +26,14 @@ This installation guide is specifically tailored for our custom RPG system. Unli
 ### Sequencer Module (Essential)
 
 #### Method 1: Module Browser (Recommended)
+
 1. In FoundryVTT, go to **Settings** → **Manage Modules**
 2. Click **Install Module**
 3. Search for "Sequencer"
 4. Click **Install** on "Sequencer" by Fantasy Computerworks
 
 #### Method 2: Direct URL
+
 1. In FoundryVTT, go to **Settings** → **Manage Modules**
 2. Click **Install Module**
 3. Paste this URL in the Manifest URL field:
@@ -38,11 +42,17 @@ This installation guide is specifically tailored for our custom RPG system. Unli
    ```
 4. Click **Install**
 
-### Warp Gate Module (Essential for Spell Targeting)
+### Portal Module (Essential for Spell Targeting)
+
+1. In the module browser, search for "Portal"
+2. Install "Portal" by TheRipper93 (Free)
+3. **Purpose**: Required for crosshair targeting system used in RPG-compliant spell animations
+
+### Warp Gate Module (Legacy Support)
 
 1. In the module browser, search for "Warp Gate"
 2. Install "Warp Gate" by honeybadger
-3. **Purpose**: Required for crosshair targeting system used in spell animations
+3. **Purpose**: Secondary targeting system for legacy macros
 
 ### Carousel Combat Track (Essential for RPG System)
 
@@ -58,11 +68,13 @@ This installation guide is specifically tailored for our custom RPG system. Unli
 ### JB2A - Jules&Ben's Animated Assets (Essential)
 
 **Free Version:**
+
 1. Search for "JB2A" in the module browser
 2. Install "JB2A - Jules&Ben's Animated Assets (Free)"
 3. **Coverage**: Provides 95% of effects used in our spell collection
 
 **Patreon Version (Recommended for Enhanced Effects):**
+
 1. Subscribe to [JB2A Patreon](https://www.patreon.com/JB2A)
 2. Download the module files
 3. Extract to your FoundryVTT modules folder
@@ -71,11 +83,13 @@ This installation guide is specifically tailored for our custom RPG system. Unli
 ### Optional Enhancement Modules
 
 **Animated Spell Effects:**
+
 1. Search for "animated-spell-effects" in module browser
 2. Install "Jack Kerouac's Animated Spell Effects"
 3. **Usage**: Used in only one macro (`acid-splash.js`)
 
 **Cartoon Spell Effects:**
+
 1. Search for "animated-spell-effects-cartoon"
 2. Install "Jack Kerouac's Animated Cartoon Spell Effects"
 3. **Usage**: Alternative visual style for some effects
@@ -84,17 +98,20 @@ This installation guide is specifically tailored for our custom RPG system. Unli
 
 1. Go to **Settings** → **Manage Modules**
 2. Enable the following modules **in order**:
-   
+
    **Priority 1 (Essential):**
+
    - ✅ Sequencer
    - ✅ JB2A - Jules&Ben's Animated Assets
-   - ✅ Warp Gate
+   - ✅ Portal (TheRipper93)
    - ✅ Carousel Combat Track (or your combat tracker)
-   
+
    **Priority 2 (Recommended):**
+
    - 🔸 JB2A Patreon (if subscribed)
-   
+
    **Priority 3 (Optional):**
+
    - 🔹 Jack Kerouac's Animated Spell Effects
    - 🔹 Jack Kerouac's Animated Cartoon Spell Effects
 
@@ -108,6 +125,7 @@ This installation guide is specifically tailored for our custom RPG system. Unli
 ### Character Sheet Setup
 
 #### Resource Configuration
+
 1. **Create/Edit Character Actors**
 2. **Configure Resources** in character sheets:
    - **Primary Resource**: "power" (represents mana)
@@ -116,6 +134,7 @@ This installation guide is specifically tailored for our custom RPG system. Unli
      - Force, Dexterité, Agilité, Esprit, Sens, Volonté, Charisme
 
 #### Character Sheet Example
+
 ```json
 {
   "resources": {
@@ -145,6 +164,7 @@ This installation guide is specifically tailored for our custom RPG system. Unli
 ### Combat Tracker Configuration
 
 #### Carousel Combat Track Setup
+
 1. **Configure Turn Order**: Set up initiative system
 2. **Token Integration**: Ensure tokens link to character sheets
 3. **Combat States**: Configure for turn-based mechanics
@@ -155,6 +175,7 @@ This installation guide is specifically tailored for our custom RPG system. Unli
 ### Targeting System Configuration
 
 #### Warp Gate Settings
+
 1. **Crosshair Options**: Configure targeting templates
 2. **Permission Settings**: Set player targeting permissions
 3. **Integration Testing**: Test crosshair functionality
@@ -162,105 +183,113 @@ This installation guide is specifically tailored for our custom RPG system. Unli
 ## Step 5: Verify RPG Integration
 
 ### Test Basic Spell Animation
+
 1. Create a new macro (click empty hotbar slot)
 2. Set type to **Script**
 3. Paste this RPG-adapted test code:
+
 ```javascript
 // Test spell animation with RPG context
 if (!canvas.tokens.controlled.length) {
-    ui.notifications.warn("Please select a caster token.");
-    return;
+  ui.notifications.warn("Please select a caster token.");
+  return;
 }
 
 let caster = canvas.tokens.controlled[0];
 new Sequence()
-    .effect()
-        .file("jb2a.explosion.01.orange")
-        .atLocation(caster)
-        .scale(1.0)
-    .sound()
-        .file("assets/sounds/spell-cast.wav") // Add custom sound
-        .volume(0.3)
-    .play();
+  .effect()
+  .file("jb2a.explosion.01.orange")
+  .atLocation(caster)
+  .scale(1.0)
+  .sound()
+  .file("assets/sounds/spell-cast.wav") // Add custom sound
+  .volume(0.3)
+  .play();
 
 ui.notifications.info("Spell animation complete - handle mana cost manually.");
 ```
+
 4. Select a token on the canvas
 5. Execute the macro
 6. You should see an orange explosion with notification
 
 ### Test Spell Targeting System
+
 ```javascript
 // Test Warp Gate crosshair targeting
 async function testSpellTargeting() {
-    if (typeof warpgate === "undefined") {
-        ui.notifications.error("Warp Gate module required for targeting.");
-        return;
-    }
-    
-    const crosshairs = await warpgate.crosshairs.show({
-        size: 1,
-        icon: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Blue_400x400.webm",
-        label: "Select Spell Target"
-    });
-    
-    if (crosshairs.cancelled) {
-        ui.notifications.info("Spell targeting cancelled.");
-        return;
-    }
-    
-    new Sequence()
-        .effect()
-            .file("jb2a.magic_missile")
-            .atLocation(canvas.tokens.controlled[0])
-            .stretchTo(crosshairs)
-        .play();
+  if (typeof warpgate === "undefined") {
+    ui.notifications.error("Warp Gate module required for targeting.");
+    return;
+  }
+
+  const crosshairs = await warpgate.crosshairs.show({
+    size: 1,
+    icon: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Blue_400x400.webm",
+    label: "Select Spell Target",
+  });
+
+  if (crosshairs.cancelled) {
+    ui.notifications.info("Spell targeting cancelled.");
+    return;
+  }
+
+  new Sequence()
+    .effect()
+    .file("jb2a.magic_missile")
+    .atLocation(canvas.tokens.controlled[0])
+    .stretchTo(crosshairs)
+    .play();
 }
 
 testSpellTargeting();
 ```
 
 ### Test Combat Integration
+
 ```javascript
 // Test combat state access for RPG integration
 if (game.combat?.current) {
-    let activeToken = game.combat.current.token;
-    ui.notifications.info(`Current turn: ${activeToken.name}`);
-    
-    // Test if selected token matches active combatant
-    let selectedToken = canvas.tokens.controlled[0];
-    if (selectedToken?.id === activeToken?.id) {
-        ui.notifications.success("Ready to cast spell on your turn!");
-    } else {
-        ui.notifications.warn("Wait for your turn to cast spells.");
-    }
+  let activeToken = game.combat.current.token;
+  ui.notifications.info(`Current turn: ${activeToken.name}`);
+
+  // Test if selected token matches active combatant
+  let selectedToken = canvas.tokens.controlled[0];
+  if (selectedToken?.id === activeToken?.id) {
+    ui.notifications.success("Ready to cast spell on your turn!");
+  } else {
+    ui.notifications.warn("Wait for your turn to cast spells.");
+  }
 } else {
-    ui.notifications.info("No active combat - testing mode.");
+  ui.notifications.info("No active combat - testing mode.");
 }
 ```
 
 ### Open Sequencer Database
+
 1. Open the **Sequencer Database Viewer** (check Tools menu)
 2. Browse available effects by category
 3. Test playing effects directly from the viewer
 4. **Note effects suitable for RPG spells** (fire, ice, lightning, etc.)
 
 ### Verify Character Sheet Access
+
 ```javascript
 // Test character sheet resource access
 let actor = canvas.tokens.controlled[0]?.actor;
 if (actor) {
-    let mana = actor.system.resources.power?.value || 0;
-    let health = actor.system.resources.health?.value || 0;
-    ui.notifications.info(`Mana: ${mana}, Health: ${health}`);
+  let mana = actor.system.resources.power?.value || 0;
+  let health = actor.system.resources.health?.value || 0;
+  ui.notifications.info(`Mana: ${mana}, Health: ${health}`);
 } else {
-    ui.notifications.warn("No character selected for resource check.");
+  ui.notifications.warn("No character selected for resource check.");
 }
 ```
 
 ## Step 6: Configure RPG-Specific Settings (Optional)
 
 ### Sequencer Settings for RPG
+
 Go to **Settings** → **Module Settings** → **Sequencer**:
 
 - **Enable Debug Mode**: Turn on for spell development/troubleshooting
@@ -269,6 +298,7 @@ Go to **Settings** → **Module Settings** → **Sequencer**:
 - **Database Integration**: Ensure JB2A effects are properly indexed
 
 ### Warp Gate Settings for Spell Targeting
+
 Go to **Settings** → **Module Settings** → **Warp Gate**:
 
 - **Crosshair Permissions**: Configure who can use targeting
@@ -276,6 +306,7 @@ Go to **Settings** → **Module Settings** → **Warp Gate**:
 - **Player Access**: Allow players to target with their spells
 
 ### Combat Tracker Settings
+
 Configure Carousel Combat Track for RPG mechanics:
 
 - **Turn Order Display**: Show initiative order clearly
@@ -284,7 +315,9 @@ Configure Carousel Combat Track for RPG mechanics:
 - **Turn Notifications**: Alert players when their turn begins
 
 ### Performance Settings for Spell-Heavy Sessions
+
 For optimal performance during spell-intensive combat:
+
 - **Effect Quality**: Medium to high for spell clarity
 - **Simultaneous Effects**: Limit to 3-5 concurrent animations
 - **Audio Buffer**: Increase for better spell sound synchronization
@@ -293,48 +326,60 @@ For optimal performance during spell-intensive combat:
 ## Common Installation Issues for RPG System
 
 ### Module Not Loading
+
 **Problem**: Required modules don't appear in module list
-**Solution**: 
+**Solution**:
+
 - Check FoundryVTT version compatibility (v10+ required)
 - Verify internet connection during install
 - Try manual download and installation
 - **For Carousel Combat Track**: Search for alternative combat tracker modules
 
 ### RPG Integration Failures
+
 **Problem**: Character sheet resources not accessible
 **Solution**:
+
 - Verify character sheet structure matches RPG requirements
 - Check resource names: "power" for mana, "health" for HP
 - Ensure character sheets are properly linked to tokens
 - Test resource access with simple macros
 
 ### Spell Effects Not Found
+
 **Problem**: "File not found" errors when running spell macros
 **Solution**:
+
 - Ensure JB2A module is enabled and loaded
 - Check file paths in Sequencer Database Viewer
 - Update spell macro paths to match installed modules
 - Verify JB2A Free vs Patreon version compatibility
 
 ### Targeting System Issues
+
 **Problem**: `warpgate.crosshairs.show()` not working
 **Solution**:
+
 - Ensure Warp Gate module is installed and enabled
 - Check module permissions for players
 - Test basic crosshair functionality first
 - Update to latest Warp Gate version
 
 ### Combat Tracker Integration
+
 **Problem**: Turn order not accessible from spell macros
 **Solution**:
+
 - Verify combat tracker module is properly configured
 - Test basic combat state access
 - Check API compatibility with installed combat module
 - Consider alternative combat tracking solutions
 
 ### Performance Issues During Spell Combat
+
 **Problem**: Game slows down with multiple spell effects
 **Solution**:
+
 - Reduce spell effect quality and duration
 - Limit simultaneous spell animations
 - Use cleanup functions to remove persistent effects
@@ -343,6 +388,7 @@ For optimal performance during spell-intensive combat:
 ## File Path Reference for Spell Effects
 
 ### JB2A Free Edition
+
 ```
 modules/jb2a_patreon/Library/[Category]/[Effect]/[EffectName].webm
 
@@ -352,6 +398,7 @@ modules/jb2a_patreon/Library/Cantrip/Fire_Bolt/FireBolt_01_Orange_Projectile_400
 ```
 
 ### JB2A Patreon Edition
+
 ```
 modules/JB2A_DnD5e/Library/[Category]/[Effect]/[EffectName].webm
 
@@ -361,6 +408,7 @@ modules/JB2A_DnD5e/Library/2nd_Level/Scorching_Ray/ScorchingRay_01_Orange_Projec
 ```
 
 ### Custom RPG Spell Sounds
+
 ```
 assets/sounds/[spell-category]/[sound-name].wav
 
@@ -372,6 +420,7 @@ assets/sounds/shadow/darkness-cloud.wav
 ```
 
 ### Animated Spell Effects (Optional)
+
 ```
 modules/animated-spell-effects/spell-effects/[element]/[spell-name].webm
 modules/animated-spell-effects-cartoon/spell-effects/cartoon/[element]/[spell-name].webm
@@ -380,128 +429,132 @@ modules/animated-spell-effects-cartoon/spell-effects/cartoon/[element]/[spell-na
 ## Testing Your RPG Setup
 
 ### Basic Spell Animation Test
+
 ```javascript
 // Test basic spell with RPG context
 async function testBasicSpell() {
-    if (!canvas.tokens.controlled.length) {
-        ui.notifications.warn("Select a caster token first.");
-        return;
-    }
-    
-    let caster = canvas.tokens.controlled[0];
-    
-    new Sequence()
-        .effect()
-            .file("jb2a.magic_missile")
-            .atLocation(caster)
-            .scale(1.0)
-        .sound()
-            .file("assets/sounds/spell-cast.wav")
-            .volume(0.3)
-        .play();
-        
-    // Note: Mana cost handled separately in RPG system
-    ui.notifications.info("Basic spell animation test complete.");
+  if (!canvas.tokens.controlled.length) {
+    ui.notifications.warn("Select a caster token first.");
+    return;
+  }
+
+  let caster = canvas.tokens.controlled[0];
+
+  new Sequence()
+    .effect()
+    .file("jb2a.magic_missile")
+    .atLocation(caster)
+    .scale(1.0)
+    .sound()
+    .file("assets/sounds/spell-cast.wav")
+    .volume(0.3)
+    .play();
+
+  // Note: Mana cost handled separately in RPG system
+  ui.notifications.info("Basic spell animation test complete.");
 }
 
 testBasicSpell();
 ```
 
 ### Spell Targeting Test
+
 ```javascript
 // Test crosshair targeting for spells
 async function testSpellTargeting() {
-    if (typeof warpgate === "undefined") {
-        ui.notifications.error("Warp Gate required for spell targeting.");
-        return;
-    }
-    
-    const target = await warpgate.crosshairs.show({
-        size: 1,
-        icon: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Blue_400x400.webm",
-        label: "Target Spell Location"
-    });
-    
-    if (target.cancelled) return;
-    
-    new Sequence()
-        .effect()
-            .file("jb2a.explosion.01.orange")
-            .atLocation(target)
-            .scale(1.2)
-        .play();
-        
-    ui.notifications.success("Spell targeting test successful!");
+  if (typeof warpgate === "undefined") {
+    ui.notifications.error("Warp Gate required for spell targeting.");
+    return;
+  }
+
+  const target = await warpgate.crosshairs.show({
+    size: 1,
+    icon: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Blue_400x400.webm",
+    label: "Target Spell Location",
+  });
+
+  if (target.cancelled) return;
+
+  new Sequence()
+    .effect()
+    .file("jb2a.explosion.01.orange")
+    .atLocation(target)
+    .scale(1.2)
+    .play();
+
+  ui.notifications.success("Spell targeting test successful!");
 }
 
 testSpellTargeting();
 ```
 
 ### RPG Combat Integration Test
+
 ```javascript
 // Test combat state integration
 function testCombatIntegration() {
-    if (!game.combat?.current) {
-        ui.notifications.warn("Start combat to test turn integration.");
-        return;
+  if (!game.combat?.current) {
+    ui.notifications.warn("Start combat to test turn integration.");
+    return;
+  }
+
+  let activeCombatant = game.combat.current;
+  let selectedToken = canvas.tokens.controlled[0];
+
+  if (selectedToken?.id === activeCombatant.token?.id) {
+    ui.notifications.success(`${activeCombatant.name}'s turn - ready to cast!`);
+
+    // Test character resource access
+    let actor = selectedToken.actor;
+    if (actor?.system?.resources?.power) {
+      let mana = actor.system.resources.power.value;
+      ui.notifications.info(`Current mana: ${mana}`);
     }
-    
-    let activeCombatant = game.combat.current;
-    let selectedToken = canvas.tokens.controlled[0];
-    
-    if (selectedToken?.id === activeCombatant.token?.id) {
-        ui.notifications.success(`${activeCombatant.name}'s turn - ready to cast!`);
-        
-        // Test character resource access
-        let actor = selectedToken.actor;
-        if (actor?.system?.resources?.power) {
-            let mana = actor.system.resources.power.value;
-            ui.notifications.info(`Current mana: ${mana}`);
-        }
-    } else {
-        ui.notifications.warn("Not your turn - wait to cast spells.");
-    }
+  } else {
+    ui.notifications.warn("Not your turn - wait to cast spells.");
+  }
 }
 
 testCombatIntegration();
 ```
 
 ### Character-Specific Spell Test
+
 ```javascript
 // Test character-specific spell (example: Ora's Frost Bolt)
 async function testCharacterSpell() {
-    let caster = canvas.tokens.controlled[0];
-    if (!caster) {
-        ui.notifications.warn("Select Ora's token to test frost bolt.");
-        return;
-    }
-    
-    // Test targeting
-    const target = await warpgate.crosshairs.show({
-        size: 1,
-        icon: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Blue_400x400.webm"
-    });
-    
-    if (target.cancelled) return;
-    
-    // Frost Bolt animation sequence
-    new Sequence()
-        .effect()
-            .file("jb2a.ice_shard.01.blue")
-            .atLocation(caster)
-            .stretchTo(target)
-            .scale(1.2)
-            .waitUntilFinished(-200)
-        .effect()
-            .file("jb2a.impact.ice.blue")
-            .atLocation(target)
-            .scale(0.8)
-        .sound()
-            .file("assets/sounds/ice-spells/frost-bolt.wav")
-            .volume(0.4)
-        .play();
-        
-    ui.notifications.info("Frost Bolt cast - deduct mana manually.");
+  let caster = canvas.tokens.controlled[0];
+  if (!caster) {
+    ui.notifications.warn("Select Ora's token to test frost bolt.");
+    return;
+  }
+
+  // Test targeting
+  const target = await warpgate.crosshairs.show({
+    size: 1,
+    icon: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Blue_400x400.webm",
+  });
+
+  if (target.cancelled) return;
+
+  // Frost Bolt animation sequence
+  new Sequence()
+    .effect()
+    .file("jb2a.ice_shard.01.blue")
+    .atLocation(caster)
+    .stretchTo(target)
+    .scale(1.2)
+    .waitUntilFinished(-200)
+    .effect()
+    .file("jb2a.impact.ice.blue")
+    .atLocation(target)
+    .scale(0.8)
+    .sound()
+    .file("assets/sounds/ice-spells/frost-bolt.wav")
+    .volume(0.4)
+    .play();
+
+  ui.notifications.info("Frost Bolt cast - deduct mana manually.");
 }
 
 testCharacterSpell();
@@ -536,8 +589,10 @@ testCharacterSpell();
 ### RPG-Specific Issues
 
 #### Character Sheet Problems
+
 **Issue**: Resources not accessible from spell macros
 **Solution**:
+
 ```javascript
 // Debug character sheet structure
 let actor = canvas.tokens.controlled[0]?.actor;
@@ -546,8 +601,10 @@ console.log("Actor attributes:", actor?.system?.attributes);
 ```
 
 #### Combat Integration Problems
+
 **Issue**: Turn order not working with spell animations
 **Solution**:
+
 ```javascript
 // Debug combat state
 console.log("Combat active:", game.combat?.started);
@@ -556,14 +613,18 @@ console.log("Turn ID:", game.combat?.current?.tokenId);
 ```
 
 #### Spell Targeting Issues
+
 **Issue**: Crosshair targeting not working
 **Solution**:
+
 - Verify Warp Gate module version compatibility
 - Test with basic crosshair setup first
 - Check player permissions for targeting
 
 ### General Troubleshooting
+
 If you encounter issues:
+
 1. **Check browser console (F12)** for specific error messages
 2. **Verify all required modules** are installed and enabled
 3. **Test with minimal module setup** to isolate conflicts
@@ -572,7 +633,9 @@ If you encounter issues:
 6. **Report bugs** following [CONTRIBUTING.md](../CONTRIBUTING.md) guidelines
 
 ### Important Backup Reminder
+
 **Always back up your world before:**
+
 - Installing new modules
 - Testing complex spell macros
 - Making character sheet changes
@@ -580,4 +643,4 @@ If you encounter issues:
 
 ---
 
-*Remember: This setup is specifically for our custom RPG system. Enjoy casting spells with amazing animations! ⚡🎲*
+_Remember: This setup is specifically for our custom RPG system. Enjoy casting spells with amazing animations! ⚡🎲_

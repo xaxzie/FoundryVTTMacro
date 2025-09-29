@@ -21,8 +21,8 @@
     "macros/**/*",
     "utilities/**/*",
     "src/**/*",
-    "macro-dev/src/**/*"
-  ],
+    "examples/macro-dev/src/**/*"
+, "examples/advanced", "examples/basic", "examples/spells", "examples/intermediate"  ],
   "exclude": [
     "node_modules",
     "dist",
