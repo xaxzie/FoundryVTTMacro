@@ -21,12 +21,12 @@
     "macros/**/*",
     "utilities/**/*",
     "src/**/*",
-    "examples/macro-dev/src/**/*"
-, "examples/advanced", "examples/basic", "examples/spells", "examples/intermediate"  ],
+    "macros/examples/macro-dev/src/**/*"
+, "macros/examples/advanced", "macros/examples/basic", "macros/examples/spells", "macros/examples/intermediate"  ],
   "exclude": [
     "node_modules",
     "dist",
     "foundrydata",
-    "examples/**/*"
+    "macros/examples/**/*"
   ]
 }

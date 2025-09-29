@@ -16,25 +16,28 @@ The RPG uses a **turn-based combat system** managed by the **Carousel Combat Tra
 
 1. **Initiative Order**: Based on Agilité characteristic with automatic rolls
 2. **Turn Structure**: Each fighter takes turns in order
-3. **Actions per Turn**: 
+3. **Actions per Turn**:
    - **1 Simple Action**: Cast a spell, attack, or interact with environment
    - **1 Movement Action**: Move up to 6 squares or perform movement-equivalent actions
 
 ### Turn Actions Breakdown
 
 #### **Simple Action Options**
+
 - **Spell Casting**: Launch any known spell
 - **Physical Attack**: Melee or ranged combat
 - **Environmental Interaction**: Manipulate objects, open doors, etc.
 - **Other Actions**: GM discretion for creative actions
 
-#### **Movement Action Options**  
+#### **Movement Action Options**
+
 - **Standard Movement**: Up to 6 squares of movement
 - **Item Management**: Draw/sheathe weapons, retrieve items from inventory
 - **Ground Interaction**: Pick up objects from the ground
 - **Other Physical Actions**: GM discretion for movement-equivalent actions
 
 ### Non-Turn Limitations
+
 - **Passive Phase**: Cannot perform actions when it's not your turn
 - **Exception**: Resistance/dodge rolls against incoming attacks
 - **Reactive Spells**: Only available in Defensive stance
@@ -42,6 +45,7 @@ The RPG uses a **turn-based combat system** managed by the **Carousel Combat Tra
 ### Combat Communication Rules
 
 #### **Player Communication Guidelines**
+
 - **Personal Commentary**: Players can comment on combat between themselves
 - **Strategic Limitation**: Cannot share specific action plans during others' turns
 - **Character Communication**: Prefer in-character dialogue during your own turn
@@ -49,6 +53,7 @@ The RPG uses a **turn-based combat system** managed by the **Carousel Combat Tra
 - **No Action Cost**: Speaking doesn't consume actions but must be realistic
 
 #### **Temporal Framework**
+
 - **Turn Duration**: Approximately 6 seconds in game world
 - **Simultaneous Actions**: All actions in a full round occur roughly simultaneously
 - **Dialogue Realism**: Speech should fit within the 6-second timeframe
@@ -63,7 +68,7 @@ The RPG uses a **turn-based combat system** managed by the **Carousel Combat Tra
 - **Movement Examples** (with 6 movement points):
   - 6 squares horizontally or vertically
   - 5 squares straight + 1 diagonal
-  - 3 squares straight + 2 diagonal  
+  - 3 squares straight + 2 diagonal
   - 2 squares straight + 3 diagonal
   - 4 squares diagonal only
 
@@ -74,16 +79,19 @@ The RPG uses a **turn-based combat system** managed by the **Carousel Combat Tra
 ### Health and Mana System
 
 #### **Health Points (HP)**
+
 - **Critical Threshold**: 0 HP = unconscious, life in danger
 - **Starting Value**: 10 HP base
 - **Additional Points**: From the 15 bonus points during character creation
 
-#### **Mana Points (MP)**  
+#### **Mana Points (MP)**
+
 - **Critical Threshold**: 0 MP = unconscious, life in danger
 - **Starting Value**: 5 MP base
 - **Additional Points**: From the 15 bonus points during character creation
 
 #### **Character Creation Resources**
+
 - **Base**: 10 HP + 5 MP
 - **Bonus**: 15 additional points to distribute between HP and MP as desired
 - **Storage**: Managed through FoundryVTT character sheet resources
@@ -95,7 +103,7 @@ The RPG uses a **turn-based combat system** managed by the **Carousel Combat Tra
 Each character has seven primary statistics that govern their abilities:
 
 1. **Physique** (Physical Strength)
-2. **Dextérité** (Dexterity/Skill) 
+2. **Dextérité** (Dexterity/Skill)
 3. **Agilité** (Agility/Speed/Reflexes)
 4. **Esprit** (Mind/Concentration)
 5. **Sens** (Senses/Perception)
@@ -105,48 +113,57 @@ Each character has seven primary statistics that govern their abilities:
 ### Stat Descriptions and Uses
 
 #### **Physique** (Physical Strength)
+
 - **Spell Casting**: Used for certain spells requiring physical power
 - **Physical Actions**: Lifting heavy objects, breaking things
 - **Combat**: Melee attacks with heavy weapons, unarmed combat
 
 #### **Dextérité** (Dexterity/Skill)
+
 - **Spell Casting**: Used for precision-based spells
 - **Ranged Combat**: Aiming and shooting projectiles
 - **Fine Motor Skills**: Precise object manipulation, light weapon combat (daggers)
 
-#### **Agilité** (Agility/Speed/Reflexes)  
+#### **Agilité** (Agility/Speed/Reflexes)
+
 - **Defense**: Primary stat for dodging and evasion
 - **Stealth**: Hiding and moving quietly
 - **Initiative**: Determines turn order in combat
 - **Movement Speed**: Character's action speed
 
 #### **Esprit** (Mind/Concentration)
+
 - **Spell Casting**: Used for concentration-based spells
 - **Magic Perception**: Sensing magical effects and energies
 - **Intelligence**: Understanding complex concepts and problems
 
 #### **Sens** (Senses/Perception)
+
 - **Spell Casting**: Used for perception-based spells
 - **Detection**: Spotting hidden objects, enemies, or clues
 - **Awareness**: Environmental perception and alertness
 
 #### **Volonté** (Will/Determination)
+
 - **Spell Casting**: Used for will-based spells
 - **Resistance**: Resisting physical, magical, mental, or emotional attacks
 - **Determination**: Perseverance through difficult situations
 
 #### **Charisme** (Charisma/Social Understanding)
+
 - **Spell Casting**: Used for social or emotion-based spells
 - **Social Interaction**: Persuasion, deception, negotiation
 - **Empathy**: Understanding and reading other characters' emotions
 
 ### Character Creation Stats
+
 - **Starting Values**: 2 points in each characteristic
 - **Bonus Points**: 14 additional points to distribute
 - **Maximum Investment**: 4 additional points per characteristic (maximum 6 total)
 - **Dice Formula**: Roll 1d7 per point in the relevant characteristic
 
 ### Stat Usage
+
 - **Not Accessible**: Stats are not automatically accessible through macro tools
 - **Manual Input**: When spell animations require stat checks, they must be provided manually in prompts
 - **Storage**: Stats are stored in FoundryVTT character sheets
@@ -157,11 +174,13 @@ Each character has seven primary statistics that govern their abilities:
 ### Spell Casting Process
 
 #### 1. Mana Cost
+
 - **Resource**: Spells consume "mana" stored as "power" in character sheets
 - **Deduction**: Mana is automatically decremented from character resources
 - **Tracking**: Use FoundryVTT's built-in resource management
 
 #### 2. Attack Resolution
+
 ```
 Attacker Process:
 1. Spend mana for the spell
@@ -180,11 +199,13 @@ Hit Resolution:
 ```
 
 #### 3. D7 Dice System
+
 - **Dice Type**: Custom d7 (not standard d6 or d8)
 - **Median Value**: 4 (for balanced gameplay)
 - **Purpose**: Each stat point = one d7 rolled
 
 ### Damage and Effects
+
 - **Damage Calculation**: Always spell-specific
 - **Health Reduction**: Damages "health" resource in character sheet
 - **Spell Effects**: Trigger only on successful hits
@@ -195,33 +216,38 @@ Hit Resolution:
 At the start of each turn, players choose one of three combat stances:
 
 ### 🗡️ Offensive Stance
+
 - **Damage Bonus**: All damage dice are maximized (no damage rolls, all dice become maximum value)
 - **Defense Penalty**: -2 dice when attempting to dodge attacks (Agilité -2)
 - **Best For**: High-damage assault turns
 - **Risk**: Vulnerable to counterattacks
 
-### 🛡️ Defensive Stance  
+### 🛡️ Defensive Stance
+
 - **Counter Ability**: Can use spells reactively to defend against incoming attacks
 - **Spell Defense**: Use the spell's associated stat instead of Agilité for defense
 - **Examples**: Defensive spell casting, protective barriers, counter-magic
 - **Best For**: Surviving enemy assault rounds and reactive spell casting
 
 ### 🎯 Focus Stance
+
 - **Mana Benefit**: Most spell costs are completely removed
 - **Agilité Penalty**: -1 dice to Agilité-based rolls
-- **Exceptions**: 
+- **Exceptions**:
   - **Non-focusable spells**: No effect from Focus stance
   - **Half-focus spells**: Mana cost reduced by half instead of eliminated
 - **Best For**: Casting expensive spells or sustained magical combat
 
 ### Stance Rules and Restrictions
+
 - **Selection Timing**: Stance can only be chosen at the beginning of your turn
-- **No Multi-Stancing**: Cannot benefit from multiple stances simultaneously  
+- **No Multi-Stancing**: Cannot benefit from multiple stances simultaneously
 - **Combat Only**: Stances are only active during combat
 - **Out of Combat**: No active stance, but stance abilities can be used for roleplay actions
 - **Turn Commitment**: Cannot change stance after beginning actions or during others' turns
 
 ### Stance Impact on Animations
+
 - **Current**: Stance detection is manual
 - **Future**: Visual effects may vary based on active stance
 - **Animation Notes**: Consider stance when designing spell visual intensity
@@ -229,6 +255,7 @@ At the start of each turn, players choose one of three combat stances:
 ## 🩸 Injury System
 
 ### Injury Mechanics
+
 - **Effect**: Each injury reduces ALL dice rolls by -1 dice
 - **Duration**: Until the injury is healed through medical treatment or magic
 - **Stacking**: Multiple injuries stack their penalties
@@ -236,6 +263,7 @@ At the start of each turn, players choose one of three combat stances:
 - **Incapacitation**: Beyond 3 injuries = character cannot act
 
 ### Injury Sources
+
 - **Combat Damage**: Severe attacks or critical hits
 - **Environmental Hazards**: Falls, traps, exposure
 - **Magic Backlash**: Failed spell casting or magical accidents
@@ -244,6 +272,7 @@ At the start of each turn, players choose one of three combat stances:
 ## 🎯 Spell Level System
 
 ### Spell Level Bonuses
+
 - **Hit Bonus Formula**: +2 × Spell Level to attack rolls
 - **Example Applications**:
   - Level 1 spell with 6 Dexterity = 6d7 + 2
@@ -251,6 +280,7 @@ At the start of each turn, players choose one of three combat stances:
   - Level 3 spell with 6 Dexterity = 6d7 + 6
 
 ### Spell Progression
+
 - **Starting Level**: All spells begin at Level 1
 - **Evolution**: Spells can evolve and increase in level over time
 - **Power Scaling**: Higher level spells are more reliable but may cost more resources
@@ -258,21 +288,24 @@ At the start of each turn, players choose one of three combat stances:
 ## 📋 Spell Animation Guidelines
 
 ### What Animations Should Handle
-✅ **Visual spell effects and sequences**  
-✅ **Audio feedback for spell casting**  
-✅ **Token targeting and positioning**  
-✅ **Visual storytelling and immersion**  
+
+✅ **Visual spell effects and sequences**
+✅ **Audio feedback for spell casting**
+✅ **Token targeting and positioning**
+✅ **Visual storytelling and immersion**
 
 ### What Animations Should NOT Handle
-❌ **Dice rolling mechanics** (handled externally)  
-❌ **Damage calculations** (manual or external scripts)  
-❌ **Mana cost deduction** (character sheet management)  
-❌ **Stat checks and validation** (manual input required)  
-❌ **Turn order enforcement** (Carousel Combat Track handles this)  
+
+❌ **Dice rolling mechanics** (handled externally)
+❌ **Damage calculations** (manual or external scripts)
+❌ **Mana cost deduction** (character sheet management)
+❌ **Stat checks and validation** (manual input required)
+❌ **Turn order enforcement** (Carousel Combat Track handles this)
 
 ### RPG Integration Points
 
 #### Character Sheet Integration
+
 ```javascript
 // Accessing character resources (mana/health)
 let actor = canvas.tokens.controlled[0]?.actor;
@@ -283,6 +316,7 @@ let currentHealth = actor.system.resources.health.value;
 ```
 
 #### Turn Order Integration
+
 ```javascript
 // Checking current turn (requires Carousel Combat Track)
 let currentCombatant = game.combat?.current;
@@ -290,18 +324,19 @@ let activeToken = currentCombatant?.token;
 
 // Validate spell caster is active player
 if (activeToken?.id === token.id) {
-    // Proceed with spell animation
+  // Proceed with spell animation
 } else {
-    ui.notifications.warn("It's not your turn!");
+  ui.notifications.warn("It's not your turn!");
 }
 ```
 
 #### Targeting System
+
 ```javascript
-// Using Warp Gate for spell targeting
-let crosshairs = await warpgate.crosshairs.show({
-    size: 2,
-    icon: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Blue_400x400.webm"
+// Using Portal for spell targeting
+let crosshairs = await portal.crosshairs.show({
+  size: 2,
+  icon: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Blue_400x400.webm",
 });
 
 if (crosshairs.cancelled) return;
@@ -313,21 +348,25 @@ if (crosshairs.cancelled) return;
 ### Spell Categories by RPG Mechanics
 
 #### **Single-Target Spells**
+
 - Use crosshair targeting system
 - Consider line-of-sight and range
 - May trigger counter-spell opportunities
 
 #### **Area-of-Effect Spells**
+
 - Account for movement grid system
 - Consider diagonal movement costs
 - May affect multiple stances differently
 
 #### **Buff/Debuff Spells**
+
 - Visual duration indicators
 - Stance-dependent visual intensity
 - Clear start/end animations
 
 #### **Counter Spells**
+
 - Reactive animations triggered by incoming spells
 - Must work within defensive stance mechanics
 - Quick execution to fit turn timing
@@ -342,13 +381,16 @@ if (crosshairs.cancelled) return;
 ## 🔮 Future Development
 
 ### Planned Enhancements
+
 - **Automatic Stance Detection**: Visual effects that adapt to current stance
 - **Stat Integration**: Direct access to character statistics for spell validation
 - **Turn Validation**: Automatic turn order checking before spell execution
 - **Resource Management**: Integrated mana cost handling
 
 ### GameMaster Requests
+
 When these features are needed:
+
 1. **Consult GameMaster** for implementation priorities
 2. **Discuss rule interpretation** for edge cases
 3. **Validate mechanics** before coding automation
@@ -367,11 +409,12 @@ When these features are needed:
 ### Preferred Communication Format
 
 When asking the GameMaster:
+
 1. **Context**: Describe the specific spell or situation
-2. **Question**: Clearly state what needs clarification  
+2. **Question**: Clearly state what needs clarification
 3. **Options**: Provide potential interpretations if applicable
 4. **Impact**: Explain how the decision affects animations
 
 ---
 
-*Remember: These rules serve the story and fun. When in doubt, ask the GameMaster! 🎲*
+_Remember: These rules serve the story and fun. When in doubt, ask the GameMaster! 🎲_

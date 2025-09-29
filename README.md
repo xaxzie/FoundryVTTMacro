@@ -1,107 +1,112 @@
-# FoundryVTT Spell Animation Collection for Custom R### At a Glance:
+# FoundryVTT Spell Animation Collection
+
+A specialized collection of FoundryVTT macros using the [Sequencer](https://fantasycomputer.works/FoundryVTT-Sequencer) module designed specifically for a custom tabletop RPG system. This repository focuses exclusively on **spell animation effects** for spells used by both NPCs and players in a turn-based combat system.
+
+## 🎯 Quick Overview
 
 - **35 total spell animation macros** (including examples)
-- **Custom RPG focus**: Core macros designed for specific combat mechanics
-- **All modules pre-installed**: Complete effect library available on server
-- **100% use Sequencer** (core animation system)
-- **Multiple effect libraries**: JB2A Free + Patreon + Animated Spell Effects available
-- **Advanced targeting**: Warp Gate crosshair system ready
-- **Combat integration**: Carousel Combat Track for turn order managementecialized collection of FoundryVTT macros using the [Sequencer](https://fantasycomputer.works/FoundryVTT-Sequencer) module designed specifically for a custom tabletop RPG system. This repository focuses exclusively on **spell animation effects** for spells used by both NPCs and players in a turn-based, ta## 📖 Learning Resources
-
-- [Official Sequencer Wiki](https://fantasycomputer.works/FoundryVTT-Sequencer)
-- [Sequencer API Reference](./docs/sequencer-reference.md)
-- [JB2A Assets Guide](./docs/jb2a-assets-guide.md) ⭐ **Asset Information**
-- [Best Practices Guide](./docs/best-practices.md) ⭐ **RPG-Specific Guidelines**
-- [Installation Guide](./docs/installation-guide.md) ⭐ **Custom RPG Setup**
-- [Custom Game Rules](./GAME-RULES.md) ⭐ **Essential RPG Context**
-- [Carousel Combat Track Documentation](https://wiki.theripper93.com/free/combat-tracker-dock) (External)
-- [FoundryVTT Character Sheets Guide](https://foundryvtt.com/article/actors/) (External)combat system.
-
-## 🎲 RPG Context
-
-This collection is built for a custom RPG with unique combat mechanics and rules. All spell animations are designed to work within this specific game context:
-
-- **Custom turn-based combat** using carousel Combat Track module
-- **6-stat system**: Force, Dexterité, Agilité, Esprit, Sens, Volonté, Charisme
-- **Tactical stance system**: Offensive, Defensive, and Focus modes
-- **D7-based dice mechanics** for attack and defense rolls
-- **Mana-based spell casting** with stance-dependent costs
-
-> **⚠️ Important**: This is NOT a generic spell collection. All animations are tailored for specific RPG mechanics detailed in [GAME-RULES.md](./GAME-RULES.md).
-
-## 🎯 Project Scope
-
-**What this repository handles:**
-
-- ✅ Spell visual animations and effects
-- ✅ Audio feedback for spell casting
-- ✅ Token-based targeting and positioning
-- ✅ Sequencer-based visual storytelling
-
-**What this repository does NOT handle:**
-
-- ❌ Dice rolling mechanics (handled externally)
-- ❌ Damage calculations (manual or external scripts)
-- ❌ Character stat management (use FoundryVTT character sheets)
-- ❌ Turn order management (handled by carousel Combat Track)
-
-## 👨‍⚔️ GameMaster Authority
-
-**IMPORTANT**: All rules in this custom RPG are subject to GameMaster interpretation. When contributing or modifying animations:
-
-- 🤔 **If in doubt about rule interpretation**: Ask the GameMaster
-- 📝 **For new spell effects**: Consult GameMaster for appropriate visual style
-- ⚖️ **For rule conflicts**: GameMaster decision is final
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines on working with GameMaster approval.
-
-## 📋 Module Requirements Summary
-
-**📄 Complete Module Guide**: See [MODULE-REQUIREMENTS.md](./MODULE-REQUIREMENTS.md) for detailed analysis
-
-### At a Glance:
-
-- **35 total spell animation macros** in this collection
 - **Custom RPG focus**: Designed for specific combat mechanics
-- **3 essential modules**: Sequencer + JB2A + Warp Gate
-- **100% require Sequencer** (core animation system)
-- **97% require JB2A** (visual effects)
-- **29% require Warp Gate** (character macros only)
-- **Requires carousel Combat Track** (turn order management)
+- **3 essential modules**: Sequencer + JB2A + Portal
+- **Advanced targeting**: Portal crosshair system ready
+- **Combat integration**: Carousel Combat Track for turn order management
 
-### Quick Install:
+## 📚 Essential Documentation
 
-```bash
-# Essential modules for all macros
-✅ Sequencer (core animation system)
-✅ JB2A - Jules&Ben's Animated Assets (visual effects)
-✅ Warp Gate (for spell targeting)
-✅ Carousel Combat Track (turn order management)
-```
+- **[GAME-RULES.md](./GAME-RULES.md)** - ⭐ **Required** understanding of RPG mechanics
+- **[DEVELOPMENT.md](./DEVELOPMENT.md)** - Installation, setup, contribution guidelines
+- **[MODULE-REQUIREMENTS.md](./MODULE-REQUIREMENTS.md)** - Complete module information
+- **[assets/README.md](./assets/README.md)** - Visual effects and assets reference
 
-## 📖 Learning Resources
-
-## 📁 Project Structure
+## 📁 Repository Structure
 
 ```
-TestFoundry/
-├── README.md                   # This file - Project overview and RPG context
-├── GAME-RULES.md              # Custom RPG rules and mechanics
-├── CONTRIBUTING.md            # Contribution guidelines with GameMaster workflow
-├── docs/                      # Documentation and guides
-│   ├── sequencer-reference.md # Sequencer API reference
-│   ├── installation-guide.md  # Setup instructions for custom RPG
-│   └── best-practices.md      # RPG-specific animation guidelines
-├── macros/                    # RPG-compliant spell animation macros
-│   ├── basic/                 # Simple spell effects and sounds
-│   ├── intermediate/          # Multi-step spell sequences
-│   ├── advanced/              # Complex spells with targeting and interactions
-│   ├── spells/                # Generic spell animations
-│   └── utilities/             # Helper functions and reusable components
-├── examples/                  # Non-compliant example animations (for learning only)
-│   └── characters/            # Character-specific examples (Ora, Moctei)
-├── templates/                 # Spell macro templates for quick development
-└── assets/                    # Custom sounds, images, and effects
+FoundryVTTMacro/
+├── README.md                    # Project overview
+├── GAME-RULES.md               # ⭐ Custom RPG rules and mechanics
+├── DEVELOPMENT.md              # ⭐ Installation, setup, and contribution guide
+├── MODULE-REQUIREMENTS.md      # Complete module dependencies
+├── macros/                     # Spell animation macros
+│   ├── characters/             # Character-specific spells
+│   │   ├── ora/               # Ora's spells with bubbles.js reference
+│   │   └── moctei/            # Moctei's spells
+│   ├── examples/              # Learning examples (basic/intermediate/advanced)
+│   ├── utilities/             # Reusable helper functions
+│   └── templates/             # Starting templates for new spells
+├── assets/                     # Effects and sounds reference
+│   ├── README.md              # ⭐ Complete assets and Sequencer guide
+│   ├── jb2a-inventory.md      # JB2A effects catalog
+│   ├── *-inventory.md         # Other effect libraries
+│   ├── jb2a/                  # JB2A assets
+│   └── sounds/                # Audio files
+└── modules/                    # Custom modules (status effects)
+```
+
+## 🎲 Custom RPG Focus
+
+> **⚠️ Important**: This is NOT a generic spell collection. All animations are tailored for specific RPG mechanics.
+
+**Key Features:**
+
+- **7-stat system**: Physique, Dextérité, Agilité, Esprit, Sens, Volonté, Charisme
+- **Combat stances**: Offensive, Defensive, Focus modes with different effects
+- **Mana-based casting** with stance-dependent costs
+- **GameMaster authority** - All rules subject to GM interpretation
+
+**Project Scope:**
+
+- ✅ Spell visual animations and targeting
+- ✅ Audio feedback and synchronization
+- ✅ RPG mechanics integration
+- ❌ Dice rolling or damage calculation
+- ❌ Character sheet management
+- ❌ Turn order management (handled by Carousel Combat Track)
+
+## � Quick Start
+
+1. **Read Required Documentation:**
+
+   - [GAME-RULES.md](./GAME-RULES.md) - Understand the RPG system
+   - [DEVELOPMENT.md](./DEVELOPMENT.md) - Setup and installation
+
+2. **Install Essential Modules:**
+
+   ```
+   ✅ Sequencer
+   ✅ JB2A - Jules&Ben's Animated Assets
+   ✅ Portal
+   ✅ Carousel Combat Track
+   ```
+
+3. **Explore Examples:**
+
+   - Study `/macros/characters/ora/bubbles.js` for full RPG integration
+   - Check `/macros/examples/` for learning patterns
+   - Use `/macros/utilities/` functions for consistency
+
+4. **Reference Assets:**
+   - Browse [assets/README.md](./assets/README.md) for available effects
+   - Use Sequencer Database Viewer to preview animations
+
+## 🤝 Contributing
+
+All contributions must align with our custom RPG system. See [DEVELOPMENT.md](./DEVELOPMENT.md) for:
+
+- Installation and setup instructions
+- Code standards and best practices
+- GameMaster approval workflow
+- Testing requirements
+
+**GameMaster Authority**: When in doubt about rules or implementations, consult the GameMaster before proceeding.
+
+---
+
+> **Get Started**: Begin with [GAME-RULES.md](./GAME-RULES.md) to understand the RPG context, then follow [DEVELOPMENT.md](./DEVELOPMENT.md) for technical setup.
+> │ └── characters/ # Character-specific examples (Ora, Moctei)
+> ├── templates/ # Spell macro templates for quick development
+> └── modules/ # Custom modules (status effects)
+
+```
+
 ```
 
 ## 🚀 Server Setup
@@ -146,15 +151,15 @@ With multiple effect libraries installed, spells can choose from:
 
 ### Module Dependencies by Macro Category
 
-| Macro Category   | Sequencer | JB2A | Warp Gate | Carousel Combat | Animated Effects |
-| ---------------- | --------- | ---- | --------- | --------------- | ---------------- |
-| **Basic**        | ✅        | ✅   | ❌        | 🔸              | ❌               |
-| **Intermediate** | ✅        | ✅   | ❌        | 🔸              | Available        |
-| **Advanced**     | ✅        | ✅   | ✅        | ✅              | Available        |
-| **Spells**       | ✅        | ✅   | ✅        | ✅              | Available        |
-| **Utilities**    | ✅        | ✅   | ✅        | ✅              | Available        |
-| **Templates**    | ✅        | ✅   | ✅        | ✅              | Available        |
-| **Examples**     | ✅        | ✅   | ✅        | ❌              | Available        |
+| Macro Category   | Sequencer | JB2A | Portal | Carousel Combat | Animated Effects |
+| ---------------- | --------- | ---- | ------ | --------------- | ---------------- |
+| **Basic**        | ✅        | ✅   | ❌     | 🔸              | ❌               |
+| **Intermediate** | ✅        | ✅   | ❌     | 🔸              | Available        |
+| **Advanced**     | ✅        | ✅   | ✅     | ✅              | Available        |
+| **Spells**       | ✅        | ✅   | ✅     | ✅              | Available        |
+| **Utilities**    | ✅        | ✅   | ✅     | ✅              | Available        |
+| **Templates**    | ✅        | ✅   | ✅     | ✅              | Available        |
+| **Examples**     | ✅        | ✅   | ✅     | ❌              | Available        |
 
 > ✅ = Always used | 🔸 = Optional for RPG integration | Available = Can be used as alternative or enhancement
 
@@ -620,7 +625,7 @@ We welcome spell animation contributions that fit our custom RPG system! Please 
 All required modules are pre-installed on the server. If you encounter errors:
 
 - `"Sequencer is not defined"` → Contact server admin (module may be disabled)
-- `"warpgate is not defined"` → Contact server admin (module may be disabled)
+- `"portal is not defined"` → Contact server admin (module may be disabled)
 - `"Cannot find effect file"` → Check file path or use Sequencer Database Viewer
 - `"Carousel Combat Track not found"` → Contact server admin (module may be disabled)
 
@@ -632,8 +637,8 @@ All required modules are pre-installed on the server. If you encounter errors:
 
 #### **Spell Targeting Issues**
 
-- **Problem**: `warpgate.crosshairs.show()` not working
-- **Solution**: Warp Gate is pre-installed - contact server admin if issues persist
+- **Problem**: `portal.crosshairs.show()` not working
+- **Solution**: Portal is pre-installed - contact server admin if issues persist
 - **Alternative**: Use `Sequencer.Crosshair.show()` (older syntax) if needed
 
 #### **Turn Order Integration**

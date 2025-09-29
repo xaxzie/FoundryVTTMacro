@@ -76,7 +76,7 @@ RPG-compliant spell animations for Ora, designed to work with the custom RPG sys
 
 - Sequencer (core animation)
 - JB2A (visual effects)
-- Portal (crosshair/targeting - replaced previous Warp Gate usage)
+- Portal (crosshair/targeting - primary targeting system)
 
 **Usage Example**:
 
@@ -137,7 +137,7 @@ RPG-compliant spell animations for Ora, designed to work with the custom RPG sys
 - **Async/Await Pattern**: Proper handling of user input and targeting
 - **Error Handling**: Validates requirements and provides clear feedback
 - **Sequencer Integration**: Uses proper effect timing and synchronization
-- **Warp Gate Targeting**: Implements crosshair system for precise targeting
+- **Portal Targeting**: Implements crosshair system for precise targeting
 
 ### Testing Guidelines
 

@@ -448,7 +448,7 @@ This makes Tagger an essential tool for creating sophisticated, automated RPG ma
 1. Implement Automated Animations for common effects
 2. Use Token Attacher for moving effects
 3. Enhance with Token Mold for mass applications
-4. Utilize Warpgate for advanced token manipulation
+4. Utilize Portal for advanced token manipulation
 
 ### Technical Implementation
 
@@ -500,7 +500,7 @@ All required modules are **already installed and enabled** on the server:
 ### Targeting & Combat Systems
 
 - ✅ **Portal** - Advanced crosshair targeting and token spawning for spell casting
-- ✅ **Warp Gate** - Secondary targeting system (legacy support)
+- ✅ **Portal** - Primary targeting system for spell casting
 - ✅ **Carousel Combat Track** - Turn order management for RPG system
 
 ## Available Effect Libraries
@@ -525,7 +525,7 @@ With all libraries pre-installed, macros can choose from multiple effect sources
 **Use Sequencer**: 100% (core animation system)
 **Use JB2A**: 97% (primary effect library)
 **Use Portal**: RPG-compliant character macros (advanced targeting and token manipulation)
-**Use Warp Gate**: Legacy support (secondary targeting system)
+**Use Portal**: Primary targeting system for spell casting
 **Animated Effects**: Available as alternative/enhancement
 **New Utilities**: 8 standalone utility files extracted from tested bubbles.js spell
 
@@ -595,7 +595,7 @@ All Macros
 - **Sequencer**: ~2MB (lightweight core system)
 - **JB2A Free**: ~1.5GB (2000+ effect files)
 - **JB2A Patreon**: ~8GB+ (5000+ extended effects)
-- **Warp Gate**: ~1MB (utility functions)
+- **Portal**: ~1MB (utility functions)
 - **Animated Spell Effects**: ~500MB (additional effects)
 - **Animated Spell Effects Cartoon**: ~300MB (cartoon-style effects)
 
@@ -610,7 +610,7 @@ All modules are:
 
 ## Compatibility Matrix
 
-| FoundryVTT Version | Sequencer        | JB2A             | Warp Gate        | Status             |
+| FoundryVTT Version | Sequencer        | JB2A             | Portal           | Status             |
 | ------------------ | ---------------- | ---------------- | ---------------- | ------------------ |
 | v12+               | ✅ Latest        | ✅ Latest        | ✅ Latest        | ✅ Fully Supported |
 | v11                | ✅ Compatible    | ✅ Compatible    | ✅ Compatible    | ✅ Supported       |
@@ -629,7 +629,7 @@ With multiple libraries available, you can:
 
 ### Targeting Alternatives
 
-- **Primary**: `warpgate.crosshairs.show()` (recommended, pre-installed)
+- **Primary**: `portal.crosshairs.show()` (recommended, pre-installed)
 - **Alternative**: `Sequencer.Crosshair.show()` (fallback option)
 - **Manual**: Direct coordinate specification for automated spells
 
@@ -638,7 +638,7 @@ With multiple libraries available, you can:
 For spell development:
 
 1. **Start Simple**: Use JB2A Free effects first
-2. **Add Complexity**: Incorporate Warp Gate targeting
+2. **Add Complexity**: Incorporate Portal targeting
 3. **Enhance Visuals**: Upgrade to Patreon or Animated Effects
 4. **Optimize**: Choose best-performing effect combinations
 

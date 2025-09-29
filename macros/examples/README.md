@@ -9,7 +9,7 @@ This directory contains spell animation examples that demonstrate various Sequen
 The spell animations in this folder were created before the custom RPG rules were fully established and do not follow the proper game mechanics such as:
 
 - ❌ **Missing turn validation** - No checking if it's the caster's turn
-- ❌ **No mana cost integration** - Don't interact with character sheet resources  
+- ❌ **No mana cost integration** - Don't interact with character sheet resources
 - ❌ **Incorrect stat usage** - May reference wrong characteristics for spells
 - ❌ **Missing stance awareness** - Don't account for Offensive/Defensive/Focus stances
 - ❌ **No combat state checking** - Don't verify active combat status
@@ -19,21 +19,23 @@ The spell animations in this folder were created before the custom RPG rules wer
 
 These examples are valuable for learning:
 
-✅ **Sequencer animation techniques**  
-✅ **JB2A effect combinations**  
-✅ **Warp Gate targeting patterns**  
-✅ **Multi-step spell sequences**  
-✅ **Audio-visual synchronization**  
+✅ **Sequencer animation techniques**
+✅ **JB2A effect combinations**
+✅ **Portal targeting patterns**
+✅ **Multi-step spell sequences**
+✅ **Audio-visual synchronization**
 
 ## 🎯 Usage Guidelines
 
 ### For Learning Purposes:
+
 - Study the animation techniques and visual effects
 - Understand how complex sequences are built
 - Learn about timing and effect coordination
 - See examples of crosshair targeting implementation
 
 ### For RPG Development:
+
 - **DO NOT** copy these directly into the RPG system
 - **DO** use them as inspiration for proper RPG-compliant spells
 - **ALWAYS** add proper turn validation before adapting any techniques
@@ -42,15 +44,19 @@ These examples are valuable for learning:
 ## 📁 Contents
 
 ### 🌊 **Ora Character Examples** (`/characters/ora/`)
+
 Water and ice-themed spell animations that demonstrate:
+
 - Multi-target area effects (Blizzard)
-- Precise projectile targeting (Frost Bolt)  
+- Precise projectile targeting (Frost Bolt)
 - Defensive barrier creation (Ice Wall)
 - Continuous healing effects (Healing Spring)
 - Line attack patterns (Water Whip)
 
 ### 🌑 **Moctei Character Examples** (`/characters/moctei/`)
+
 Shadow and darkness-themed spell animations that show:
+
 - Life-draining projectiles (Shadow Bolt)
 - Area denial effects (Darkness Cloud)
 - Teleportation mechanics (Shadow Step)
@@ -62,34 +68,38 @@ Shadow and darkness-themed spell animations that show:
 To adapt these examples for the actual RPG system:
 
 1. **Add Turn Validation**:
+
    ```javascript
    // Add this at the start of every spell
    if (!validateSpellCasting(token, "Spell Name")) return;
    ```
 
 2. **Integrate Combat State Checking**:
+
    ```javascript
    // Verify combat is active for combat spells
    if (!game.combat?.started) {
-       ui.notifications.warn("Combat must be active for this spell");
-       return;
+     ui.notifications.warn("Combat must be active for this spell");
+     return;
    }
    ```
 
 3. **Add Mana Cost Integration**:
+
    ```javascript
    // Check and deduct mana from character sheet
    let actor = token.actor;
    let currentMana = actor.system.resources.power.value;
    let spellCost = 3; // Example cost
-   
+
    if (currentMana < spellCost) {
-       ui.notifications.warn("Insufficient mana");
-       return;
+     ui.notifications.warn("Insufficient mana");
+     return;
    }
    ```
 
 4. **Follow Stat Requirements**:
+
    - Ensure spells use the correct characteristic from the 7-stat system
    - Reference [GAME-RULES.md](../GAME-RULES.md) for proper stat associations
 
@@ -109,4 +119,4 @@ If you create RPG-compliant versions of these spells:
 
 ---
 
-*These examples show what's possible with Sequencer - now let's make them work with our custom RPG! 🎲*
+_These examples show what's possible with Sequencer - now let's make them work with our custom RPG! 🎲_
