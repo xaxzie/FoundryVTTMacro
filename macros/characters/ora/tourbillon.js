@@ -300,30 +300,53 @@
 
     // Create vortex effects (persistent)
     for (let i = 0; i < targets.length; i++) {
-        const vortexScale = isDivided ? 0.7 : 1.0;
+        // Detect token at target location for adaptive scaling
+        const targetToken = canvas.tokens.placeables.find(token => {
+            const tokenCenterX = token.x + (token.document.width * canvas.grid.size) / 2;
+            const tokenCenterY = token.y + (token.document.height * canvas.grid.size) / 2;
+            const distance = Math.sqrt(
+                Math.pow(tokenCenterX - targets[i].x, 2) + Math.pow(tokenCenterY - targets[i].y, 2)
+            );
+            return distance <= canvas.grid.size;
+        });
+
+        // Calculate adaptive scale based on token size
+        let vortexScale;
+        if (targetToken) {
+            // Scale based on token size: slightly larger than the token
+            const tokenSize = Math.max(targetToken.document.width, targetToken.document.height) * 0.5;
+            vortexScale = (tokenSize * 1.3) * (isDivided ? 0.8 : 1.0); // 10% larger than token, reduced if divided
+        } else {
+            // Default scale for empty positions
+            vortexScale = 0.5 * (isDivided ? 0.7 : 1.0);
+        }
 
         // Main vortex effect - PERSISTENT
         sequence.effect()
-            .file("jb2a.whirlwind.bluewater")
+            .file("jb2a_patreon.whirlwind.blue")
             .atLocation(targets[i])
             .scale(vortexScale)
+            .belowTokens() // Places the effect under tokens
             .duration(120000) // 2 minutes duration (120 seconds)
+            .fadeOut(3000) // 3 second fade out when destroyed
             .persist() // Makes it persistent until manually removed
             .name(`tourbillon_${i + 1}_${Date.now()}`) // Unique identifier for destruction
             .delay(800);
 
         // Initial impact effect
         sequence.effect()
-            .file("jb2a.impact.water.01.blue.0")
+            .file("jb2a.impact.water.02.blue.0")
             .atLocation(targets[i])
-            .scale(0.8)
+            .scale(vortexScale * 0.8) // Scale proportionally to vortex
+            .belowTokens()
             .delay(800);
 
         // Water splash effect
         sequence.effect()
-            .file("jb2a.explosion.water.1.blue.600x600")
+            .file("animated-spell-effects-cartoon.water.water splash.01")
             .atLocation(targets[i])
-            .scale(0.6)
+            .scale(vortexScale * 0.6) // Scale proportionally to vortex
+            .belowTokens()
             .delay(1200);
     }
 
@@ -411,10 +434,8 @@
             <div style="background: #f9f9f9; padding: 10px; border-radius: 5px; margin: 10px 0;">
                 <h4>Effets du Tourbillon :</h4>
                 <p><strong>💨 Protection :</strong> ${protectionInfo}</p>
-                <p><strong>👁️ Vision :</strong> Bloque la ligne de vue (géré manuellement)</p>
+                <p><strong>👁️ Vision :</strong> Bloque la ligne de vue </p>
                 <p><strong>🏃 Traversée :</strong> Jet d'Agilité pour traverser sans dégât (coûte l'action de mouvement)</p>
-                <p><strong>⏰ Durée :</strong> Permanent jusqu'à destruction ou traversée</p>
-                <p><em>💡 Utilisez la macro "Détruire Tourbillon" pour supprimer les effets</em></p>
             </div>
         </div>
     `;

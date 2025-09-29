@@ -50,7 +50,7 @@ This document lists all the JB2A (Jules&Ben's Animated Assets) effects used in o
 - `jb2a.shield.03.intro.blue` - Shield spell intro
 - `jb2a.markers.circle_of_stars.orange` - Circle of stars marker
 
-### 💧 Water and Projectile Effects (Used in bubbles.js)
+### 💧 Water and Projectile Effects (Used in bubbles.js and tourbillon.js)
 
 - `jb2a.bullet.03.blue` - Blue projectile for water/ice elements
 - `jb2a.explosion.04.blue` - Blue explosion for water impacts
@@ -59,12 +59,20 @@ This document lists all the JB2A (Jules&Ben's Animated Assets) effects used in o
 - `jb2a.healing_generic.burst.greenorange` - Healing burst for living water
 - `jb2a.cast_generic.02.blue.0` - Generic casting effect
 - `jb2a.cast_generic.water.02.blue.0` - Water-specific casting effect
+- `jb2a.impact.water.02.blue.0` - Water impact effect (used in tourbillon.js)
+- `animated-spell-effects-cartoon.water.water splash.01` - Water splash effect (used in tourbillon.js)
 
 ### 🌬️ Environmental Effects
 
 - `jb2a.wind_stream.default` - Wind stream effect
 - `jb2a.smoke.puff.centered.grey.2` - Centered smoke puff
 - `jb2a.breath_weapons02.burst.cone.fire.orange.02` - Cone fire breath weapon
+
+### 🌪️ Vortex and Whirlwind Effects
+
+- `jb2a_patreon.whirlwind.blue` - Blue water vortex/whirlwind (Patreon version)
+- `jb2a_patreon.whirlwind.white` - White air vortex/whirlwind (Patreon version)
+- `jb2a_patreon.whirlwind.grey` - Grey dust vortex/whirlwind (Patreon version)
 
 ## Download Information
 
@@ -146,6 +154,15 @@ Effects are referenced using the JB2A database notation:
 .file("jb2a.explosion.01.orange")
 ```
 
+### Important: Asset Path Corrections
+
+**Whirlwind/Vortex Effects**: Use the correct Patreon asset paths:
+
+- ✅ **Correct**: `"jb2a_patreon.whirlwind.blue"`
+- ❌ **Incorrect**: `"jb2a.whirlwind.bluewhite"` (this path may not exist)
+
+Always verify asset paths using the Sequencer Database Viewer or JB2A Asset Browser before implementing.
+
 ### Modern Usage with Utility Functions
 
 The element-selection.js utility provides easy access to element-specific effects:
@@ -188,6 +205,33 @@ If JB2A is not available, you can substitute with:
 - Custom WebM files in the assets folder
 - Free alternative effect packs
 - Static images (less dynamic but functional)
+
+## Troubleshooting Asset Issues
+
+### Common Asset Path Problems
+
+1. **"Effect file not found" errors**:
+
+   - Check if the asset exists in your JB2A version (Free vs Patreon)
+   - Verify the exact path using Sequencer Database Viewer
+   - Some effects may have different naming conventions
+
+2. **Whirlwind/Vortex Effects**:
+
+   - Use `jb2a_patreon.whirlwind.blue` for water vortices
+   - Use `jb2a_patreon.whirlwind.white` for air/ice effects
+   - These are Patreon-exclusive assets
+
+3. **Free vs Patreon Assets**:
+   - Patreon assets use `jb2a_patreon.` prefix
+   - Free assets use `jb2a.` prefix
+   - Check your module version for availability
+
+### Verification Methods
+
+- Use the **Sequencer Database Viewer** in FoundryVTT
+- Browse the [JB2A Asset Browser](https://library.jb2a.com/)
+- Check the module's file structure directly
 
 ## Asset License
 

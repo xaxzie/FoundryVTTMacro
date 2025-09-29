@@ -83,7 +83,7 @@ new Sequence()
 
     // Main blizzard effect
     .effect()
-    .file("jb2a.whirlwind.bluewhite")
+    .file("jb2a_patreon.whirlwind.white")
     .atLocation(targetLocation)
     .scale(config.radius / 15)
     .duration(config.duration)
