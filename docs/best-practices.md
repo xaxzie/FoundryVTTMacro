@@ -1226,6 +1226,647 @@ function checkResourcesSafely(actor, resourceName) {
 }
 ```
 
+## 🏷️ Tagger Module Integration for Advanced RPG Macros
+
+### What is Tagger and Why Use It?
+
+Tagger is a powerful module that allows you to assign custom tags to any scene object and retrieve them programmatically. For RPG spell development, this creates unprecedented automation possibilities and environmental interactivity.
+
+### RPG-Specific Tagger Use Cases
+
+#### 1. **Environmental Magic Enhancement**
+
+```javascript
+// Enhanced spell power based on environmental elements
+function getEnvironmentalBonus(targetLocation, spellType) {
+  let bonusMultiplier = 1.0;
+  let bonusDescription = [];
+
+  switch (spellType) {
+    case "water":
+      // Water spells enhanced near water sources
+      const waterSources = Tagger.getByTag("water-source", {
+        withinDistance: 50,
+        from: targetLocation,
+      });
+      if (waterSources.length > 0) {
+        bonusMultiplier = 1.5;
+        bonusDescription.push("Enhanced by nearby water source");
+      }
+      break;
+
+    case "fire":
+      // Fire spells enhanced near fire elements
+      const fireSources = Tagger.getByTag(
+        ["fire-source", "forge", "altar-fire"],
+        {
+          withinDistance: 60,
+          from: targetLocation,
+          matchAny: true,
+        }
+      );
+      if (fireSources.length > 0) {
+        bonusMultiplier = 1.3;
+        bonusDescription.push("Amplified by nearby fire");
+      }
+      break;
+
+    case "shadow":
+      // Shadow spells stronger in dark areas
+      const darkAreas = Tagger.getByTag("darkness", {
+        withinDistance: 40,
+        from: targetLocation,
+      });
+      if (darkAreas.length > 0) {
+        bonusMultiplier = 1.4;
+        bonusDescription.push("Empowered by shadows");
+      }
+      break;
+  }
+
+  return { multiplier: bonusMultiplier, description: bonusDescription };
+}
+
+// Usage in Ora's water spells
+const environmentalBonus = getEnvironmentalBonus(targetLocation, "water");
+const finalScale = baseScale * environmentalBonus.multiplier;
+
+if (environmentalBonus.description.length > 0) {
+  ui.notifications.info(
+    `Environmental Effect: ${environmentalBonus.description.join(", ")}`
+  );
+}
+```
+
+#### 2. **Smart Multi-Target Spell Systems**
+
+```javascript
+// Intelligent healing that targets all allies in area
+async function castAreaHealing(casterToken, centerLocation, radius = 60) {
+  // Find all tagged allies within range
+  const alliesInRange = Tagger.getByTag("ally", {
+    withinDistance: radius,
+    from: centerLocation,
+  });
+
+  // Exclude caster from self-healing spells if desired
+  const healTargets = alliesInRange.filter(
+    (ally) => ally.id !== casterToken.id
+  );
+
+  if (healTargets.length === 0) {
+    ui.notifications.warn("No allies in range for group healing!");
+    return;
+  }
+
+  // Create healing sequence for each ally
+  let sequence = new Sequence();
+
+  healTargets.forEach((ally, index) => {
+    sequence
+      .effect()
+      .file("jb2a.cure_wounds.400px.blue")
+      .atLocation(ally)
+      .scale(0.8)
+      .delay(index * 200) // Stagger effects
+      .sound()
+      .file("assets/sounds/healing/group-heal.wav")
+      .volume(0.3)
+      .delay(index * 200);
+  });
+
+  await sequence.play();
+
+  ui.notifications.info(`Area healing cast on ${healTargets.length} allies!`);
+
+  // Return target information for damage calculation utilities
+  return healTargets.map((ally) => ({ actor: ally.actor, token: ally }));
+}
+```
+
+#### 3. **Interactive Spell Component System**
+
+```javascript
+// Spell requires specific magical components in scene
+function checkSpellComponents(spellName, casterLocation) {
+  const componentRequirements = {
+    "lightning-storm": ["mana-crystal", "conductor"],
+    "mass-teleport": ["teleport-circle", "ley-line"],
+    resurrection: ["holy-altar", "life-crystal"],
+    "meteor-strike": ["star-chart", "focus-lens"],
+  };
+
+  const required = componentRequirements[spellName];
+  if (!required) return { canCast: true, missing: [] };
+
+  const missing = [];
+  const found = [];
+
+  required.forEach((component) => {
+    const nearby = Tagger.getByTag(component, {
+      withinDistance: 100,
+      from: casterLocation,
+    });
+
+    if (nearby.length === 0) {
+      missing.push(component);
+    } else {
+      found.push({ component, objects: nearby });
+    }
+  });
+
+  return {
+    canCast: missing.length === 0,
+    missing,
+    found,
+    message:
+      missing.length > 0
+        ? `Spell requires nearby: ${missing.join(", ")}`
+        : `Spell components found: ${found.map((f) => f.component).join(", ")}`,
+  };
+}
+
+// Usage in advanced spells
+const componentCheck = checkSpellComponents("lightning-storm", caster);
+if (!componentCheck.canCast) {
+  ui.notifications.error(componentCheck.message);
+  return;
+}
+
+ui.notifications.success(componentCheck.message);
+```
+
+#### 4. **Dynamic Combat Automation**
+
+```javascript
+// Advanced combat targeting with role-based logic
+function getSmartCombatTargets(casterToken, spellType, maxTargets = 5) {
+  let targetTags = [];
+  let excludeTags = [];
+
+  switch (spellType) {
+    case "healing":
+      targetTags = ["ally", "friendly", "injured"];
+      excludeTags = ["enemy", "hostile"];
+      break;
+    case "damage":
+      targetTags = ["enemy", "hostile"];
+      excludeTags = ["ally", "friendly", "neutral"];
+      break;
+    case "buff":
+      targetTags = ["ally", "friendly"];
+      excludeTags = ["enemy"];
+      break;
+    case "crowd-control":
+      targetTags = ["enemy", "neutral"];
+      excludeTags = ["ally", "friendly"];
+      break;
+  }
+
+  // Get potential targets
+  let potentialTargets = [];
+
+  targetTags.forEach((tag) => {
+    const tagged = Tagger.getByTag(tag, {
+      withinDistance: 120,
+      from: casterToken,
+    });
+    potentialTargets.push(...tagged);
+  });
+
+  // Remove excluded targets
+  excludeTags.forEach((excludeTag) => {
+    potentialTargets = potentialTargets.filter(
+      (target) => !Tagger.hasTags(target, excludeTag)
+    );
+  });
+
+  // Remove duplicates and limit count
+  const uniqueTargets = [...new Set(potentialTargets)].slice(0, maxTargets);
+
+  return {
+    targets: uniqueTargets,
+    count: uniqueTargets.length,
+    breakdown: {
+      allies: uniqueTargets.filter((t) =>
+        Tagger.hasTags(t, ["ally", "friendly"])
+      ).length,
+      enemies: uniqueTargets.filter((t) =>
+        Tagger.hasTags(t, ["enemy", "hostile"])
+      ).length,
+      neutrals: uniqueTargets.filter((t) => Tagger.hasTags(t, ["neutral"]))
+        .length,
+    },
+  };
+}
+
+// Usage
+const combatTargets = getSmartCombatTargets(caster, "damage", 3);
+if (combatTargets.count === 0) {
+  ui.notifications.warn("No valid targets for offensive spell!");
+  return;
+}
+
+ui.notifications.info(`Targeting ${combatTargets.count} enemies`);
+```
+
+#### 5. **Scene-Based Spell Modifications**
+
+```javascript
+// Spells adapt to scene environment automatically
+function getSceneModifications(spellElement) {
+  const sceneModifiers = {
+    // Check for elemental dominance in scene
+    fire: {
+      enhancing: ["volcano", "forge", "fire-plane", "summer"],
+      diminishing: ["ice-cave", "underwater", "rain-storm", "winter"],
+    },
+    water: {
+      enhancing: ["ocean", "river", "rain-storm", "underwater", "spring"],
+      diminishing: ["desert", "fire-plane", "drought", "volcano"],
+    },
+    shadow: {
+      enhancing: ["darkness", "crypt", "shadow-plane", "night"],
+      diminishing: ["holy-ground", "daylight", "light-source", "temple"],
+    },
+    holy: {
+      enhancing: ["temple", "holy-ground", "consecrated", "altar"],
+      diminishing: ["cursed", "unholy", "shadow-plane", "corruption"],
+    },
+  };
+
+  const element = sceneModifiers[spellElement];
+  if (!element) return { modifier: 1.0, description: "" };
+
+  // Check enhancing factors
+  const enhancers = element.enhancing.some(
+    (tag) => Tagger.getByTag(tag).length > 0
+  );
+
+  // Check diminishing factors
+  const diminishers = element.diminishing.some(
+    (tag) => Tagger.getByTag(tag).length > 0
+  );
+
+  if (enhancers && !diminishers) {
+    return {
+      modifier: 1.5,
+      description: "Scene enhances spell power",
+      visual: "enhanced",
+    };
+  } else if (diminishers && !enhancers) {
+    return {
+      modifier: 0.7,
+      description: "Scene weakens spell power",
+      visual: "diminished",
+    };
+  }
+
+  return {
+    modifier: 1.0,
+    description: "Scene neutral to spell",
+    visual: "normal",
+  };
+}
+
+// Usage in spells
+const sceneEffect = getSceneModifications("fire");
+const finalDamage = baseDamage * sceneEffect.modifier;
+
+if (sceneEffect.description !== "Scene neutral to spell") {
+  ui.notifications.info(sceneEffect.description);
+}
+
+// Adjust visual effects based on scene
+let effectTint = "#ffffff";
+if (sceneEffect.visual === "enhanced") effectTint = "#ffff00";
+if (sceneEffect.visual === "diminished") effectTint = "#808080";
+```
+
+### Tagger Setup Workflow for RPG Sessions
+
+#### 1. **Pre-Session Scene Tagging (GM)**
+
+```javascript
+// Utility function for GMs to quickly tag scene elements
+function setupRPGSceneTags() {
+  // Common environmental tags
+  const environmentalTags = {
+    // Water features
+    waterTiles: ["water-source", "flowing-water", "deep-water"],
+    // Fire features
+    fireTiles: ["fire-source", "heat-source", "forge"],
+    // Magical elements
+    altarTiles: ["altar", "holy-ground", "magical-focus"],
+    // Lighting
+    lightSources: ["light-source", "illumination"],
+    // Combat zones
+    dangerAreas: ["hazard", "trap", "dangerous-terrain"],
+  };
+
+  // Interactive tagging interface for GMs
+  const tagDialog = new Dialog({
+    title: "RPG Scene Tagger",
+    content: `
+      <form>
+        <p>Select tiles/tokens, then choose tags to apply:</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          ${Object.entries(environmentalTags)
+            .map(
+              ([category, tags]) => `
+            <div>
+              <h4>${category}</h4>
+              ${tags
+                .map(
+                  (tag) => `
+                <button type="button" onclick="applyTag('${tag}')">${tag}</button>
+              `
+                )
+                .join("")}
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+      </form>
+    `,
+    buttons: {
+      close: { label: "Close" },
+    },
+  });
+
+  tagDialog.render(true);
+}
+```
+
+#### 2. **Dynamic Combat Tagging**
+
+```javascript
+// Automatically tag combatants based on their role
+function autoTagCombatants() {
+  if (!game.combat) return;
+
+  game.combat.combatants.forEach((combatant) => {
+    const token = combatant.token?.object;
+    if (!token) return;
+
+    // Clear previous combat tags
+    Tagger.removeTags(token, ["ally", "enemy", "neutral", "boss", "minion"]);
+
+    // Determine role based on disposition
+    let roleTags = [];
+
+    switch (token.disposition) {
+      case 1: // Friendly
+        roleTags.push("ally", "friendly");
+        break;
+      case -1: // Hostile
+        roleTags.push("enemy", "hostile");
+        // Check if it's a boss (higher HP, special name, etc.)
+        if (token.actor.system.resources.health.max > 50) {
+          roleTags.push("boss");
+        } else {
+          roleTags.push("minion");
+        }
+        break;
+      case 0: // Neutral
+        roleTags.push("neutral");
+        break;
+    }
+
+    // Add character-specific tags
+    const actorName = token.actor.name.toLowerCase();
+    if (actorName.includes("ora")) roleTags.push("water-mage", "healer");
+    if (actorName.includes("moctei")) roleTags.push("shadow-mage", "striker");
+
+    Tagger.setTags(token, roleTags);
+  });
+
+  ui.notifications.info("Combat roles auto-tagged!");
+}
+```
+
+### Integration with Existing RPG Utilities
+
+#### Enhanced Tourbillon with Tagger
+
+```javascript
+// Enhanced version of tourbillon.js using Tagger
+async function castEnhancedTourbillon() {
+  // Use existing utility validation
+  const validation = validateSpellCasterWithAttributes();
+  if (!validation) return;
+  const { caster, actor } = validation;
+
+  // Use Tagger to check for water enhancement
+  const waterSources = Tagger.getByTag("water-source", {
+    withinDistance: 80,
+    from: caster,
+  });
+
+  // Enhanced scaling based on environment + tokens
+  const nearbyTokens = canvas.tokens.placeables.filter((token) => {
+    const distance = canvas.grid.measureDistance(caster, token);
+    return distance <= 30 && token !== caster;
+  });
+
+  const baseScale = nearbyTokens.length > 0 ? 1.5 : 1.0;
+  const environmentalBonus = waterSources.length > 0 ? 1.4 : 1.0;
+  const finalScale = baseScale * environmentalBonus;
+
+  // Use Portal targeting (existing utility)
+  const target = await selectSingleTarget(caster);
+  if (!target) return;
+
+  // Create enhanced effect with environmental feedback
+  new Sequence()
+    .effect("jb2a_patreon.whirlwind.blue")
+    .atLocation(target)
+    .scale(finalScale)
+    .fadeOut(3000)
+    .belowTokens()
+    .thenDo(() => {
+      const effects = [];
+      if (nearbyTokens.length > 0) effects.push("Enhanced by nearby presence");
+      if (waterSources.length > 0) effects.push("Empowered by water sources");
+
+      if (effects.length > 0) {
+        ui.notifications.info(`Tourbillon: ${effects.join(", ")}`);
+      }
+    })
+    .play();
+}
+```
+
+#### Enhanced BubbleSpam with Smart Targeting
+
+```javascript
+// Enhanced bubbleSpam with Tagger-based ally avoidance
+function createSmartBubbleSpam() {
+  let isActive = false;
+
+  canvas.app.stage.addEventListener("click", async (event) => {
+    if (!isActive) return;
+
+    const clickLocation = canvas.canvasCoordinatesFromClient({
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    // Check for allies nearby using Tagger
+    const nearbyAllies = Tagger.getByTag(["ally", "friendly"], {
+      withinDistance: 25,
+      from: clickLocation,
+    });
+
+    if (nearbyAllies.length > 0) {
+      ui.notifications.warn("Too close to allies! Redirecting...");
+
+      // Find safe alternative location
+      const safeDistance = 40;
+      const angle = Math.random() * Math.PI * 2;
+      const safeLocation = {
+        x: clickLocation.x + Math.cos(angle) * safeDistance,
+        y: clickLocation.y + Math.sin(angle) * safeDistance,
+      };
+
+      // Cast at safe location instead
+      castBubbleEffect(safeLocation);
+    } else {
+      castBubbleEffect(clickLocation);
+    }
+  });
+
+  // Activation with smart targeting announcement
+  ui.notifications.info(
+    "Smart Bubble Spam active! Automatic ally avoidance enabled. ESC to stop."
+  );
+  isActive = true;
+}
+```
+
+### Performance Considerations for Tagger + RPG
+
+#### Optimized Scene Queries
+
+```javascript
+// Cache frequent tag queries for performance
+const TagCache = {
+  cache: new Map(),
+  cacheDuration: 5000, // 5 seconds
+
+  getWithCache: function (tags, options = {}) {
+    const cacheKey = JSON.stringify({ tags, options });
+    const cached = this.cache.get(cacheKey);
+
+    if (cached && Date.now() - cached.timestamp < this.cacheDuration) {
+      return cached.results;
+    }
+
+    const results = Array.isArray(tags)
+      ? Tagger.getByTag(tags, options)
+      : Tagger.getByTag(tags, options);
+
+    this.cache.set(cacheKey, {
+      results,
+      timestamp: Date.now(),
+    });
+
+    return results;
+  },
+
+  clearCache: function () {
+    this.cache.clear();
+  },
+};
+
+// Usage in spells
+const fireSource = TagCache.getWithCache("fire-source", {
+  withinDistance: 50,
+  from: caster,
+});
+```
+
+### Best Practices for RPG Tagger Integration
+
+#### 1. **Consistent Tag Naming**
+
+```javascript
+// Standardized tag categories for RPG system
+const RPG_TAG_STANDARDS = {
+  // Character roles
+  roles: ["ally", "enemy", "neutral", "boss", "minion"],
+
+  // Character types
+  classes: ["water-mage", "shadow-mage", "healer", "striker", "tank"],
+
+  // Environmental elements
+  elements: ["fire-source", "water-source", "earth-element", "air-current"],
+
+  // Magical features
+  magic: ["mana-crystal", "ley-line", "magical-focus", "power-source"],
+
+  // Terrain types
+  terrain: ["difficult-terrain", "hazard", "safe-zone", "cover"],
+
+  // Status conditions (temporary)
+  conditions: ["burning", "frozen", "blessed", "cursed", "marked"],
+};
+```
+
+#### 2. **Tag Management Utilities**
+
+```javascript
+// Utility functions for RPG tag management
+const RPGTagger = {
+  // Batch tag assignment for common scenarios
+  tagCombatRoles: function (friendlyTokens, enemyTokens) {
+    friendlyTokens.forEach((token) => {
+      Tagger.setTags(token, ["ally", "friendly"]);
+    });
+    enemyTokens.forEach((token) => {
+      Tagger.setTags(token, ["enemy", "hostile"]);
+    });
+  },
+
+  // Clean up temporary battle tags
+  cleanupCombatTags: function () {
+    const temporaryTags = ["burning", "frozen", "marked", "targeted"];
+
+    temporaryTags.forEach((tag) => {
+      const tagged = Tagger.getByTag(tag);
+      tagged.forEach((object) => {
+        Tagger.removeTags(object, [tag]);
+      });
+    });
+  },
+
+  // Validate tag consistency
+  validateSceneTags: function () {
+    const issues = [];
+
+    // Check for conflicting role tags
+    canvas.tokens.placeables.forEach((token) => {
+      const isAlly = Tagger.hasTags(token, "ally");
+      const isEnemy = Tagger.hasTags(token, "enemy");
+
+      if (isAlly && isEnemy) {
+        issues.push(`${token.name} has conflicting ally/enemy tags`);
+      }
+    });
+
+    if (issues.length > 0) {
+      console.warn("Tag Validation Issues:", issues);
+      ui.notifications.warn(`Found ${issues.length} tag conflicts`);
+    }
+
+    return issues;
+  },
+};
+```
+
+This Tagger integration transforms RPG spell development from manual targeting to intelligent, environmental magic systems that respond dynamically to scene elements and combat roles, making spells feel truly integrated with the game world.
+
 ## Summary: RPG-First Development Approach
 
 By following these modern RPG-specific best practices, your spell animation macros will:

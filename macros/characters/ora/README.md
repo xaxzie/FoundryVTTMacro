@@ -165,17 +165,26 @@ When adding new spells for Ora:
 **Mana Cost**: Stance-dependent (4 mana standard, FREE in Focus stance)
 **Range**: Portal targeting (150 units)
 
-**Description**: Creates persistent water vortices that trap and damage targets while providing tactical battlefield control options.
+**Description**: Creates persistent water vortices that trap and damage targets while providing tactical battlefield control options. **Enhanced with token attachment and smooth destruction effects.**
 
 **Vortex Configuration**:
 
 - **Single Vortex**: 2d6 + Esprit damage when traversed (one powerful vortex)
 - **Divided Vortices**: 1d6 + Esprit/2 damage each (two smaller vortices)
 
+**Advanced Features** ✨:
+
+- **Token Attachment**: Vortices attach to targeted tokens and move with them
+- **Adaptive Scaling**: Effects scale based on target token size (30% larger than token)
+- **Smart Positioning**: Effects appear under tokens, not over them
+- **Smooth Destruction**: 3-second fade-out with water splash effects
+- **Visual Polish**: Professional impact and splash animations
+
 **Tactical Effects**:
 
 - **Protection**: Can block piercing damage (optional choice except in Focus stance)
 - **Vision Blocking**: Cuts line of sight (managed manually)
+- **Mobile Control**: Vortices follow attached tokens as they move
 - **Escape Mechanism**: Agility roll to traverse without damage (costs movement action)
 - **Persistent Duration**: Remains until destroyed or traversed
 
@@ -190,16 +199,18 @@ Applied immediately on cast (simulates movement through vortex). Use `tourbillon
 
 **Management System**:
 
-- **Creation**: `tourbillon.js` - Creates persistent vortex effects
-- **Destruction**: `tourbillon-destroy.js` - Handles traversal, destruction, and Agility rolls
-- **Visual Persistence**: Effects remain active until manually removed
+- **Creation**: `tourbillon.js` - Creates persistent, scalable vortex effects with token attachment
+- **Destruction**: `tourbillon-destroy.js` - Portal targeting with smooth fade-out and splash effects
+- **Visual Persistence**: Effects remain active and follow tokens until manually removed
 
 **RPG Integration**:
 
 - ✅ **Automatic stance detection** with stance-specific mechanics
 - ✅ **Portal targeting system** for precise placement
-- ✅ **Persistent Sequencer effects** with unique identifiers
-- ✅ **Comprehensive destruction mechanics** with Agility roll system
+- ✅ **Token attachment system** for mobile battlefield control
+- ✅ **Adaptive visual scaling** based on target size
+- ✅ **Persistent Sequencer effects** with fadeOut configured at creation
+- ✅ **Streamlined destruction** with visual feedback
 - ✅ **Professional chat output** with tactical information
 - ✅ **Stance-specific protection rules** (Focus always blocks, others optional)
 - ✅ **Injury-adjusted stat calculations** for Esprit and Agility
@@ -213,9 +224,55 @@ Applied immediately on cast (simulates movement through vortex). Use `tourbillon
 **Usage Workflow**:
 
 1. **Creation**: Run `tourbillon.js`, configure vortex type and protection, target positions
-2. **Management**: Vortices persist and provide tactical effects as described
-3. **Destruction**: Run `tourbillon-destroy.js`, click near vortex, choose destruction method
-4. **Traversal**: Use Agility rolls through destruction macro for escape attempts
+2. **Management**: Vortices persist, scale to targets, and follow tokens if attached
+3. **Destruction**: Run `tourbillon-destroy.js`, use Portal targeting for precise selection
+4. **Visual Feedback**: Smooth fade-out with water splash indicates successful destruction
+
+### Bubble Spam
+
+**File**: `bubbleSpam.js`
+**Type**: Rapid-fire utility / Animation testing
+**Mana Cost**: None (utility macro)
+**Range**: Unlimited (direct canvas clicking)
+
+**Description**: Streamlined rapid-fire bubble shooting for testing animations or battlefield fun. **Ultra-responsive spam-click interface.**
+
+**Features** 🎯:
+
+- **No Prompts**: Immediate activation, no configuration dialogs
+- **Direct Canvas Clicking**: Click anywhere to shoot bubbles instantly
+- **Rapid Fire**: Non-blocking animations allow immediate consecutive shots
+- **Visual Feedback**: Water bubble projectiles with blue explosion impacts
+- **Continuous Mode**: Keeps firing until ESC key pressed
+- **Zero Latency**: Fastest possible response time for spam clicking
+
+**Usage**:
+
+1. **Select character token**
+2. **Run macro** → Immediate activation
+3. **Click anywhere** → Bubbles shoot from character to click point
+4. **Spam click rapidly** → Multiple bubbles flying simultaneously
+5. **Press ESC** → Exit spam mode
+
+**Technical Features**:
+
+- ✅ **Event-driven architecture** for maximum responsiveness
+- ✅ **Direct coordinate conversion** without Portal delays
+- ✅ **Clean event listener management** with proper cleanup
+- ✅ **Non-blocking animations** for true rapid fire capability
+- ✅ **Unlimited range and targets** for maximum flexibility
+
+**Required Modules**:
+
+- Sequencer (animations)
+- JB2A (bubble effects)
+
+**Perfect For**:
+
+- Animation testing and demonstration
+- Quick visual effects during gameplay
+- Stress testing Sequencer performance
+- Player entertainment and spell practice
 
 ### Spell Ideas for Future Development
 

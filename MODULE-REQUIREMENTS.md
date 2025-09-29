@@ -116,6 +116,14 @@
   - Perfect for multi-user animations
   - Synchronization of effects across clients
 
+### Scene Management & Organization
+
+- **Tagger** - [Documentation](https://github.com/fantasycalendar/foundry-tagger)
+  - Tag-based object management for scenes
+  - Retrieve objects programmatically by tags
+  - Essential for macro automation and multi-target effects
+  - Perfect for spell targeting and scene organization
+
 ### World Building Enhancement
 
 - **Simple WorldBuilding Plus** - [Documentation](https://gitlab.com/asacolips-projects/foundry-mods/simple-worldbuilding-plus)
@@ -132,13 +140,291 @@
   - Built-in dialog system for complex interactions
   - Note: Free module by TheRipper93
 
+## Tagger Module for Enhanced Macro Development
+
+### What is Tagger?
+
+Tagger is a powerful module that allows you to assign custom tags to any scene object (tokens, tiles, walls, lights, sounds, etc.) and retrieve them programmatically. This revolutionizes macro development by enabling smart, automated targeting and organization.
+
+### How Tagger Enhances RPG Macros
+
+#### 1. **Smart Spell Targeting**
+
+Instead of manual token selection, use tags to target specific groups:
+
+```javascript
+// Tag setup: GM tags altar tokens with "fire-altar", "water-shrine", etc.
+const fireAltars = Tagger.getByTag("fire-altar");
+const waterShrines = Tagger.getByTag("water-shrine");
+
+// Tourbillon spell enhanced with altar detection
+if (waterShrines.length > 0) {
+  // Boost effect near water shrines
+  new Sequence()
+    .effect("jb2a_patreon.whirlwind.blue")
+    .atLocation(targetLocation)
+    .scale(2.0) // Enhanced power near water shrine
+    .fadeOut(3000);
+}
+```
+
+#### 2. **Environmental Magic Systems**
+
+Create reactive spell systems based on scene elements:
+
+```javascript
+// Environmental fire enhancement
+const nearbyFire = Tagger.getByTag("fire-source", {
+  withinDistance: 30,
+  from: targetToken,
+});
+
+if (nearbyFire.length > 0) {
+  // Fire spells get enhanced effects near fire sources
+  effectScale *= 1.5;
+  damageBonus += 10;
+}
+```
+
+#### 3. **Multi-Target Area Spells**
+
+Efficiently target multiple objects for area effects:
+
+```javascript
+// Mass healing at all healing circles
+const healingCircles = Tagger.getByTag("healing-circle");
+healingCircles.forEach((circle) => {
+  new Sequence()
+    .effect("jb2a.cure_wounds.400px.blue")
+    .atLocation(circle)
+    .play();
+});
+```
+
+#### 4. **Dynamic Scene Interaction**
+
+Create spells that interact with tagged scene elements:
+
+```javascript
+// Lightning chain between conductive objects
+const conductors = Tagger.getByTag("metal", "conductor");
+if (conductors.length >= 2) {
+  // Chain lightning between all metal objects
+  for (let i = 0; i < conductors.length - 1; i++) {
+    new Sequence()
+      .effect("jb2a.chain_lightning.primary.blue")
+      .stretchTo(conductors[i], conductors[i + 1])
+      .play();
+  }
+}
+```
+
+#### 5. **Combat Automation**
+
+Tag enemies, allies, and neutrals for intelligent spell behavior:
+
+```javascript
+// Smart healing that only affects allies
+const allies = Tagger.getByTag("ally", {
+  withinDistance: 60,
+  from: casterToken,
+});
+
+allies.forEach((ally) => {
+  // Apply healing only to tagged allies
+  healToken(ally, healAmount);
+});
+```
+
+### Tagger API for Macro Development
+
+#### Core Functions
+
+```javascript
+// Get objects by single tag
+const fires = Tagger.getByTag("fire");
+
+// Get objects by multiple tags (AND logic)
+const magicFires = Tagger.getByTag(["fire", "magical"]);
+
+// Get objects with distance filtering
+const nearbyEnemies = Tagger.getByTag("enemy", {
+  withinDistance: 30,
+  from: playerToken,
+});
+
+// Check if object has specific tags
+if (Tagger.hasTags(token, "boss")) {
+  // Enhanced effect for boss encounters
+}
+
+// Add tags to objects (GM or macro)
+Tagger.setTags(altarTile, ["water-shrine", "healing-source"]);
+
+// Remove tags
+Tagger.removeTags(token, ["burning"]);
+```
+
+#### Advanced Filtering
+
+```javascript
+// Complex scene queries
+const magicalItems = Tagger.getByTag("magical-item", {
+  matchAny: false, // Must have ALL tags
+  caseInsensitive: true, // Ignore case
+  allScenes: false, // Current scene only
+  ignore: [excludeToken], // Exclude specific objects
+});
+
+// Scene-wide magical detection
+const allMagicalObjects = Tagger.getByTag(["magical", "enchanted", "cursed"], {
+  matchAny: true, // Has ANY of these tags
+});
+```
+
+### RPG Implementation Examples
+
+#### 1. **Elemental Affinity System**
+
+```javascript
+// Tag terrain for elemental bonuses
+const waterTerrain = Tagger.getByTag("water-terrain");
+const fireTerrain = Tagger.getByTag("fire-terrain");
+
+// Ora's water spells get bonuses on water terrain
+if (isNearTerrain(casterLocation, waterTerrain)) {
+  spellPower *= 1.25;
+  manaCost *= 0.8;
+}
+```
+
+#### 2. **Interactive Spell Components**
+
+```javascript
+// Tag spell components in scenes
+const crystals = Tagger.getByTag("mana-crystal");
+const runes = Tagger.getByTag("power-rune");
+
+// Spell requires nearby components
+if (crystals.length > 0 && runes.length > 0) {
+  // Enable powerful combination spell
+  castEnhancedSpell();
+} else {
+  ui.notifications.warn("Requires mana crystal and power rune nearby!");
+}
+```
+
+#### 3. **Dynamic Environmental Hazards**
+
+```javascript
+// Tag environmental hazards
+const poisonAreas = Tagger.getByTag("poison-cloud");
+const fireAreas = Tagger.getByTag("fire-hazard");
+
+// Spells react to environmental conditions
+if (isInHazardArea(targetLocation, fireAreas)) {
+  // Fire spells explode in fire areas
+  effectRadius *= 2;
+  addExplosionEffect();
+}
+```
+
+### Setup Workflow for RPG Sessions
+
+#### 1. **GM Scene Preparation**
+
+```javascript
+// Tag important scene elements
+Tagger.setTags(altarTile, ["altar", "holy", "healing-source"]);
+Tagger.setTags(torchTile, ["fire-source", "light"]);
+Tagger.setTags(waterTile, ["water-source", "cleansing"]);
+Tagger.setTags(bossTile, ["boss", "powerful-enemy"]);
+```
+
+#### 2. **Player Character Tags**
+
+```javascript
+// Tag player tokens with roles/abilities
+Tagger.setTags(oraToken, ["player", "water-mage", "healer"]);
+Tagger.setTags(mocteiToken, ["player", "shadow-mage", "damage-dealer"]);
+Tagger.setTags(alliedNpc, ["ally", "npc", "helper"]);
+```
+
+#### 3. **Dynamic Combat Tags**
+
+```javascript
+// Add temporary combat tags
+Tagger.setTags(token, ["burning"]); // Status effects
+Tagger.setTags(token, ["blessed"]); // Temporary buffs
+Tagger.setTags(token, ["marked"]); // Targeting marks
+```
+
+### Integration with Existing Macros
+
+#### Enhanced Tourbillon Spell
+
+```javascript
+// Original tourbillon with Tagger enhancement
+const waterSources = Tagger.getByTag("water-source", {
+  withinDistance: 50,
+  from: targetLocation,
+});
+
+const baseScale = nearbyTokens.length > 0 ? 1.5 : 1.0;
+const waterBonus = waterSources.length > 0 ? 1.3 : 1.0;
+const finalScale = baseScale * waterBonus;
+
+new Sequence()
+  .effect("jb2a_patreon.whirlwind.blue")
+  .atLocation(targetLocation)
+  .scale(finalScale)
+  .fadeOut(3000)
+  .belowTokens();
+```
+
+#### Enhanced BubbleSpam with Targeting
+
+```javascript
+// Bubble spam that avoids allies
+canvas.app.stage.addEventListener("click", (event) => {
+  const clickedObjects = Tagger.getByTag("ally", {
+    withinDistance: 20,
+    from: clickLocation,
+  });
+
+  if (clickedObjects.length === 0) {
+    // Safe to cast bubbles - no allies nearby
+    castBubbleEffect(clickLocation);
+  }
+});
+```
+
+### Benefits for RPG Macro Development
+
+1. **Reduced Manual Work**: No more manual token selection for multi-target spells
+2. **Dynamic Scene Interaction**: Spells automatically adapt to scene elements
+3. **Enhanced Immersion**: Environmental magic feels more realistic
+4. **Combat Automation**: Smart targeting reduces GM workload
+5. **Scalable Systems**: Easy to expand spell systems as campaign grows
+6. **Error Prevention**: Automated checks prevent targeting mistakes
+
+### Best Practices
+
+1. **Consistent Tagging**: Use standardized tag names across scenes
+2. **Documentation**: Keep a list of active tags and their meanings
+3. **Performance**: Use distance filters to limit search scope
+4. **Cleanup**: Remove temporary tags after effects end
+5. **Player Communication**: Let players know what tags affect their abilities
+
+This makes Tagger an essential tool for creating sophisticated, automated RPG magic systems that respond intelligently to the game environment.
+
 ## Module Usage Matrix for Macro Creation
 
 | Module Category | Animation Creation           | Effect Enhancement | Technical Support | Audio Support   |
 | --------------- | ---------------------------- | ------------------ | ----------------- | --------------- |
 | Core Animation  | Sequencer                    | FXMaster           | libWrapper        | SoundFx Library |
 | Visual Assets   | JB2A, Animated Spell Effects | Token Magic FX     | Advanced Macros   | -               |
-| Automation      | Automated Animations         | Token Attacher     | Portal            | -               |
+| Automation      | Automated Animations         | Token Attacher     | Portal, Tagger    | -               |
 | Enhancement     | Parallax Tiles               | Token Mold         | socketlib         | -               |
 
 ## Best Practices for Macro Creation
@@ -376,13 +662,6 @@ _These modules are available for future installation to enhance animation capabi
 - **Sequencer Benefits**: Create persistent spell effects that follow tokens, attach multiple animation elements for complex spells
 - **Best For**: Persistent spell effects, token-attached auras, multi-part animations
 - **Compatibility**: Works perfectly with Sequencer for token-attached effects
-
-#### **Tagger** (FREE)
-
-- **Purpose**: Tag scene objects and retrieve them programmatically
-- **Sequencer Benefits**: Target multiple objects by tags instead of manual selection, organize spell targets
-- **Best For**: Area effect spells, multi-target animations, scene organization
-- **Integration**: `Tagger.getByTag("fire-altar")` for Sequencer targeting
 
 #### **Monk's Active Tile Triggers** (FREE)
 
