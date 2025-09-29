@@ -12,7 +12,9 @@ A specialized collection of FoundryVTT macros using the [Sequencer](https://fant
 
 ## 📚 Essential Documentation
 
-- **[GAME-RULES.md](./GAME-RULES.md)** - ⭐ **Required** understanding of RPG mechanics
+> **🚨 CRITICAL - READ BEFORE CODING**: **[GAME-RULES.md](./GAME-RULES.md)** contains the custom dice system and RPG mechanics that **ALL macros must follow**. This is not optional reading!
+
+- **[GAME-RULES.md](./GAME-RULES.md)** - ⭐ **MANDATORY** - Custom RPG rules, dice system, and mechanics
 - **[DEVELOPMENT.md](./DEVELOPMENT.md)** - Installation, setup, contribution guidelines
 - **[MODULE-REQUIREMENTS.md](./MODULE-REQUIREMENTS.md)** - Complete module information
 - **[assets/README.md](./assets/README.md)** - Visual effects and assets reference
@@ -89,6 +91,8 @@ FoundryVTTMacro/
 
 ## 🤝 Contributing
 
+> **⚠️ BEFORE CODING**: Read [GAME-RULES.md](./GAME-RULES.md) first!
+
 All contributions must align with our custom RPG system. See [DEVELOPMENT.md](./DEVELOPMENT.md) for:
 
 - Installation and setup instructions
@@ -100,7 +104,7 @@ All contributions must align with our custom RPG system. See [DEVELOPMENT.md](./
 
 ---
 
-> **Get Started**: Begin with [GAME-RULES.md](./GAME-RULES.md) to understand the RPG context, then follow [DEVELOPMENT.md](./DEVELOPMENT.md) for technical setup.
+> **🎯 GET STARTED**: **MANDATORY** - Read [GAME-RULES.md](./GAME-RULES.md) first to understand the custom dice system and RPG mechanics, then follow [DEVELOPMENT.md](./DEVELOPMENT.md) for technical setup.
 > │ └── characters/ # Character-specific examples (Ora, Moctei)
 > ├── templates/ # Spell macro templates for quick development
 > └── modules/ # Custom modules (status effects)
@@ -589,7 +593,7 @@ We welcome spell animation contributions that fit our custom RPG system! Please 
 
 ### Before Contributing:
 
-1. **Read [GAME-RULES.md](./GAME-RULES.md)** to understand the RPG context
+1. **🚨 MANDATORY: Read [GAME-RULES.md](./GAME-RULES.md)** - Contains critical dice system and RPG mechanics
 2. **Check [CONTRIBUTING.md](./CONTRIBUTING.md)** for detailed workflow
 3. **Consult with GameMaster** for new spell concepts or rule interpretations
 

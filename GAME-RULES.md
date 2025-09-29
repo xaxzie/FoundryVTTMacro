@@ -160,7 +160,20 @@ Each character has seven primary statistics that govern their abilities:
 - **Starting Values**: 2 points in each characteristic
 - **Bonus Points**: 14 additional points to distribute
 - **Maximum Investment**: 4 additional points per characteristic (maximum 6 total)
-- **Dice Formula**: Roll 1d7 per point in the relevant characteristic
+
+### 🎲 **DICE SYSTEM FOR ALL ROLLS**
+
+> **CRITICAL RULE**: All characteristic-based rolls use the **d7 dice system**
+>
+> **Formula**: `[Characteristic Value] × d7` (roll one d7 per stat point)
+>
+> **Examples**:
+>
+> - Physique 3 → Roll **3d7**
+> - Dextérité 5 → Roll **5d7**
+> - Esprit 6 → Roll **6d7**
+>
+> **This applies to**: Combat rolls, skill checks, spell casting, characteristic tests
 
 ### Stat Usage
 
@@ -182,15 +195,17 @@ Each character has seven primary statistics that govern their abilities:
 #### 2. Attack Resolution
 
 ```
+🎲 DICE SYSTEM: ALL ROLLS USE [STAT VALUE]d7
+
 Attacker Process:
 1. Spend mana for the spell
 2. Roll dice based on spell's associated characteristic
-3. Formula: [Stat Value] × d7 (one d7 per stat point)
-4. Example: Force 9 = roll 9d7
+3. Formula: [Stat Value]d7 (one d7 per stat point)
+4. Example: Physique 4 = roll 4d7, Esprit 6 = roll 6d7
 
 Target Process:
-1. Choose counter characteristic (usually Agility)
-2. Roll defense: [Counter Stat] × d7
+1. Choose counter characteristic (usually Agilité)
+2. Roll defense: [Counter Stat]d7
 3. Can use spells for countering (costs mana)
 
 Hit Resolution:
