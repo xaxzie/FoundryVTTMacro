@@ -79,6 +79,19 @@
     nearbyVortices.sort((a, b) => a.distance - b.distance);
     const closestVortex = nearbyVortices[0];
 
+    // Play destruction splash animation
+    let destructionSequence = new Sequence();
+
+    // Water splash effect (same as creation)
+    destructionSequence.effect()
+        .file("animated-spell-effects-cartoon.water.water splash.01")
+        .atLocation(closestVortex.position)
+        .scale(0.6)
+        .belowTokens();
+
+    // Play the destruction animation
+    await destructionSequence.play();
+
     // Remove the persistent vortex effect (fadeOut configured at creation)
     try {
         await Sequencer.EffectManager.endEffects({ name: closestVortex.effect.data.name });
