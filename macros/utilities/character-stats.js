@@ -29,7 +29,7 @@ function getCharacterStat(actor, statName) {
  */
 function detectInjuryStacks(actor) {
     const injuryEffect = actor?.effects?.contents?.find(e =>
-        e.name?.toLowerCase() === 'blessures'
+        e.name?.toLowerCase().includes('blessures')
     );
     const injuryStacks = injuryEffect?.flags?.statuscounter?.value || 0;
 

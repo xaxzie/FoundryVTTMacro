@@ -124,6 +124,38 @@ combat-combo.js        // Generic action type
 healing-spring.js      // Use kebab-case
 ```
 
+### Chat Messages with Dice Rolling
+
+**For macros that need both animated dice and custom formatting, use the pattern from `/macros/utilities/messageWithDiceFormatting.js`:**
+
+```javascript
+// RECOMMENDED: Single message with native dice + custom formatting
+const roll = new Roll("4d7+2");
+
+const enhancedFlavor = `
+    <div style="background: linear-gradient(135deg, #e3f2fd, #f3e5f5); padding: 12px; border-radius: 8px; border: 2px solid #2196f3;">
+        <h3 style="margin: 0; color: #1976d2;">🎯 Test de Dextérité</h3>
+        <div><strong>Personnage:</strong> ${actor.name}</div>
+        <div style="color: #d32f2f;">⚠️ Ajusté pour blessures: Base 5 - 2 = 3</div>
+    </div>
+`;
+
+await roll.toMessage({
+  speaker: ChatMessage.getSpeaker({ token: caster }),
+  flavor: enhancedFlavor,
+  rollMode: game.settings.get("core", "rollMode"),
+});
+```
+
+**Key Benefits:**
+
+- ✅ Single unified message
+- ✅ Native FoundryVTT dice animation
+- ✅ Rich HTML formatting in flavor
+- ✅ Hover effects and click-to-expand dice
+
+**See `/macros/utilities/messageWithDiceFormatting.js` for complete examples and documentation.**
+
 ### Spell Macro Structure Template
 
 ```javascript
