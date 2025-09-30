@@ -371,20 +371,50 @@
     // Play the sequence
     await sequence.play();
 
-    // === ATTACK RESOLUTION ===
+    // === COMBINED ATTACK AND DAMAGE RESOLUTION ===
     const totalAttackDice = espritStat + attackBonus;
     const levelBonus = 2 * spellLevel;
-    const attackRoll = new Roll(`${totalAttackDice}d7 + ${levelBonus}`);
-    await attackRoll.evaluate({ async: true });
 
-    const attackResolution = {
-        roll: attackRoll,
-        total: attackRoll.total,
-        formula: attackRoll.formula,
-        result: attackRoll.result
-    };
+    // Build combined roll formula: attack roll + damage rolls
+    let combinedRollParts = [`${totalAttackDice}d7 + ${levelBonus}`];
 
-    // === CHAT FORMATTING UTILITY ===
+    // Add damage rolls to the combined formula
+    if (currentStance !== 'offensif') {
+        // Only add dice rolls if not maximized (offensive stance)
+        if (isDivided) {
+            // Two smaller vortices: 1d6 + Esprit/2 each
+            const statBonus = Math.floor((espritStat + damageBonus) / 2);
+            combinedRollParts.push(`1d6 + ${statBonus}`); // Vortex 1
+            combinedRollParts.push(`1d6 + ${statBonus}`); // Vortex 2
+        } else {
+            // Single large vortex: 2d6 + Esprit
+            const statBonus = espritStat + damageBonus;
+            combinedRollParts.push(`2d6 + ${statBonus}`);
+        }
+    }
+
+    const combinedRoll = new Roll(`{${combinedRollParts.join(', ')}}`);
+    await combinedRoll.evaluate({ async: true });
+
+    // Extract results from the combined roll
+    const attackResult = combinedRoll.terms[0].results[0];
+    let damageResults = [];
+
+    if (currentStance !== 'offensif') {
+        // Extract damage results from dice
+        for (let i = 1; i < combinedRoll.terms[0].results.length; i++) {
+            damageResults.push(combinedRoll.terms[0].results[i]);
+        }
+
+        // Update damages array with actual rolled results
+        damages = damageResults.map(result => ({
+            total: result.result,
+            formula: result.expression,
+            result: result.result
+        }));
+    }
+
+    // === CREATE ENHANCED FLAVOR WITH DICE ROLLING ===
     // Generate target text
     let targetText;
     if (isDivided) {
@@ -401,69 +431,72 @@
     const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
 
     if (isDivided) {
+        const totalDamage = damages[0].total + damages[1].total;
         damageDisplay = `
-            <div style="text-align: center; margin: 15px 0; padding: 10px; background: #e7f3ff; border-radius: 5px;">
-                <h2 style="margin: 5px 0; color: #0066cc;">🌊 Tourbillons Divisés${stanceNote}</h2>
-                <p style="margin: 5px 0;"><strong>Tourbillon 1 :</strong> ${damages[0].total} dégâts <span style="font-size: 0.7em; color: #666;">(${damages[0].formula}: ${damages[0].result})</span></p>
-                <p style="margin: 5px 0;"><strong>Tourbillon 2 :</strong> ${damages[1].total} dégâts <span style="font-size: 0.7em; color: #666;">(${damages[1].formula}: ${damages[1].result})</span></p>
-                <p style="margin: 5px 0; font-size: 0.9em;"><strong>Cibles :</strong> ${targetText}</p>
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #e7f3ff; border-radius: 4px;">
+                <div style="font-size: 1.1em; color: #0066cc; margin-bottom: 6px;"><strong>🌊 Tourbillons Divisés${stanceNote}</strong></div>
+                <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cibles:</strong> ${targetText}</div>
+                <div style="font-size: 1.4em; color: #d32f2f; font-weight: bold;">💥 DÉGÂTS: ${totalDamage}</div>
+                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${damages[0].total} + ${damages[1].total})</div>
             </div>
         `;
     } else {
         const targetName = targetActors[0] ? targetActors[0].name : "position";
         damageDisplay = `
-            <div style="text-align: center; margin: 15px 0; padding: 10px; background: #e7f3ff; border-radius: 5px;">
-                <h2 style="margin: 5px 0; color: #0066cc;">🌊 Tourbillon Puissant : ${damages[0].total} dégâts${stanceNote}</h2>
-                <p style="margin: 5px 0;"><strong>Cible :</strong> ${targetName}</p>
-                <p style="margin: 5px 0; font-size: 0.8em; color: #666;">(${damages[0].formula}: ${damages[0].result})</p>
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #e7f3ff; border-radius: 4px;">
+                <div style="font-size: 1.1em; color: #0066cc; margin-bottom: 6px;"><strong>🌊 Tourbillon${stanceNote}</strong></div>
+                <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cible:</strong> ${targetName}</div>
+                <div style="font-size: 1.4em; color: #d32f2f; font-weight: bold;">💥 DÉGÂTS: ${damages[0].total}</div>
             </div>
         `;
     }
-
-    // Attack resolution display
-    const attackResolutionInfo = `
-        <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f0f0f0; border-radius: 5px;">
-            <p style="margin: 5px 0; font-size: 0.8em; color: #666;">(${attackResolution.formula} = ${attackResolution.result})</p>
-            <h2 style="margin: 5px 0; color: #d9534f;">🎯 Jet d'Attaque : ${attackResolution.total}</h2>
-        </div>
-    `;
 
     // Calculate actual mana cost
     const actualManaCost = currentStance === 'focus' ? 'GRATUIT (Position Focus)' : '4 mana';
 
     // Build injury info if present
     const injuryInfo = injuryStacks > 0 ?
-        `<p><strong>⚠️ Blessures :</strong> ${injuryStacks} (Esprit réduit de ${baseEspritStat} à ${espritStat})</p>` :
+        `<div style="color: #d32f2f; font-size: 0.9em; margin: 5px 0;">
+            <i>⚠️ Ajusté pour blessures: Base ${baseEspritStat} - ${injuryStacks} = ${espritStat}</i>
+        </div>` :
         '';
 
-    // Protection info
-    const protectionInfo = currentStance === 'focus' ?
-        "Bloque TOUJOURS les attaques traversantes (Position Focus)" :
-        (protection === 'yes' ? "Peut bloquer les attaques traversantes (au choix)" : "N'offre aucune protection");
+    // Build manual bonus info if present
+    const bonusInfo = (damageBonus > 0 || attackBonus > 0) ?
+        `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
+            ${damageBonus > 0 ? `<div>✨ Bonus de Dégâts: +${damageBonus}</div>` : ''}
+            ${attackBonus > 0 ? `<div>⚡ Bonus d'Attaque: +${attackBonus} dés</div>` : ''}
+        </div>` :
+        '';
 
-    const chatContent = `
-        <div class="spell-result">
-            <h3>🌊 Sort de Tourbillon</h3>
-            <p><strong>Coût en Mana :</strong> ${actualManaCost}</p>
-            ${injuryInfo}
-            ${attackResolutionInfo}
-            ${damageDisplay}
-            <hr>
-            <div style="background: #f9f9f9; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                <h4>Effets du Tourbillon :</h4>
-                <p><strong>💨 Protection :</strong> ${protectionInfo}</p>
-                <p><strong>👁️ Vision :</strong> Bloque la ligne de vue </p>
-                <p><strong>🏃 Traversée :</strong> Jet d'Agilité pour traverser sans dégât (coûte l'action de mouvement)</p>
-            </div>
+    // Build attack result display
+    const attackDisplay = `
+        <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff3e0; border-radius: 4px;">
+            <div style="font-size: 1.4em; color: #e65100; font-weight: bold;">🎯 ATTAQUE: ${attackResult.result}</div>
         </div>
     `;
 
-    // Create chat message
-    await ChatMessage.create({
-        user: game.user.id,
+    // Build simplified enhanced flavor for the dice roll
+    const enhancedFlavor = `
+        <div style="background: linear-gradient(135deg, #e3f2fd, #f3e5f5); padding: 12px; border-radius: 8px; border: 2px solid #2196f3; margin: 8px 0;">
+            <div style="text-align: center; margin-bottom: 8px;">
+                <h3 style="margin: 0; color: #1976d2;">🌊 Sort de Tourbillon</h3>
+                <div style="margin-top: 3px; font-size: 0.9em;">
+                    <strong>Personnage:</strong> ${actor.name} | <strong>Coût:</strong> ${actualManaCost}
+                </div>
+            </div>
+            ${injuryInfo}
+            ${bonusInfo}
+            ${attackDisplay}
+            ${damageDisplay}
+        </div>
+    `;
+
+    // Use FoundryVTT native dice rolling with enhanced custom flavor
+    await combinedRoll.toMessage({
         speaker: ChatMessage.getSpeaker({ token: caster }),
-        content: chatContent,
-        type: CONST.CHAT_MESSAGE_TYPES.OTHER
+        flavor: enhancedFlavor,
+        rollMode: game.settings.get("core", "rollMode")
     });
 
     // Notification
@@ -471,5 +504,5 @@
     const vortexInfo = isDivided ? `2 tourbillons créés` : `Tourbillon puissant créé`;
     const maximizedInfo = currentStance === 'offensif' ? ' MAXIMISÉ' : '';
 
-    ui.notifications.info(`Sort de Tourbillon lancé !${stanceInfo} ${vortexInfo}${maximizedInfo}. Jet d'attaque : ${attackResolution.total}.`);
+    ui.notifications.info(`Sort de Tourbillon lancé !${stanceInfo} ${vortexInfo}${maximizedInfo}. Jet d'attaque : ${attackResult.result}.`);
 })();

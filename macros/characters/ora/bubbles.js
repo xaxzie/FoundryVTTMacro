@@ -353,7 +353,8 @@
             elementDescription = "Glace (Vitesse -1 case)";
             break;
         case 'oil':
-            effectFile = "jb2a.explosion.03.blueyellow";
+            effectFile = "jb2a.bullet.03.blue"; // Use water bullet but will be tinted orange
+            explosionFile = "jb2a.explosion.04.blue"; // Use water explosion but will be tinted orange
             effectColor = "orange";
             elementDescription = "Huile (+Dégâts de feu)";
             break;
@@ -411,7 +412,7 @@
             .delay(500);
     } else {
         // Damage projectiles: travel from caster to target
-        sequence.effect()
+        let projectile1 = sequence.effect()
             .file(effectFile)
             .atLocation(caster)
             .stretchTo(targets[0])
@@ -419,18 +420,28 @@
             .delay(500)
             .waitUntilFinished(-200);
 
+        // Add orange tint for oil
+        if (elementChoice === 'oil') {
+            projectile1.tint("#FF8C00"); // Dark orange tint
+        }
+
         // Impact effect for first projectile
-        sequence.effect()
+        let impact1 = sequence.effect()
             .file(explosionFile)
             .atLocation(targets[0])
             .scale(0.5);
+
+        // Add orange tint for oil impact
+        if (elementChoice === 'oil') {
+            impact1.tint("#FF8C00"); // Dark orange tint
+        }
     }
 
     // Second projectile (only for non-living water)
     if (!isLivingWater) {
         const target2Location = targets.length > 1 ? targets[1] : targets[0];
 
-        sequence.effect()
+        let projectile2 = sequence.effect()
             .file(effectFile)
             .atLocation(caster)
             .stretchTo(target2Location)
@@ -438,57 +449,64 @@
             .delay(200)
             .waitUntilFinished(-200);
 
+        // Add orange tint for oil
+        if (elementChoice === 'oil') {
+            projectile2.tint("#FF8C00"); // Dark orange tint
+        }
+
         // Impact effect for second projectile
-        sequence.effect()
+        let impact2 = sequence.effect()
             .file(explosionFile)
             .atLocation(target2Location)
             .scale(0.5);
+
+        // Add orange tint for oil impact
+        if (elementChoice === 'oil') {
+            impact2.tint("#FF8C00"); // Dark orange tint
+        }
     }
 
     // Play the sequence
     await sequence.play();
 
-    // Attack Resolution for non-healing spells
-    let attackResolution = null;
+    // === COMBINED ATTACK AND DAMAGE RESOLUTION ===
+    let combinedRoll = null;
+    let attackResult = null;
+
     if (!isLivingWater) {
-        // Roll attack resolution: (Esprit stat + attack bonus) × d7 + (2 × spell level)
+        // Build combined roll formula: attack roll + damage rolls
         const totalAttackDice = espritStat + attackBonus;
         const levelBonus = 2 * spellLevel;
-        const attackRoll = new Roll(`${totalAttackDice}d7 + ${levelBonus}`);
-        await attackRoll.evaluate({ async: true });
-        attackResolution = {
-            roll: attackRoll,
-            total: attackRoll.total,
-            formula: attackRoll.formula,
-            result: attackRoll.result,
-            levelBonus: levelBonus,
-            baseDice: espritStat,
-            bonusDice: attackBonus,
-            totalDice: totalAttackDice
-        };
-    }
+        let combinedRollParts = [`${totalAttackDice}d7 + ${levelBonus}`];
 
-    // Generate target text with actor names
-    let targetText;
-    if (isLivingWater) {
-        if (allowSelfTarget) {
-            targetText = "auto-soin";
-        } else {
-            const target1Actor = targetActors[0];
-            targetText = target1Actor ? target1Actor.name : "cible de soin";
+        // Add damage rolls to the combined formula
+        if (currentStance !== 'offensif') {
+            // Only add dice rolls if not maximized (offensive stance)
+            const statBonus = Math.floor((espritStat + damageBonus) / 2);
+            combinedRollParts.push(`1d6 + ${statBonus}`); // Projectile 1
+            combinedRollParts.push(`1d6 + ${statBonus}`); // Projectile 2
         }
-    } else {
-        if (targets.length > 1) {
-            const target1Name = targetActors[0] ? targetActors[0].name : "cible";
-            const target2Name = targetActors[1] ? targetActors[1].name : "cible";
-            targetText = `${target1Name} et ${target2Name}`;
-        } else {
-            const targetName = targetActors[0] ? targetActors[0].name : "cible";
-            targetText = `${targetName} (deux projectiles)`;
+
+        combinedRoll = new Roll(`{${combinedRollParts.join(', ')}}`);
+        await combinedRoll.evaluate({ async: true });
+
+        // Extract results from the combined roll
+        attackResult = combinedRoll.terms[0].results[0];
+
+        if (currentStance !== 'offensif') {
+            // Extract damage results and update damages array
+            const damageResults = [];
+            for (let i = 1; i < combinedRoll.terms[0].results.length; i++) {
+                damageResults.push(combinedRoll.terms[0].results[i]);
+            }
+
+            // Update damages array with actual rolled results
+            damage1 = { total: damageResults[0].result, formula: damageResults[0].expression, result: damageResults[0].result };
+            damage2 = { total: damageResults[1].result, formula: damageResults[1].expression, result: damageResults[1].result };
         }
     }
 
-    // Format damage display based on stance and targeting
+    // === CREATE SIMPLIFIED DAMAGE DISPLAY ===
     let damageDisplay;
     const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
 
@@ -496,45 +514,35 @@
         // Living Water - show healing with target name
         const healingTargetName = allowSelfTarget ? actor.name : (targetActors[0] ? targetActors[0].name : "cible");
         damageDisplay = `
-            <div style="text-align: center; margin: 15px 0; padding: 10px; background: #d4edda; border-radius: 5px;">
-                <h2 style="margin: 5px 0; color: #155724;">💚 Soin : ${damage1.total} <span style="font-size: 0.6em; color: #666;">(${damage1.formula}: ${damage1.result})</span></h2>
-                <p style="margin: 5px 0;"><strong>Cible :</strong> ${healingTargetName}</p>
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #d4edda; border-radius: 4px;">
+                <div style="font-size: 1.1em; color: #155724; margin-bottom: 6px;"><strong>🫧 Bulles ${getElementName(elementChoice)}</strong></div>
+                <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cible:</strong> ${healingTargetName}</div>
+                <div style="font-size: 1.4em; color: #2e7d32; font-weight: bold;">💚 SOIN: ${damage1.total}</div>
             </div>
         `;
     } else if (targets.length > 1) {
-        // Two different targets - show individual projectile damage with target names
+        // Two different targets
         const target1Name = targetActors[0] ? targetActors[0].name : "cible";
         const target2Name = targetActors[1] ? targetActors[1].name : "cible";
+        const totalDamage = damage1.total + damage2.total;
         damageDisplay = `
-            <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f8d7da; border-radius: 5px;">
-                <h2 style="margin: 5px 0; color: #721c24;">⚔️ Dégâts${stanceNote}</h2>
-                <p style="margin: 5px 0;"><strong>${target1Name} :</strong> ${damage1.total} <span style="font-size: 0.7em; color: #666;">(${damage1.formula}: ${damage1.result})</span></p>
-                <p style="margin: 5px 0;"><strong>${target2Name} :</strong> ${damage2.total} <span style="font-size: 0.7em; color: #666;">(${damage2.formula}: ${damage2.result})</span></p>
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #ffebee; border-radius: 4px;">
+                <div style="font-size: 1.1em; color: #c62828; margin-bottom: 6px;"><strong>🫧 Bulles ${getElementName(elementChoice)}${stanceNote}</strong></div>
+                <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cibles:</strong> ${target1Name} et ${target2Name}</div>
+                <div style="font-size: 1.4em; color: #d32f2f; font-weight: bold;">💥 DÉGÂTS: ${totalDamage}</div>
+                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${damage1.total} + ${damage2.total})</div>
             </div>
         `;
     } else {
-        // Same target - show total damage with target name
+        // Same target - show total damage
         const totalDamage = damage1.total + damage2.total;
         const targetName = targetActors[0] ? targetActors[0].name : "cible";
         damageDisplay = `
-            <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f8d7da; border-radius: 5px;">
-                <h2 style="margin: 5px 0; color: #721c24;">⚔️ Dégâts Totaux : ${totalDamage}${stanceNote}</h2>
-                <p style="margin: 5px 0;"><strong>Cible :</strong> ${targetName}</p>
-                <p style="margin: 5px 0; font-size: 0.8em; color: #666;">
-                    Projectile 1: ${damage1.total} <span style="font-size: 0.9em;">(${damage1.formula}: ${damage1.result})</span> +
-                    Projectile 2: ${damage2.total} <span style="font-size: 0.9em;">(${damage2.formula}: ${damage2.result})</span>
-                </p>
-            </div>
-        `;
-    }
-
-    // Add attack resolution info for merged message
-    let attackResolutionInfo = '';
-    if (attackResolution) {
-        attackResolutionInfo = `
-            <div style="text-align: center; margin: 15px 0; padding: 10px; background: #f0f0f0; border-radius: 5px;">
-                <p style="margin: 5px 0; font-size: 0.8em; color: #666;">(${attackResolution.formula} = ${attackResolution.result})</p>
-                <h2 style="margin: 5px 0; color: #d9534f;">🎯 Jet d'Attaque : ${attackResolution.total}</h2>
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #ffebee; border-radius: 4px;">
+                <div style="font-size: 1.1em; color: #c62828; margin-bottom: 6px;"><strong>🫧 Bulles ${getElementName(elementChoice)}${stanceNote}</strong></div>
+                <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cible:</strong> ${targetName}</div>
+                <div style="font-size: 1.4em; color: #d32f2f; font-weight: bold;">💥 DÉGÂTS: ${totalDamage}</div>
+                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${damage1.total} + ${damage2.total})</div>
             </div>
         `;
     }
@@ -549,17 +557,34 @@
 
     // Build injury info if present
     const injuryInfo = injuryStacks > 0 ?
-        `<p><strong>⚠️ Blessures :</strong> ${injuryStacks} (Esprit réduit de ${baseEspritStat} à ${espritStat})</p>` :
+        `<div style="color: #d32f2f; font-size: 0.9em; margin: 5px 0;">
+            <i>⚠️ Ajusté pour blessures: Base ${baseEspritStat} - ${injuryStacks} = ${espritStat}</i>
+        </div>` :
         '';
+
+    // Build manual bonus info if present
+    const bonusInfo = (damageBonus > 0 || attackBonus > 0) ?
+        `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
+            ${damageBonus > 0 ? `<div>✨ Bonus de Dégâts: +${damageBonus}</div>` : ''}
+            ${attackBonus > 0 ? `<div>⚡ Bonus d'Attaque: +${attackBonus} dés</div>` : ''}
+        </div>` :
+        '';
+
+    // Build attack result display (for non-healing spells)
+    const attackDisplay = !isLivingWater ? `
+        <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff3e0; border-radius: 4px;">
+            <div style="font-size: 1.4em; color: #e65100; font-weight: bold;">🎯 ATTAQUE: ${attackResult.result}</div>
+        </div>
+    ` : '';
 
     // Get elemental effect description
     function getElementEffect(element) {
         switch (element) {
-            case 'water': return "La cible prend +2 dégâts de la prochaine attaque électrique";
-            case 'ice': return "Vitesse de la cible réduite de 1 case pour le prochain mouvement";
-            case 'oil': return "La cible prend +2 dégâts de la prochaine attaque de feu";
-            case 'living_water': return allowSelfTarget ? "Auto-soin a restauré la vitalité" : "Cible soignée et restaurée";
-            default: return "Effet élémentaire inconnu";
+            case 'water': return "+2 dégâts électriques";
+            case 'ice': return "Vitesse -1 case";
+            case 'oil': return "+2 dégâts de feu";
+            case 'living_water': return "Soins appliqués";
+            default: return "Effet élémentaire";
         }
     }
 
@@ -574,30 +599,71 @@
         }
     }
 
-    const chatContent = `
-        <div class="spell-result">
-            <h3>🫧 Sort de Bulles - ${getElementName(elementChoice)}</h3>
-            <p><strong>Coût en Mana :</strong> ${actualManaCost}</p>
-            ${injuryInfo}
-            ${attackResolutionInfo}
-            ${damageDisplay}
-            <hr>
-            <p><strong>Effet Élémentaire :</strong> ${getElementEffect(elementChoice)}</p>
-        </div>
-    `;
+    if (isLivingWater) {
+        // For healing spells, roll dice and show them in chat
+        const statBonus = Math.floor((espritStat + damageBonus) / 2);
+        const healingRoll = new Roll("1d6 + @statBonus", { statBonus: statBonus });
+        await healingRoll.evaluate({ async: true });
 
-    // Create single merged chat message
-    await ChatMessage.create({
-        user: game.user.id,
-        speaker: ChatMessage.getSpeaker({ token: caster }),
-        content: chatContent,
-        type: CONST.CHAT_MESSAGE_TYPES.OTHER
-    });
+        // Update damage1 with the actual rolled result
+        damage1 = { total: healingRoll.total, formula: healingRoll.formula, result: healingRoll.total };
 
-    const attackInfo = attackResolution ? ` Jet d'attaque : ${attackResolution.total}.` : '';
-    const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
-    const damageInfo2 = isLivingWater ? damage1.total + ' soin' : (damage1.total + (damage2?.total || 0)) + ' dégâts totaux';
-    const maximizedInfo = currentStance === 'offensif' && !isLivingWater ? ' MAXIMISÉ' : '';
+        const enhancedFlavor = `
+            <div style="background: linear-gradient(135deg, #e8f5e9, #c8e6c9); padding: 12px; border-radius: 8px; border: 2px solid #4caf50; margin: 8px 0;">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; color: #2e7d32;">🫧 Sort de Bulles</h3>
+                    <div style="margin-top: 3px; font-size: 0.9em;">
+                        <strong>Personnage:</strong> ${actor.name} | <strong>Coût:</strong> ${actualManaCost}
+                    </div>
+                </div>
+                ${injuryInfo}
+                ${bonusInfo}
+                ${damageDisplay}
+                <div style="text-align: center; margin: 6px 0; padding: 6px; background: #f1f8e9; border-radius: 4px;">
+                    <div style="font-size: 0.9em; color: #2e7d32;"><strong>✨ Effet:</strong> ${getElementEffect(elementChoice)}</div>
+                </div>
+            </div>
+        `;
 
-    ui.notifications.info(`Sort de Bulles lancé !${stanceInfo} ${damageInfo2}${maximizedInfo} prêt.${attackInfo}`);
+        // Use FoundryVTT native dice rolling with enhanced custom flavor for healing
+        await healingRoll.toMessage({
+            speaker: ChatMessage.getSpeaker({ token: caster }),
+            flavor: enhancedFlavor,
+            rollMode: game.settings.get("core", "rollMode")
+        });
+
+        ui.notifications.info(`Sort de Bulles lancé ! ${damage1.total} soin appliqué avec dés animés.`);
+    } else {
+        // For attack spells, use the dice rolling pattern
+        const enhancedFlavor = `
+            <div style="background: linear-gradient(135deg, #e3f2fd, #f3e5f5); padding: 12px; border-radius: 8px; border: 2px solid #2196f3; margin: 8px 0;">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; color: #1976d2;">🫧 Sort de Bulles</h3>
+                    <div style="margin-top: 3px; font-size: 0.9em;">
+                        <strong>Personnage:</strong> ${actor.name} | <strong>Coût:</strong> ${actualManaCost}
+                    </div>
+                </div>
+                ${injuryInfo}
+                ${bonusInfo}
+                ${attackDisplay}
+                ${damageDisplay}
+                <div style="text-align: center; margin: 6px 0; padding: 6px; background: #f0f4ff; border-radius: 4px;">
+                    <div style="font-size: 0.9em; color: #1976d2;"><strong>✨ Effet:</strong> ${getElementEffect(elementChoice)}</div>
+                </div>
+            </div>
+        `;
+
+        // Use FoundryVTT native dice rolling with enhanced custom flavor
+        await combinedRoll.toMessage({
+            speaker: ChatMessage.getSpeaker({ token: caster }),
+            flavor: enhancedFlavor,
+            rollMode: game.settings.get("core", "rollMode")
+        });
+
+        const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
+        const damageInfo2 = (damage1.total + (damage2?.total || 0)) + ' dégâts totaux';
+        const maximizedInfo = currentStance === 'offensif' ? ' MAXIMISÉ' : '';
+
+        ui.notifications.info(`Sort de Bulles lancé !${stanceInfo} ${damageInfo2}${maximizedInfo} prêt. Jet d'attaque : ${attackResult.result}.`);
+    }
 })();
