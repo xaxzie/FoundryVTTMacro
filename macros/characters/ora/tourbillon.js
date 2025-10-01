@@ -44,6 +44,29 @@
 
     console.log(`[DEBUG] Current stance detected: ${currentStance || 'No stance'}`);
 
+    // === ACTIVE EFFECT HELPER FUNCTIONS ===
+    /**
+     * Gets active effect bonuses for a specific flag key
+     * @param {Actor} actor - The actor to check for active effects
+     * @param {string} flagKey - The flag key to look for (e.g., "damage", "esprit")
+     * @returns {number} Total bonus from all matching active effects
+     */
+    function getActiveEffectBonus(actor, flagKey) {
+        if (!actor?.effects) return 0;
+
+        let totalBonus = 0;
+
+        for (const effect of actor.effects.contents) {
+            const flagValue = effect.flags?.[flagKey]?.value;
+            if (typeof flagValue === 'number') {
+                totalBonus += flagValue;
+                console.log(`[DEBUG] Active effect "${effect.name}" adds ${flagValue} to ${flagKey} (total: ${totalBonus})`);
+            }
+        }
+
+        return totalBonus;
+    }
+
     // === CHARACTER STATS UTILITY ===
     // Get Esprit stat from character sheet
     const espritAttribute = actor.system.attributes?.esprit;
@@ -59,13 +82,20 @@
     );
     const injuryStacks = injuryEffect?.flags?.statuscounter?.value || 0;
 
-    console.log(`[DEBUG] Base Esprit: ${baseEspritStat}, Injury stacks: ${injuryStacks}`);
+    // Get active effect bonuses for Esprit
+    const effectEspritBonus = getActiveEffectBonus(actor, "esprit");
 
-    // Each injury reduces Esprit by 1, minimum of 1
-    const espritStat = Math.max(1, baseEspritStat - injuryStacks);
+    console.log(`[DEBUG] Base Esprit: ${baseEspritStat}, Injury stacks: ${injuryStacks}, Effect bonus: ${effectEspritBonus}`);
+
+    // Calculate final Esprit: base - injuries + effects, minimum of 1
+    const injuryAdjusted = Math.max(1, baseEspritStat - injuryStacks);
+    const espritStat = Math.max(1, injuryAdjusted + effectEspritBonus);
 
     if (injuryStacks > 0) {
-        console.log(`[DEBUG] Esprit reduced from ${baseEspritStat} to ${espritStat} due to ${injuryStacks} injuries`);
+        console.log(`[DEBUG] Esprit reduced from ${baseEspritStat} to ${injuryAdjusted} due to ${injuryStacks} injuries`);
+    }
+    if (effectEspritBonus !== 0) {
+        console.log(`[DEBUG] Esprit adjusted by ${effectEspritBonus} from active effects (final: ${espritStat})`);
     }
 
     // === SPELL CONFIGURATION DIALOG ===
@@ -79,12 +109,12 @@
         manaCostInfo = "<strong>Coût en Mana :</strong> 4 mana";
     }
 
-    // Stance-specific damage info
+    // Stance-specific damage info (no active effect damage bonuses for indirect spells)
     let damageInfo;
     if (currentStance === 'offensif') {
-        damageInfo = "Dégâts de traversée : <strong>2d6 + Esprit (MAXIMISÉ en Position Offensive)</strong>";
+        damageInfo = `Dégâts de traversée : <strong>2d6 + Esprit (MAXIMISÉ en Position Offensive)</strong>`;
     } else {
-        damageInfo = "Dégâts de traversée : <strong>2d6 + Esprit</strong>";
+        damageInfo = `Dégâts de traversée : <strong>2d6 + Esprit</strong>`;
     }
 
     const spellConfig = await new Promise((resolve) => {
@@ -93,7 +123,7 @@
             content: `
                 <h3>Configuration du Tourbillon :</h3>
                 <p>${manaCostInfo}</p>
-                <p><strong>Caractéristique Esprit :</strong> ${espritStat}${injuryStacks > 0 ? ` <em>(${baseEspritStat} - ${injuryStacks} blessures)</em>` : ''}</p>
+                <p><strong>Caractéristique Esprit :</strong> ${espritStat}${injuryStacks > 0 || effectEspritBonus !== 0 ? ` <em>(${baseEspritStat}${injuryStacks > 0 ? ` - ${injuryStacks} blessures` : ''}${effectEspritBonus !== 0 ? ` + ${effectEspritBonus} effets` : ''})</em>` : ''}</p>
 
                 <div style="margin: 10px 0; border: 1px solid #ccc; padding: 10px; background: #f9f9f9;">
                     <h4>Type de Tourbillon</h4>
@@ -257,20 +287,24 @@
 
     if (currentStance === 'offensif') {
         // Offensive stance: damage is maximized
+        // Only manual damage bonus applies (no active effect damage bonus for indirect spells)
         if (isDivided) {
             // Divided: 1d6 + Esprit/2 -> maximized to 6 + Esprit/2
             const statBonus = Math.floor((espritStat + damageBonus) / 2);
             const maxDamage = 6 + statBonus;
             damages.push({ total: maxDamage, formula: `6 + ${statBonus}`, result: `6 + ${statBonus}`, isMaximized: true });
             damages.push({ total: maxDamage, formula: `6 + ${statBonus}`, result: `6 + ${statBonus}`, isMaximized: true });
+            console.log(`[DEBUG] Maximized divided damage: ${maxDamage} each (6 + ${statBonus}, manual bonus: ${damageBonus})`);
         } else {
             // Single: 2d6 + Esprit -> maximized to 12 + Esprit
             const statBonus = espritStat + damageBonus;
             const maxDamage = 12 + statBonus;
             damages.push({ total: maxDamage, formula: `12 + ${statBonus}`, result: `12 + ${statBonus}`, isMaximized: true });
+            console.log(`[DEBUG] Maximized single damage: ${maxDamage} (12 + ${statBonus}, manual bonus: ${damageBonus})`);
         }
     } else {
         // Normal dice rolling
+        // Only manual damage bonus applies (no active effect damage bonus for indirect spells)
         if (isDivided) {
             // Two smaller vortices: 1d6 + Esprit/2 each
             const statBonus = Math.floor((espritStat + damageBonus) / 2);
@@ -278,6 +312,7 @@
                 const damage = new Roll("1d6 + @statBonus", { statBonus: statBonus });
                 await damage.evaluate({ async: true });
                 damages.push(damage);
+                console.log(`[DEBUG] Divided vortex ${i + 1} damage: ${damage.total} (formula: ${damage.formula}, manual bonus: ${damageBonus})`);
             }
         } else {
             // Single large vortex: 2d6 + Esprit
@@ -285,6 +320,7 @@
             const damage = new Roll("2d6 + @statBonus", { statBonus: statBonus });
             await damage.evaluate({ async: true });
             damages.push(damage);
+            console.log(`[DEBUG] Single vortex damage: ${damage.total} (formula: ${damage.formula}, manual bonus: ${damageBonus})`);
         }
     }
 
@@ -381,6 +417,7 @@
     // Add damage rolls to the combined formula
     if (currentStance !== 'offensif') {
         // Only add dice rolls if not maximized (offensive stance)
+        // Only manual damage bonus applies (no active effect damage bonus for indirect spells)
         if (isDivided) {
             // Two smaller vortices: 1d6 + Esprit/2 each
             const statBonus = Math.floor((espritStat + damageBonus) / 2);
@@ -457,15 +494,22 @@
     // Build injury info if present
     const injuryInfo = injuryStacks > 0 ?
         `<div style="color: #d32f2f; font-size: 0.9em; margin: 5px 0;">
-            <i>⚠️ Ajusté pour blessures: Base ${baseEspritStat} - ${injuryStacks} = ${espritStat}</i>
+            <i>⚠️ Ajusté pour blessures: Base ${baseEspritStat} - ${injuryStacks} = ${baseEspritStat - injuryStacks}</i>
+        </div>` :
+        '';
+
+    // Build active effect info if present (only Esprit bonus for indirect spells)
+    const effectInfo = effectEspritBonus !== 0 ?
+        `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
+            <div>✨ Bonus d'Esprit: +${effectEspritBonus}</div>
         </div>` :
         '';
 
     // Build manual bonus info if present
     const bonusInfo = (damageBonus > 0 || attackBonus > 0) ?
         `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
-            ${damageBonus > 0 ? `<div>✨ Bonus de Dégâts: +${damageBonus}</div>` : ''}
-            ${attackBonus > 0 ? `<div>⚡ Bonus d'Attaque: +${attackBonus} dés</div>` : ''}
+            ${damageBonus > 0 ? `<div>🔧 Bonus Manuel de Dégâts: +${damageBonus}</div>` : ''}
+            ${attackBonus > 0 ? `<div>⚡ Bonus Manuel d'Attaque: +${attackBonus} dés</div>` : ''}
         </div>` :
         '';
 
@@ -486,6 +530,7 @@
                 </div>
             </div>
             ${injuryInfo}
+            ${effectInfo}
             ${bonusInfo}
             ${attackDisplay}
             ${damageDisplay}

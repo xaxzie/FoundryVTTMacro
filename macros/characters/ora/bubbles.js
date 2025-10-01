@@ -92,6 +92,29 @@
         return;
     }
 
+    // === ACTIVE EFFECT HELPER FUNCTIONS ===
+    /**
+     * Gets active effect bonuses for a specific flag key
+     * @param {Actor} actor - The actor to check for active effects
+     * @param {string} flagKey - The flag key to look for (e.g., "damage", "esprit")
+     * @returns {number} Total bonus from all matching active effects
+     */
+    function getActiveEffectBonus(actor, flagKey) {
+        if (!actor?.effects) return 0;
+
+        let totalBonus = 0;
+
+        for (const effect of actor.effects.contents) {
+            const flagValue = effect.flags?.[flagKey]?.value;
+            if (typeof flagValue === 'number') {
+                totalBonus += flagValue;
+                console.log(`[DEBUG] Active effect "${effect.name}" adds ${flagValue} to ${flagKey} (total: ${totalBonus})`);
+            }
+        }
+
+        return totalBonus;
+    }
+
     // Get Esprit stat from character sheet
     const espritAttribute = actor.system.attributes?.esprit;
     if (!espritAttribute) {
@@ -106,24 +129,34 @@
     );
     const injuryStacks = injuryEffect?.flags?.statuscounter?.value || 0;
 
-    console.log(`[DEBUG] Base Esprit: ${baseEspritStat}, Injury stacks: ${injuryStacks}`);
+    // Get active effect bonuses for Esprit
+    const effectEspritBonus = getActiveEffectBonus(actor, "esprit");
 
-    // Each injury reduces Esprit by 1, minimum of 1
-    const espritStat = Math.max(1, baseEspritStat - injuryStacks);
+    console.log(`[DEBUG] Base Esprit: ${baseEspritStat}, Injury stacks: ${injuryStacks}, Effect bonus: ${effectEspritBonus}`);
+
+    // Calculate final Esprit: base - injuries + effects, minimum of 1
+    const injuryAdjusted = Math.max(1, baseEspritStat - injuryStacks);
+    const espritStat = Math.max(1, injuryAdjusted + effectEspritBonus);
 
     if (injuryStacks > 0) {
-        console.log(`[DEBUG] Esprit reduced from ${baseEspritStat} to ${espritStat} due to ${injuryStacks} injuries`);
+        console.log(`[DEBUG] Esprit reduced from ${baseEspritStat} to ${injuryAdjusted} due to ${injuryStacks} injuries`);
+    }
+    if (effectEspritBonus !== 0) {
+        console.log(`[DEBUG] Esprit adjusted by ${effectEspritBonus} from active effects (final: ${espritStat})`);
     }
 
     // Get manual damage bonus (spell level is fixed at 1)
     const spellLevel = 1;
 
+    // Get active effect damage bonuses for display
+    const effectDamageBonus = getActiveEffectBonus(actor, "damage");
+
     // Stance-specific damage info
     let damageInfo;
     if (currentStance === 'offensif') {
-        damageInfo = "Chaque projectile inflige : <strong>6 dégâts (MAXIMISÉ en Position Offensive)</strong>";
+        damageInfo = `Chaque projectile inflige : <strong>6 dégâts (MAXIMISÉ en Position Offensive)</strong>${effectDamageBonus !== 0 ? ` <em>(+${effectDamageBonus} bonus d'effets)</em>` : ''}`;
     } else {
-        damageInfo = "Chaque projectile inflige : <strong>1d6 + (Esprit + bonus)/2</strong>";
+        damageInfo = `Chaque projectile inflige : <strong>1d6 + (Esprit + bonus)/2</strong>${effectDamageBonus !== 0 ? ` <em>(+${effectDamageBonus} bonus d'effets)</em>` : ''}`;
     }
 
     const bonusValues = await new Promise((resolve) => {
@@ -132,7 +165,7 @@
             content: `
                 <h3>Statistiques du Sort</h3>
                 <p><strong>Position de Combat :</strong> ${currentStance ? currentStance.charAt(0).toUpperCase() + currentStance.slice(1) : 'Aucune'}</p>
-                <p><strong>Caractéristique Esprit :</strong> ${espritStat}${injuryStacks > 0 ? ` <em>(${baseEspritStat} - ${injuryStacks} blessures)</em>` : ' (récupérée automatiquement)'}</p>
+                <p><strong>Caractéristique Esprit :</strong> ${espritStat}${injuryStacks > 0 || effectEspritBonus !== 0 ? ` <em>(${baseEspritStat}${injuryStacks > 0 ? ` - ${injuryStacks} blessures` : ''}${effectEspritBonus !== 0 ? ` + ${effectEspritBonus} effets` : ''})</em>` : ' (récupérée automatiquement)'}</p>
                 <p><strong>Niveau du Sort :</strong> 1 (fixe)</p>
                 <p>${damageInfo}</p>
                 <p>Jet d'attaque de base : <strong>${espritStat}d7 + 2</strong></p>
@@ -372,17 +405,25 @@
 
     if (currentStance === 'offensif' && !isLivingWater) {
         // Offensive stance: damage is maximized (6 + stat bonus)
-        const statBonus = Math.floor((espritStat + damageBonus) / 2);
+        // Include active effect damage bonuses
+        const totalDamageBonus = damageBonus + effectDamageBonus;
+        const statBonus = Math.floor((espritStat + totalDamageBonus) / 2);
         const maxDamage = 6 + statBonus;
 
         // Create fake rolls that show the maximized result
         damage1 = { total: maxDamage, formula: `6 + ${statBonus}`, result: `6 + ${statBonus}`, isMaximized: true };
         damage2 = { total: maxDamage, formula: `6 + ${statBonus}`, result: `6 + ${statBonus}`, isMaximized: true };
+
+        console.log(`[DEBUG] Maximized damage: ${maxDamage} (6 + ${statBonus}, manual bonus: ${damageBonus}, effect bonus: ${effectDamageBonus})`);
     } else {
         // Normal dice rolling for other stances or healing
-        const statBonus = Math.floor((espritStat + damageBonus) / 2);
+        // Include active effect damage bonuses
+        const totalDamageBonus = damageBonus + effectDamageBonus;
+        const statBonus = Math.floor((espritStat + totalDamageBonus) / 2);
         damage1 = new Roll("1d6 + @statBonus", { statBonus: statBonus });
         await damage1.evaluate({ async: true });
+
+        console.log(`[DEBUG] Damage roll: ${damage1.total} (formula: ${damage1.formula}, manual bonus: ${damageBonus}, effect bonus: ${effectDamageBonus}, total bonus: ${totalDamageBonus})`);
 
         // Living Water only has one projectile
         if (!isLivingWater) {
@@ -482,7 +523,9 @@
         // Add damage rolls to the combined formula
         if (currentStance !== 'offensif') {
             // Only add dice rolls if not maximized (offensive stance)
-            const statBonus = Math.floor((espritStat + damageBonus) / 2);
+            // Include active effect damage bonuses
+            const totalDamageBonus = damageBonus + effectDamageBonus;
+            const statBonus = Math.floor((espritStat + totalDamageBonus) / 2);
             combinedRollParts.push(`1d6 + ${statBonus}`); // Projectile 1
             combinedRollParts.push(`1d6 + ${statBonus}`); // Projectile 2
         }
@@ -558,15 +601,23 @@
     // Build injury info if present
     const injuryInfo = injuryStacks > 0 ?
         `<div style="color: #d32f2f; font-size: 0.9em; margin: 5px 0;">
-            <i>⚠️ Ajusté pour blessures: Base ${baseEspritStat} - ${injuryStacks} = ${espritStat}</i>
+            <i>⚠️ Ajusté pour blessures: Base ${baseEspritStat} - ${injuryStacks} = ${baseEspritStat - injuryStacks}</i>
+        </div>` :
+        '';
+
+    // Build active effect info if present
+    const effectInfo = effectEspritBonus !== 0 || effectDamageBonus !== 0 ?
+        `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
+            ${effectEspritBonus !== 0 ? `<div>✨ Bonus d'Esprit: +${effectEspritBonus}</div>` : ''}
+            ${effectDamageBonus !== 0 ? `<div>✨ Bonus de Dégâts: +${effectDamageBonus}</div>` : ''}
         </div>` :
         '';
 
     // Build manual bonus info if present
     const bonusInfo = (damageBonus > 0 || attackBonus > 0) ?
         `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
-            ${damageBonus > 0 ? `<div>✨ Bonus de Dégâts: +${damageBonus}</div>` : ''}
-            ${attackBonus > 0 ? `<div>⚡ Bonus d'Attaque: +${attackBonus} dés</div>` : ''}
+            ${damageBonus > 0 ? `<div>🔧 Bonus Manuel de Dégâts: +${damageBonus}</div>` : ''}
+            ${attackBonus > 0 ? `<div>⚡ Bonus Manuel d'Attaque: +${attackBonus} dés</div>` : ''}
         </div>` :
         '';
 
@@ -601,9 +652,13 @@
 
     if (isLivingWater) {
         // For healing spells, roll dice and show them in chat
-        const statBonus = Math.floor((espritStat + damageBonus) / 2);
+        // Include active effect damage bonuses for healing too
+        const totalDamageBonus = damageBonus + effectDamageBonus;
+        const statBonus = Math.floor((espritStat + totalDamageBonus) / 2);
         const healingRoll = new Roll("1d6 + @statBonus", { statBonus: statBonus });
         await healingRoll.evaluate({ async: true });
+
+        console.log(`[DEBUG] Healing roll: ${healingRoll.total} (formula: ${healingRoll.formula}, manual bonus: ${damageBonus}, effect bonus: ${effectDamageBonus}, total bonus: ${totalDamageBonus})`);
 
         // Update damage1 with the actual rolled result
         damage1 = { total: healingRoll.total, formula: healingRoll.formula, result: healingRoll.total };
@@ -627,6 +682,7 @@
                     </div>
                 </div>
                 ${injuryInfo}
+                ${effectInfo}
                 ${bonusInfo}
                 ${healingDamageDisplay}
                 <div style="text-align: center; margin: 6px 0; padding: 6px; background: #f1f8e9; border-radius: 4px;">
@@ -654,6 +710,7 @@
                     </div>
                 </div>
                 ${injuryInfo}
+                ${effectInfo}
                 ${bonusInfo}
                 ${attackDisplay}
                 ${damageDisplay}
