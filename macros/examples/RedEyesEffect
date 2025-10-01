@@ -1,0 +1,30 @@
+// === CONFIGURATION ===
+const effectName = "Red Eyes";       // Nom de l'effet actif
+const redEyesValue = 3;              // Valeur associée
+const actor = canvas.tokens.controlled[0]?.actor; // Acteur du token sélectionné
+
+if (!actor) {
+  ui.notifications.warn("⚠️ Sélectionnez un token !");
+  return;
+}
+
+// Vérifie si l'effet existe déjà
+let effect = actor.effects.find(e => e.name === effectName);
+
+if (!effect) {
+  // ✅ Crée l'effet si absent
+  await actor.createEmbeddedDocuments("ActiveEffect", [{
+    name: effectName,
+    icon: "icons/creatures/eyes/red-glow.webp", // Mets une icône de ton choix
+    origin: actor.uuid,
+    duration: { seconds: 3600 }, // 1 heure par défaut (modifiable)
+    flags: {
+      redEyes: { value: redEyesValue } // Valeur stockée
+    }
+  }]);
+  ui.notifications.info(`✨ "${effectName}" activé (+${redEyesValue}).`);
+} else {
+  // ❌ Supprime l'effet si présent
+  await actor.deleteEmbeddedDocuments("ActiveEffect", [effect.id]);
+  ui.notifications.info(`💤 "${effectName}" désactivé.`);
+}

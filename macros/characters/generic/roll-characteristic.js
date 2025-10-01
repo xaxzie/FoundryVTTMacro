@@ -72,25 +72,53 @@
 
         return injuryStacks;
     }    /**
-     * Gets injury-adjusted character statistic
+     * Gets active effect bonuses for a specific characteristic
+     * @param {Actor} actor - The actor to check for active effects
+     * @param {string} characteristicName - The characteristic name to look for
+     * @returns {number} Total bonus from all matching active effects
+     */
+    function getActiveEffectBonus(actor, characteristicName) {
+        if (!actor?.effects) return 0;
+
+        let totalBonus = 0;
+
+        for (const effect of actor.effects.contents) {
+            const flagValue = effect.flags?.[characteristicName]?.value;
+            if (typeof flagValue === 'number') {
+                totalBonus += flagValue;
+                console.log(`[DEBUG] Active effect "${effect.name}" adds ${flagValue} to ${characteristicName} (total: ${totalBonus})`);
+            }
+        }
+
+        return totalBonus;
+    }
+
+    /**
+     * Gets injury-adjusted character statistic with active effect bonuses
      * @param {Actor} actor - The actor to get stats from
      * @param {string} statName - Name of the stat
-     * @returns {Object} { baseStat, injuryStacks, adjustedStat }
+     * @returns {Object} { baseStat, injuryStacks, effectBonus, adjustedStat }
      */
     function getInjuryAdjustedStat(actor, statName) {
         const baseStat = getCharacterStat(actor, statName);
         const injuryStacks = detectInjuryStacks(actor);
+        const effectBonus = getActiveEffectBonus(actor, statName);
 
-        // Each injury reduces the stat by 1, minimum of 1
-        const adjustedStat = Math.max(1, baseStat - injuryStacks);
+        // Each injury reduces the stat by 1, then add effect bonuses, minimum of 1
+        const injuryAdjusted = Math.max(1, baseStat - injuryStacks);
+        const adjustedStat = Math.max(1, injuryAdjusted + effectBonus);
 
         if (injuryStacks > 0) {
-            console.log(`[DEBUG] ${statName} reduced from ${baseStat} to ${adjustedStat} due to ${injuryStacks} injuries`);
+            console.log(`[DEBUG] ${statName} reduced from ${baseStat} to ${injuryAdjusted} due to ${injuryStacks} injuries`);
+        }
+        if (effectBonus !== 0) {
+            console.log(`[DEBUG] ${statName} adjusted by ${effectBonus} from active effects (final: ${adjustedStat})`);
         }
 
         return {
             baseStat,
             injuryStacks,
+            effectBonus,
             adjustedStat
         };
     }
@@ -122,9 +150,22 @@
                         ${['physique', 'dexterite', 'agilite', 'esprit'].map(key => {
                             const label = characteristics[key];
                             const statInfo = getInjuryAdjustedStat(actor, key);
-                            const displayValue = statInfo.injuryStacks > 0
-                                ? `${statInfo.adjustedStat} (${statInfo.baseStat}-${statInfo.injuryStacks})`
-                                : `${statInfo.adjustedStat}`;
+
+                            // Build display value showing all adjustments
+                            let displayValue = `${statInfo.adjustedStat}`;
+                            let adjustmentParts = [];
+
+                            if (statInfo.injuryStacks > 0) {
+                                adjustmentParts.push(`${statInfo.baseStat}-${statInfo.injuryStacks}`);
+                            }
+                            if (statInfo.effectBonus !== 0) {
+                                const sign = statInfo.effectBonus >= 0 ? '+' : '';
+                                adjustmentParts.push(`${sign}${statInfo.effectBonus}E`);
+                            }
+
+                            if (adjustmentParts.length > 0) {
+                                displayValue += ` (${adjustmentParts.join('')})`;
+                            }
 
                             // Icons pour chaque caractéristique
                             const icons = {
@@ -160,9 +201,22 @@
                             ${['sens', 'volonte', 'charisme'].map(key => {
                                 const label = characteristics[key];
                                 const statInfo = getInjuryAdjustedStat(actor, key);
-                                const displayValue = statInfo.injuryStacks > 0
-                                    ? `${statInfo.adjustedStat} (${statInfo.baseStat}-${statInfo.injuryStacks})`
-                                    : `${statInfo.adjustedStat}`;
+
+                                // Build display value showing all adjustments
+                                let displayValue = `${statInfo.adjustedStat}`;
+                                let adjustmentParts = [];
+
+                                if (statInfo.injuryStacks > 0) {
+                                    adjustmentParts.push(`${statInfo.baseStat}-${statInfo.injuryStacks}`);
+                                }
+                                if (statInfo.effectBonus !== 0) {
+                                    const sign = statInfo.effectBonus >= 0 ? '+' : '';
+                                    adjustmentParts.push(`${sign}${statInfo.effectBonus}E`);
+                                }
+
+                                if (adjustmentParts.length > 0) {
+                                    displayValue += ` (${adjustmentParts.join('')})`;
+                                }
 
                                 // Icons pour chaque caractéristique
                                 const icons = {
@@ -303,11 +357,15 @@
     // Roll [total dice]d7 + flat bonus using proper FoundryVTT method
     const roll = new Roll(rollFormula);
 
-    // Build flavor text with injury and bonus information
+    // Build flavor text with injury, effect, and bonus information
     let flavorParts = [`Test de ${selectedCharacteristic}`];
 
     if (statInfo.injuryStacks > 0) {
-        flavorParts.push(`⚠️ Ajusté pour blessures: ${statInfo.baseStat} - ${statInfo.injuryStacks} = ${statInfo.adjustedStat}`);
+        flavorParts.push(`⚠️ Ajusté pour blessures: ${statInfo.baseStat} - ${statInfo.injuryStacks}`);
+    }
+
+    if (statInfo.effectBonus !== 0) {
+        flavorParts.push(`✨ Bonus d'effets: ${statInfo.effectBonus >= 0 ? '+' : ''}${statInfo.effectBonus}`);
     }
 
     if (rollInfo.charBonus !== 0) {
@@ -334,7 +392,13 @@
     // Build enhanced flavor with all formatting and information
     const injuryInfo = statInfo.injuryStacks > 0
         ? `<div style="color: #d32f2f; font-size: 0.9em; margin: 5px 0;">
-               <i>⚠️ Ajusté pour blessures: Base ${statInfo.baseStat} - ${statInfo.injuryStacks} = ${statInfo.adjustedStat}</i>
+               <i>⚠️ Ajusté pour blessures: Base ${statInfo.baseStat} - ${statInfo.injuryStacks} = ${statInfo.baseStat - statInfo.injuryStacks}</i>
+           </div>`
+        : '';
+
+    const effectInfo = statInfo.effectBonus !== 0
+        ? `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
+               <i>✨ Bonus d'effets actifs: ${statInfo.effectBonus >= 0 ? '+' : ''}${statInfo.effectBonus}</i>
            </div>`
         : '';
 
@@ -356,6 +420,7 @@
                 </div>
             </div>
             ${injuryInfo}
+            ${effectInfo}
             ${bonusInfo}
         </div>
     `;

@@ -107,17 +107,18 @@ const targetActors = getActorsAtLocations(targets);
 
 ### ⚔️ `damage-calculation.js`
 
-**Purpose**: Calculates spell damage/healing with stance and stat considerations
+**Purpose**: Calculates spell damage/healing with stance and stat considerations, includes active effect integration and precision mechanics
 **Functions**:
 
-- `createStandardRoll(espritStat, damageBonus, rollType)` - Creates 1d6 + bonus roll
-- `createMaximizedRoll(espritStat, damageBonus)` - Creates maximized damage (Offensive stance)
-- `calculateStanceDamage(stance, espritStat, damageBonus, isHealing)` - Damage based on stance
-- `calculateMultipleProjectileDamage(count, stance, espritStat, damageBonus, isHealing)` - Multiple projectiles
+- `getActiveEffectBonus(actor, flagKey)` - Gets active effect bonuses for specific flags
+- `createStandardRoll(actor, espritStat, damageBonus, rollType)` - Creates 1d6 + bonus roll with active effects
+- `createMaximizedRoll(actor, espritStat, damageBonus)` - Creates maximized damage (Offensive stance) with active effects
+- `calculateStanceDamage(actor, stance, espritStat, damageBonus, isHealing)` - Damage based on stance with active effects
+- `calculateMultipleProjectileDamage(actor, count, stance, espritStat, damageBonus, isHealing)` - Multiple projectiles with active effects
 - `calculateTotalDamage(damageRolls)` - Sums damage from multiple rolls
-- `calculateAttackResolution(espritStat, attackBonus, spellLevel)` - Attack roll calculation
+- `calculateAttackResolution(actor, espritStat, attackBonus, spellLevel)` - Attack roll calculation with precision mechanics
 - `formatDamageRoll(damageRoll, showFormula)` - Formats damage for display
-- `getBonusDialog(espritStat, spellLevel, stance, isHealing)` - Dialog for damage/attack bonuses
+- `getBonusDialog(actor, espritStat, spellLevel, stance, isHealing)` - Dialog for damage/attack bonuses with active effect display
 
 **Example Usage**:
 
@@ -272,16 +273,15 @@ All utility functions are designed to be **copied** into your spell macros, not 
     /* ... */
   }
 
-  const bonuses = await getBonusDialog(adjustedStat, 1, stance, false);
+  const bonuses = await getBonusDialog(actor, adjustedStat, 1, stance, false);
   if (!bonuses) return;
   const damage = await calculateStanceDamage(
+    actor,
     stance,
     adjustedStat,
     bonuses.damageBonus,
     false
-  );
-
-  // 8. SPELL ANIMATION
+  ); // 8. SPELL ANIMATION
   // Your Sequencer animation code here
   new Sequence()
     .effect()
