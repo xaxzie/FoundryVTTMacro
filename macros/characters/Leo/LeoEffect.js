@@ -44,6 +44,14 @@
                 { key: "physique", value: 1 }
             ],
             description: "Agilité -3, Physique +1"
+        },
+        "Bow": {
+            name: "Bow",
+            icon: "icons/weapons/bows/shortbow-recurve-yellow.webp",
+            flags: [
+                { key: "agilite", value: -3 }
+            ],
+            description: "Agilité -3"
         }
     };
 
@@ -173,26 +181,46 @@
                     const action = $(this).data('action');
                     const effectKey = $(this).data('effect');
                     const effectData = AVAILABLE_EFFECTS[effectKey];
-
-                    // Track the pending change
-                    pendingChanges[effectKey] = action;
+                    const isActive = currentEffects[effectKey] !== null;
 
                     // Update button visual feedback
                     const buttonContainer = $(this).parent();
                     const statusDiv = $(this).closest('.dialog-content').find(`button[data-effect="${effectKey}"]`).closest('div').find('div:last-child');
 
-                    // Reset all buttons for this effect
-                    buttonContainer.find('button').removeClass('pending-change');
+                    // Check if this button is already selected (pending change)
+                    const isAlreadySelected = $(this).hasClass('pending-change');
 
-                    // Highlight the selected action
-                    $(this).addClass('pending-change');
-                    $(this).css('box-shadow', '0 0 5px #2196f3');
+                    if (isAlreadySelected) {
+                        // Cancel the pending change
+                        delete pendingChanges[effectKey];
 
-                    // Show pending status
-                    if (action === 'add') {
-                        statusDiv.html('<strong style="color: #2196f3;">📝 À AJOUTER</strong>');
-                    } else if (action === 'remove') {
-                        statusDiv.html('<strong style="color: #2196f3;">📝 À SUPPRIMER</strong>');
+                        // Reset visual feedback
+                        buttonContainer.find('button').removeClass('pending-change');
+                        buttonContainer.find('button').css('box-shadow', '');
+
+                        // Restore original status
+                        const originalStatusIcon = isActive ? "✅" : "❌";
+                        const originalStatusText = isActive ? "ACTIF" : "INACTIF";
+                        const originalStatusColor = isActive ? "#2e7d32" : "#d32f2f";
+                        statusDiv.html(`<strong style="color: ${originalStatusColor};">${originalStatusIcon} ${originalStatusText}</strong>`);
+                    } else {
+                        // Track the pending change
+                        pendingChanges[effectKey] = action;
+
+                        // Reset all buttons for this effect
+                        buttonContainer.find('button').removeClass('pending-change');
+                        buttonContainer.find('button').css('box-shadow', '');
+
+                        // Highlight the selected action
+                        $(this).addClass('pending-change');
+                        $(this).css('box-shadow', '0 0 5px #2196f3');
+
+                        // Show pending status
+                        if (action === 'add') {
+                            statusDiv.html('<strong style="color: #2196f3;">📝 À AJOUTER</strong>');
+                        } else if (action === 'remove') {
+                            statusDiv.html('<strong style="color: #2196f3;">📝 À SUPPRIMER</strong>');
+                        }
                     }
                 });
             }

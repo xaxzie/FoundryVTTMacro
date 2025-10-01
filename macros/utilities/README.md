@@ -191,6 +191,38 @@ const messageData = {
 await createSpellResultMessage(messageData, caster);
 ```
 
+### 🎭 `active-effect-helpers.js`
+
+**Purpose**: Simple functions for adding and removing active effects from actors
+**Functions**:
+
+- `addActiveEffect(actor, effectName, iconPath, flags, durationSeconds)` - Adds an active effect to an actor
+- `removeActiveEffectByName(actor, effectName)` - Removes an effect by name
+- `hasActiveEffect(actor, effectName)` - Checks if an actor has a specific effect
+- `getActiveEffectByName(actor, effectName)` - Gets an effect object by name
+- `toggleActiveEffect(actor, effectName, iconPath, flags, durationSeconds)` - Adds or removes effect based on current state
+
+**Example Usage**:
+
+```javascript
+// Add an effect with multiple bonuses
+await addActiveEffect(actor, "Red Eyes", "icons/svg/eye.svg", [
+  { key: "damage", value: 2 },
+  { key: "agilite", value: 1 },
+]);
+
+// Remove effect by name
+await removeActiveEffectByName(actor, "Red Eyes");
+
+// Toggle effect (smart add/remove)
+const result = await toggleActiveEffect(
+  actor,
+  "Serpent",
+  "icons/svg/snake.svg",
+  [{ key: "damage", value: 4 }]
+);
+```
+
 ## 🎯 Usage Guidelines
 
 ### Copy, Don't Import

@@ -608,6 +608,16 @@
         // Update damage1 with the actual rolled result
         damage1 = { total: healingRoll.total, formula: healingRoll.formula, result: healingRoll.total };
 
+        // Create the healing damage display AFTER the dice roll with correct values
+        const healingTargetName = allowSelfTarget ? actor.name : (targetActors[0] ? targetActors[0].name : "cible");
+        const healingDamageDisplay = `
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #d4edda; border-radius: 4px;">
+                <div style="font-size: 1.1em; color: #155724; margin-bottom: 6px;"><strong>🫧 Bulles ${getElementName(elementChoice)}</strong></div>
+                <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cible:</strong> ${healingTargetName}</div>
+                <div style="font-size: 1.4em; color: #2e7d32; font-weight: bold;">💚 SOIN: ${damage1.total}</div>
+            </div>
+        `;
+
         const enhancedFlavor = `
             <div style="background: linear-gradient(135deg, #e8f5e9, #c8e6c9); padding: 12px; border-radius: 8px; border: 2px solid #4caf50; margin: 8px 0;">
                 <div style="text-align: center; margin-bottom: 8px;">
@@ -618,7 +628,7 @@
                 </div>
                 ${injuryInfo}
                 ${bonusInfo}
-                ${damageDisplay}
+                ${healingDamageDisplay}
                 <div style="text-align: center; margin: 6px 0; padding: 6px; background: #f1f8e9; border-radius: 4px;">
                     <div style="font-size: 0.9em; color: #2e7d32;"><strong>✨ Effet:</strong> ${getElementEffect(elementChoice)}</div>
                 </div>

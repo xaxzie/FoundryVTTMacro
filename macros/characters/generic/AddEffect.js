@@ -11,6 +11,23 @@
 (async () => {
     // === CONFIGURATION ===
     const AVAILABLE_EFFECTS = {
+        "Red Eyes": {
+            name: "Red Eyes",
+            icon: "icons/creatures/eyes/humanoid-single-red-brown.webp",
+            flags: [
+                { key: "agilite", value: 1 },
+                { key: "damage", value: 2 }
+            ],
+            description: "Bonus de +2 aux dégâts, +1 Agilité"
+        },
+        "Serpent": {
+            name: "Serpent",
+            icon: "icons/creatures/reptiles/snake-fangs-bite-green.webp",
+            flags: [
+                { key: "damage", value: 4 }
+            ],
+            description: "Bonus de +4 aux dégâts"
+        },
         "Ora Eyes": {
             name: "Ora Eyes",
             icon: "icons/svg/eye.svg",
@@ -18,6 +35,23 @@
                 { key: "damage", value: 3 }
             ],
             description: "Bonus de +3 aux dégâts"
+        },
+        "Electrical Armor": {
+            name: "Electrical Armor",
+            icon: "icons/magic/lightning/bolt-strike-blue.webp",
+            flags: [
+                { key: "agilite", value: -3 },
+                { key: "physique", value: 1 }
+            ],
+            description: "Agilité -3, Physique +1"
+        },
+        "Bow": {
+            name: "Bow",
+            icon: "icons/weapons/bows/shortbow-recurve-yellow.webp",
+            flags: [
+                { key: "agilite", value: -3 }
+            ],
+            description: "Agilité -3"
         }
     };
 
@@ -147,26 +181,46 @@
                     const action = $(this).data('action');
                     const effectKey = $(this).data('effect');
                     const effectData = AVAILABLE_EFFECTS[effectKey];
-
-                    // Track the pending change
-                    pendingChanges[effectKey] = action;
+                    const isActive = currentEffects[effectKey] !== null;
 
                     // Update button visual feedback
                     const buttonContainer = $(this).parent();
                     const statusDiv = $(this).closest('.dialog-content').find(`button[data-effect="${effectKey}"]`).closest('div').find('div:last-child');
 
-                    // Reset all buttons for this effect
-                    buttonContainer.find('button').removeClass('pending-change');
+                    // Check if this button is already selected (pending change)
+                    const isAlreadySelected = $(this).hasClass('pending-change');
 
-                    // Highlight the selected action
-                    $(this).addClass('pending-change');
-                    $(this).css('box-shadow', '0 0 5px #2196f3');
+                    if (isAlreadySelected) {
+                        // Cancel the pending change
+                        delete pendingChanges[effectKey];
 
-                    // Show pending status
-                    if (action === 'add') {
-                        statusDiv.html('<strong style="color: #2196f3;">📝 À AJOUTER</strong>');
-                    } else if (action === 'remove') {
-                        statusDiv.html('<strong style="color: #2196f3;">📝 À SUPPRIMER</strong>');
+                        // Reset visual feedback
+                        buttonContainer.find('button').removeClass('pending-change');
+                        buttonContainer.find('button').css('box-shadow', '');
+
+                        // Restore original status
+                        const originalStatusIcon = isActive ? "✅" : "❌";
+                        const originalStatusText = isActive ? "ACTIF" : "INACTIF";
+                        const originalStatusColor = isActive ? "#2e7d32" : "#d32f2f";
+                        statusDiv.html(`<strong style="color: ${originalStatusColor};">${originalStatusIcon} ${originalStatusText}</strong>`);
+                    } else {
+                        // Track the pending change
+                        pendingChanges[effectKey] = action;
+
+                        // Reset all buttons for this effect
+                        buttonContainer.find('button').removeClass('pending-change');
+                        buttonContainer.find('button').css('box-shadow', '');
+
+                        // Highlight the selected action
+                        $(this).addClass('pending-change');
+                        $(this).css('box-shadow', '0 0 5px #2196f3');
+
+                        // Show pending status
+                        if (action === 'add') {
+                            statusDiv.html('<strong style="color: #2196f3;">📝 À AJOUTER</strong>');
+                        } else if (action === 'remove') {
+                            statusDiv.html('<strong style="color: #2196f3;">📝 À SUPPRIMER</strong>');
+                        }
                     }
                 });
             }
