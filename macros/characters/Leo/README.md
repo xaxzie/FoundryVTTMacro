@@ -20,12 +20,35 @@ Ce répertoire contient les macros et exemples pour Léo, un guerrier spécialis
 ## Sorts / Macros inclus
 
 - `electric-axe-strike.js` — Frappe Électrique
+
   - Description : Léo charge sa hache d'électricité et effectue une attaque corps-à-corps.
   - Coût : 1 mana (non focalisable)
   - Niveau : 1 (bonus de niveau pour l'attaque)
   - Dégâts : `1d9 + 4 + Physique + bonus manuels + bonus d'effets`
   - Type : Direct — bénéficie des bonuses `damage` des Active Effects
   - Animations : séquence Sequencer (charge sous le token, effet d'arme stretch vers la cible, impact, et aftermath de fissures au sol)
+
+- `lightning-chain.js` — Chaîne d'Éclairs
+
+  - Description : Léo libère une chaîne d'éclairs entrecoupée depuis sa hache.
+  - Coût : 4 mana (focalisable — gratuit en Position Focus)
+  - Niveau : 2 (sort de niveau 2)
+  - Dégâts : `1d6 + 3 + Physique + bonus manuels + bonus d'effets` (sauf Serpent)
+  - Type : Direct — exclut spécifiquement l'effet "Serpent" des bonus de dégâts
+  - Animations : marqueur spectral bleu, chaîne en 8, foudre rouge finale
+
+- `steel-lance.js` — Lance d'Acier
+  - Description : Léo crée une lance d'acier qui transperce les ennemis dans une direction.
+  - **Version Normale :**
+    - Coût : 2 mana (focalisable — gratuit en Position Focus)
+    - Zone : Ligne de 1 case de large
+    - Dégâts : `1d4 + Physique + bonus manuels + bonus d'effets` (sauf Serpent)
+  - **Version Électrique :**
+    - Coût : 5 mana (focalisable — gratuit en Position Focus)
+    - Zone : Ligne de 5 cases de large (touche les cibles adjacentes)
+    - Dégâts : `1d4 + Physique + bonus manuels + bonus d'effets` (sauf Serpent)
+  - Type : Direct — exclut spécifiquement l'effet "Serpent" des bonus de dégâts
+  - Animations : javeline d'acier (gris) ou électrique (bleu), impacts et électricité statique
 
 ## Utilisation
 

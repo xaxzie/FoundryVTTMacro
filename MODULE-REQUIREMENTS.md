@@ -133,7 +133,7 @@
 
 ### Special Mention
 
-- **Portal** - [Documentation](https://wiki.theripper93.com/free/portal-lib)
+- **Portal** - [Documentation](https://github.com/theripper93/portal-lib)
   - Advanced token spawning and manipulation
   - Location picking with templates
   - Token transformation and teleportation
