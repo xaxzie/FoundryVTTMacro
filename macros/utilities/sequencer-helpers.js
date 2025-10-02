@@ -1,9 +1,9 @@
 /**
  * Sequencer Utility Functions
  * Description: Reusable helper functions for common Sequencer patterns
- * 
+ *
  * Usage: Copy these functions into your macros or save as a separate utility macro
- * 
+ *
  * @author Sequencer Examples
  * @version 1.0
  */
@@ -111,6 +111,53 @@ function createProjectile(origin, target, projectileType = "magic_missile", spee
             .duration(speed);
 }
 
+/**
+ * Create a widened chain/beam effect between two points.
+ *
+ * This demonstrates how to make an effect wider without increasing its
+ * height by using Sequencer's non-uniform scaling API: `.scale({ x, y })`,
+ * together with `.stretchTo()` to orient/stretch the effect along the line.
+ *
+ * Example usage:
+ *   createWidenedChain(caster, targetPoint, { lineWidth: 5, extraCases: 4 }).play();
+ *
+ * Notes:
+ * - `lineWidth` is the logical number of grid cases the spell covers.
+ * - `extraCases` lets you add visual padding (e.g. 2 each side -> 4 total).
+ * - The function returns a Sequencer `Sequence` so you can chain it with others.
+ *
+ * @param {Object} origin - Starting token or position
+ * @param {Object} target - Target position or token
+ * @param {Object} options - { file, lineWidth, extraCases, baseScale }
+ * @returns {Sequence}
+ */
+function createWidenedChain(origin, target, options = {}) {
+    const {
+        file = 'jb2a.chain_lightning.primary.blue',
+        lineWidth = 1,
+        extraCases = 4,
+        baseScale = 1.2
+    } = options;
+
+    // Compute an X-axis multiplier so the effect becomes wider while keeping
+    // Y (height) close to the original `baseScale`.
+    const baseCases = Math.max(1, lineWidth);
+    const widthMultiplier = (baseCases + extraCases) / baseCases;
+    const chainWidthScale = baseScale * widthMultiplier;
+
+    // Return a Sequence so the caller can `.play()` or compose it.
+    return new Sequence()
+        .effect()
+            .file(file)
+            .atLocation(origin)
+            .stretchTo(target)
+            // Use non-uniform scaling: wider on X, keep original Y
+            .scale({ x: chainWidthScale, y: baseScale })
+            .fadeIn(120)
+            .fadeOut(300)
+            .waitUntilFinished();
+}
+
 // ========================================
 // SOUND UTILITIES
 // ========================================
@@ -129,7 +176,7 @@ function playSpellSound(spellType = "generic", volume = 0.7) {
         lightning: "sounds/lightning-cast.wav",
         generic: "sounds/spell-cast.wav"
     };
-    
+
     return new Sequence()
         .sound()
             .file(soundMap[spellType] || soundMap.generic)
@@ -192,11 +239,11 @@ function moveToken(token, destination, snapToGrid = true) {
         .animation()
             .on(token)
             .moveTowards(destination);
-    
+
     if (snapToGrid) {
         sequence.snapToGrid();
     }
-    
+
     return sequence.waitUntilFinished();
 }
 
@@ -214,7 +261,7 @@ function teleportToken(token, destination, effectColor = "blue") {
             .file(`jb2a.misty_step.01.${effectColor}`)
             .atLocation(token)
             .scaleToObject(1.5)
-        
+
         // Copy sprite fading out
         .effect()
             .copySprite(token)
@@ -222,14 +269,14 @@ function teleportToken(token, destination, effectColor = "blue") {
             .duration(500)
             .fadeOut(200)
             .filter("Blur")
-        
+
         // Teleport
         .animation()
             .on(token)
             .teleportTo(destination)
             .snapToGrid()
             .waitUntilFinished()
-        
+
         // Arrival effect
         .effect()
             .file(`jb2a.misty_step.02.${effectColor}`)
@@ -262,26 +309,26 @@ function validateSpellRequirements(requirements) {
         needsSelection = false,
         minLevel = 1
     } = requirements;
-    
+
     if (needsCaster && !getSelectedToken()) {
         return false;
     }
-    
+
     if (needsTargets > 0 && !getTargetedTokens(needsTargets)) {
         return false;
     }
-    
+
     if (needsSelection && canvas.tokens.controlled.length === 0) {
         ui.notifications.warn("Please select tokens first!");
         return false;
     }
-    
+
     // Add level checking if your game system supports it
     // if (needsCaster && getSelectedToken().actor?.system?.details?.level < minLevel) {
     //     ui.notifications.warn(`Requires level ${minLevel}!`);
     //     return false;
     // }
-    
+
     return true;
 }
 
@@ -297,13 +344,13 @@ function validateSpellRequirements(requirements) {
  * @returns {Sequence} Sequence with combat effects
  */
 function createCombatImpact(target, damageType = "slashing", isCritical = false) {
-    const effectFile = isCritical 
+    const effectFile = isCritical
         ? `jb2a.melee_generic.${damageType}.two_handed`
         : `jb2a.melee_generic.${damageType}.one_handed`;
-    
+
     const scale = isCritical ? 2 : 1.5;
     const soundFile = isCritical ? "sounds/critical-hit.wav" : "sounds/weapon-hit.wav";
-    
+
     return new Sequence()
         .effect()
             .file(effectFile)
