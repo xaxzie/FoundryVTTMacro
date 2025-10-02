@@ -448,7 +448,7 @@
                 const baseCases = Math.max(1, spellConfig.lineWidth);
                 const widthMultiplier = (baseCases + extraCases) / baseCases;
                 const baseScale = 1.2; // baseline electric scale used previously
-                const chainWidthScale = baseScale * widthMultiplier * 2;
+                const chainWidthScale = baseScale * widthMultiplier;
 
                 sequence.effect()
                     .file(extra)
