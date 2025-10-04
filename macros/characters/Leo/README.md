@@ -70,6 +70,20 @@ Modules requis (parmi les plus importants) : Sequencer, JB2A (free et/ou patreon
   - Animations : petite séquence cast → impact via Sequencer (fichiers JB2A par défaut, ajustables).
   - Modules requis : Sequencer, JB2A, Portal (Portal recommandé pour le ciblage visuel).
 
+- Empalement — fichier : `empalement.js`
+
+  - Objectif : Créer un cercle magique qui invoque des armes du sol pour transpercer les ennemis dans une zone et les ralentir.
+  - Caractéristique : Dextérité (l'effet "Serpent" ne fonctionne pas avec ce sort).
+  - Variantes :
+    - Standard : Coût 3 mana (focalisable), niveau 2, ralentissement `1d3` cases.
+    - Électrique : Coût 5 mana (focalisable), niveau 2, ralentissement `2d3` cases (plus puissant).
+  - Dégâts : `1d6 + Dextérité + bonus manuels + bonus d'Active Effects` (Serpent exclu).
+  - Zone d'effet : Cercle de 1 case de rayon autour du point ciblé.
+  - Effet spécial : Applique un effet "Ralentissement" avec statusCounter aux cibles touchées (icône native FoundryVTT). La réduction de vitesse n'est jamais maximisée, même en Position Offensive.
+  - Ciblage : Portal pour sélectionner le centre de la zone d'effet.
+  - Animations : Effet de lancement + zone circulaire + impacts individuels sur chaque cible (+ effets électriques pour la variante électrique).
+  - Modules requis : Sequencer, JB2A, Portal.
+
 ## Utilisation rapide
 
 1. Sélectionnez le token de Léo.
