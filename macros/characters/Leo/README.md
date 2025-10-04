@@ -99,6 +99,20 @@ Modules requis (parmi les plus importants) : Sequencer, JB2A (free et/ou patreon
   - Animations : Effet divin en cas de réussite/sacrifice, effet de douleur en cas d'échec.
   - Modules requis : Sequencer, JB2A.
 
+- Flèche d'Acier — fichier : `fleche-acier.js`
+
+  - Objectif : Tirer des flèches magiques d'acier avec différentes propriétés selon la variante choisie.
+  - Caractéristique : Dextérité (sauf Perce Muraille qui utilise Dextérité/2 pour l'attaque).
+  - Variantes :
+    - **Standard** : Coût 1 mana (focalisable), niveau 1, dégâts `1d4 + Dextérité`.
+    - **Électrique** : Coût 4 mana (focalisable), niveau 2, dégâts `1d4 + 3 + Dextérité`, touche les ennemis adjacents à la cible.
+    - **Perce Armure** : Coût 3 mana (focalisable), niveau 1, dégâts `1d4 + 3 + Dextérité`, ignore RD égale à Physique/2.
+    - **Perce Muraille** : Coût 4 mana (demi-focalisable), niveau 0, attaque avec Dextérité/2, dégâts `2d4 + Physique*2 + 3`.
+  - Effet spécial : L'effet "Serpent" ne fonctionne pas avec ces sorts.
+  - Ciblage : Portal pour sélectionner la cible unique.
+  - Animations : Projectile de flèche avec effets spéciaux selon la variante (électrique, perçage, impact lourd).
+  - Modules requis : Sequencer, JB2A, Portal.
+
 ## Utilisation rapide
 
 1. Sélectionnez le token de Léo.
