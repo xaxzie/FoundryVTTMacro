@@ -50,6 +50,7 @@ Modules requis (parmi les plus importants) : Sequencer, JB2A (free et/ou patreon
   - Modules requis : Sequencer, JB2A, Portal.
 
 - Electric Axe Strike (Frappe Électrique) — fichier : `electric-axe-strike.js`
+
   - Objectif : Attaque corps-à-corps thématique (hache électrifiée) pour un seul adversaire.
   - Caractéristique : Physique.
   - Coût : faible (ex. 1 mana) — non focalisable selon la macro.
@@ -57,6 +58,17 @@ Modules requis (parmi les plus importants) : Sequencer, JB2A (free et/ou patreon
   - Ciblage : Token ciblé / Portal selon implémentation.
   - Animations : Séquence (charge + stretch d'arme + impact + aftermath). Utilise Sequencer et assets JB2A.
   - Modules requis : Sequencer, JB2A, Portal (si la macro active un ciblage Portal).
+
+- Katana — fichier : `katana.js`
+
+  - Objectif : Coup de katana rapide et précis, niveau 0 (attaque basique).
+  - Caractéristique : Physique (jet de toucher basé sur la Physique).
+  - Coût : 0 mana (focalisable — gratuit si en Position Focus).
+  - Dégâts : `1d7 + 1 + Physique + bonus manuels + bonus d'Active Effects`.
+  - Option spéciale : case à cocher (désactivée par défaut) « Fourreau de la waifu » qui ajoute `1d6` de dégâts si activée.
+  - Ciblage : Portal crosshair pour sélectionner la position/cible (macro utilise Portal si disponible).
+  - Animations : petite séquence cast → impact via Sequencer (fichiers JB2A par défaut, ajustables).
+  - Modules requis : Sequencer, JB2A, Portal (Portal recommandé pour le ciblage visuel).
 
 ## Utilisation rapide
 
