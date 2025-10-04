@@ -114,6 +114,60 @@ async function toggleActiveEffect(actor, effectName, iconPath, flags = [], durat
     }
 }
 
+/**
+ * Adds or updates the injuries effect on an actor
+ * Specifically handles the "Blessures" effect with statusCounter for injury stacking
+ * @param {Actor} actor - The actor to add injuries to
+ * @param {string} injuryName - Name of the injury effect (default: "Blessures")
+ * @param {string} iconPath - Icon path for the effect (default: "icons/svg/blood.svg")
+ * @returns {Promise<boolean>} Success status
+ */
+async function addInjuries(actor, injuryName = "Blessures", iconPath = "icons/svg/blood.svg") {
+    try {
+        const existingEffect = actor.effects.find(e => e.name === injuryName);
+
+        if (existingEffect) {
+            // Update existing effect
+            let currentValue = existingEffect.flags?.statuscounter?.value || 0;
+
+            // If no statusCounter exists, initialize to 2 (1 existing + 1 new)
+            if (!existingEffect.flags?.statuscounter?.value) {
+                currentValue = 1; // Will be incremented to 2
+            }
+
+            await existingEffect.update({
+                "flags.statuscounter.value": currentValue + 1
+            });
+
+            console.log(`[DEBUG] Updated ${injuryName} effect: ${currentValue + 1} stacks`);
+            return true;
+        } else {
+            // Create new effect with statusCounter
+            const injuryEffect = {
+                name: injuryName,
+                icon: iconPath,
+                description: `Blessures subies (stack: 1)`,
+                flags: {
+                    statuscounter: {
+                        value: 1
+                    },
+                    world: {
+                        effectType: "injury",
+                        createdAt: Date.now()
+                    }
+                }
+            };
+
+            await actor.createEmbeddedDocuments("ActiveEffect", [injuryEffect]);
+            console.log(`[DEBUG] Created new ${injuryName} effect with 1 stack`);
+            return true;
+        }
+    } catch (error) {
+        console.error(`[ERROR] Failed to add ${injuryName} to ${actor.name}:`, error);
+        return false;
+    }
+}
+
 // === EXAMPLE USAGE ===
 
 /*

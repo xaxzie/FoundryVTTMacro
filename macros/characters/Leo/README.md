@@ -84,6 +84,21 @@ Modules requis (parmi les plus importants) : Sequencer, JB2A (free et/ou patreon
   - Animations : Effet de lancement + zone circulaire + impacts individuels sur chaque cible (+ effets électriques pour la variante électrique).
   - Modules requis : Sequencer, JB2A, Portal.
 
+- Impulsion Divine — fichier : `impulsion-divine.js`
+
+  - Objectif : Sort spécial permettant d'obtenir une action supplémentaire au risque de subir des blessures.
+  - Caractéristique : Physique (pour le jet de réussite uniquement).
+  - Coût : 0 mana (focalisable), niveau 2.
+  - Mécaniques :
+    - **Tentative de jet** : Jet de Physique vs difficulté 40 (de base). Réussite = action supplémentaire. Échec = pas de tour + blessure.
+    - **Sacrifice volontaire** : Subir directement une blessure pour garantir l'action supplémentaire.
+    - **Difficulté progressive** : Chaque utilisation augmente la difficulté de +5 (via l'effet "Impulsed").
+  - Effets appliqués :
+    - "Blessures" : Ajouté/augmenté en cas d'échec ou sacrifice volontaire (avec statusCounter).
+    - "Impulsed" : Compteur d'utilisations qui augmente la difficulté future (avec statusCounter).
+  - Animations : Effet divin en cas de réussite/sacrifice, effet de douleur en cas d'échec.
+  - Modules requis : Sequencer, JB2A.
+
 ## Utilisation rapide
 
 1. Sélectionnez le token de Léo.
