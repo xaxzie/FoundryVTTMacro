@@ -1,64 +1,86 @@
-# Léo — Guerrier Électrifié
+# Léo — Résumé des capacités et macros
 
-Ce répertoire contient les macros et exemples pour Léo, un guerrier spécialisé dans les attaques physiques amplifiées par la magie du métal/électricité.
+Ce document présente de façon concise les capacités visuelles/macros de Léo, un guerrier mêlée qui mêle force physique et effets électriques. L'objectif des macros ici est d'afficher des animations et des messages de résultat (attaque + dégâts) — elles ne modifient pas automatiquement les feuilles de personnage.
 
-## Aperçu du personnage
+## Capacités globales
 
-- Rôle : Guerrier / tank orienté mêlée
-- Caractéristique principale : Physique (utilisée pour les jets d'attaque et la plupart des dégâts)
-- Thème : Acier + Électricité — Léo insuffle de l'électricité dans sa hache pour augmenter les dégâts et produire des effets visuels spectaculaires
+- Rôle : Guerrier mêlée, dégâts et zone en ligne.
+- Caractéristique principale : Physique (sauf exceptions précisées ci‑dessous).
+- Système de dés : Tous les jets liés aux caractéristiques utilisent le système `d7` (ex. 4d7).
+- Blessures : Un effet "Blessures" peut diminuer la valeur de la caractéristique.
+- Bonus : Les Active Effects peuvent fournir des bonus à la caractéristique ou des bonus de dégâts (certaines variantes de sorts excluent ces bonus — indiqué ci‑dessous).
 
-## Principes de jeu
+Modules requis (parmi les plus importants) : Sequencer, JB2A (free et/ou patreon selon les assets utilisés), Portal (pour le ciblage), et Carousel Combat Track si vous testez en combat. Vérifiez `MODULE-REQUIREMENTS.md` pour la liste complète.
 
-- Les jets d'attaque utilisent la caractéristique `Physique` sous la forme `Physique d7` (ex. 4d7 + niveau) pour résoudre l'attaque.
-- Les blessures réduisent la valeur effective de la caractéristique (système "blessures" présent dans les utilitaires).
-- Les effets actifs (Active Effects) peuvent ajouter :
-  - des bonus à la caractéristique (ex. `physique: { value: 1 }`)
-  - des bonus de dégâts (ex. `damage: { value: 2 }`) — les sorts/directs en profitent
-- Les bonus manuels (dans la boîte de dialogue) servent pour les objets, enchantements ou situations temporaires.
+## Sorts fournis (résumé fonctionnel)
 
-## Sorts / Macros inclus
+- Steel Lance (Lance d'Acier) — fichier : `steel-lance.js`
 
-- `electric-axe-strike.js` — Frappe Électrique
-  - Description : Léo charge sa hache d'électricité et effectue une attaque corps-à-corps.
-  - Coût : 1 mana (non focalisable)
-  - Niveau : 1 (bonus de niveau pour l'attaque)
-  - Dégâts : `1d9 + 4 + Physique + bonus manuels + bonus d'effets`
-  - Type : Direct — bénéficie des bonuses `damage` des Active Effects
-  - Animations : séquence Sequencer (charge sous le token, effet d'arme stretch vers la cible, impact, et aftermath de fissures au sol)
+  - Objectif : Créer une lance projetée en ligne qui traverse la carte et peut toucher plusieurs cibles en ligne.
+  - Variantes :
+    - Normal (depuis le jeton du lanceur) — Physique, coût 2 mana, focusable.
+    - Électrique (normal) — Physique, coût 5 mana, zone plus large (5 cases).
+    - Portail (depuis un point choisi) — Dextérité, coût +3 mana (non focusable pour le +3), aucun bonus d'Active Effects appliqué (seuls les bonus manuels entrés dans la boîte de dialogue sont pris en compte).
+    - Portail Électrique — comme ci‑dessus mais zone 5 cases, coût plus élevé.
+  - Dégâts : Formule de base `1d4 + [caractéristique] + bonus` (précisée dans la boîte de dialogue). En Position Offensive, les dégâts peuvent être maximisés selon la règle du projet.
+  - Ciblage : Mode portail permet de choisir d'abord le point d'origine (où le portail s'ouvre), puis la direction / point d'impact.
+  - Animations : utilise JB2A/Sequencer pour projectile + (en mode portail) animation d'ouverture de portail au point d'origine.
+  - Modules requis : Sequencer, JB2A (ou jb2a_patreon pour variantes), Portal.
 
-## Utilisation
+- Lightning Chain (Chaîne d'Éclairs) — fichier : `lightning-chain.js`
 
-1. Sélectionnez le token de Léo sur la carte.
-2. Lancez la macro `electric-axe-strike.js` (ou utilisez le raccourci/macro placé dans la barre).
-3. Configurez les bonus manuels (si besoin) dans la boîte de dialogue.
-4. Utilisez l'outil Portal (si installé) pour choisir la cible sur la grille.
-5. La macro jouera les animations et affichera le résultat combiné (attaque + dégâts) dans le chat.
+  - Objectif : Attaque directe à cible unique projetant des éclairs depuis l'arme.
+  - Caractéristique : Physique.
+  - Coût : typiquement 4 mana (vérifier entête du fichier), focalisable (gratuit en Position Focus si la configuration le permet).
+  - Dégâts : `1d6 + fixe + Physique + bonus manuels + bonus d'Active Effects` (le bonus nommé "Serpent" est explicitement exclu pour ce sort).
+  - Ciblage : Portal (sélection d'une position/cible avec le crosshair).
+  - Animations : Marker cast sous le lanceur, transition attachée à l'arme, finish lightning (JB2A / jaamod / patreon assets selon configuration).
+  - Modules requis : Sequencer, JB2A (et jb2a_patreon si utilisé), Portal.
 
-## Personnalisation et réglages
+- Steel Chain (Chaîne d'Acier) — fichiers : `steel-chain.js` + `steel-chain-end.js`
 
-- Le fichier `electric-axe-strike.js` contient un objet `SPELL_CONFIG` en tête du fichier.
-  - Modifiez `animations` pour changer les fichiers JB2A / Sequencer.
-  - `animations.aftermath` permet de régler le fichier, l'échelle, la couleur (tint), et la durée du motif de fissures.
-  - `damageFormula`, `fixedDamageBonus` et `isDirect` peuvent être adaptés pour d'autres variantes de la frappe.
-- Si vous préférez une couleur différente pour l'aftermath, changez `animations.aftermath.tint` (hex, ex. `#cc2200`).
+  - Objectif : Créer une chaîne magique persistante qui relie Léo à sa cible. Aucun dégât, juste enchaînement.
+  - Caractéristique : Physique (l'effet "Serpent" ne fonctionne pas avec ce sort).
+  - Coût : 2 mana, focalisable (gratuit en Position Focus).
+  - Niveau : 2 (+4 bonus d'attaque).
+  - Effet : Seul le jet d'attaque compte (pas de dégâts). En cas de réussite, la cible est "enchaînée" visuellement.
+  - Ciblage : Portal (sélection de la cible).
+  - Animations : Animation de lancement + chaîne persistante visible entre Léo et la cible (reste affichée jusqu'à libération).
+  - Libération : Utiliser `steel-chain-end.js` pour choisir quelle(s) chaîne(s) terminer.
+  - Modules requis : Sequencer, JB2A, Portal.
 
-## Bonnes pratiques et astuces
+- Electric Axe Strike (Frappe Électrique) — fichier : `electric-axe-strike.js`
+  - Objectif : Attaque corps-à-corps thématique (hache électrifiée) pour un seul adversaire.
+  - Caractéristique : Physique.
+  - Coût : faible (ex. 1 mana) — non focalisable selon la macro.
+  - Dégâts : Exemple dans le fichier : `1d9 + fixe + Physique + bonus manuels + bonus d'Active Effects` (consultez le `SPELL_CONFIG` dans le fichier pour la formule exacte).
+  - Ciblage : Token ciblé / Portal selon implémentation.
+  - Animations : Séquence (charge + stretch d'arme + impact + aftermath). Utilise Sequencer et assets JB2A.
+  - Modules requis : Sequencer, JB2A, Portal (si la macro active un ciblage Portal).
 
-- Active Effects : utilisez des effets nommés et cohérents pour que la macro lise les flags `physique` et `damage` correctement.
-- Blessures : appliquez le status effect `Blessures` (avec `statuscounter` flag) pour simuler la perte temporaire de Physique.
-- Animations : Sequencer et JB2A offrent beaucoup d'options — testez les fichiers `.webm` pour obtenir le rendu voulu.
+## Utilisation rapide
 
-## Dépannage
+1. Sélectionnez le token de Léo.
+2. Lancez la macro désirée (`steel-lance.js`, `lightning-chain.js`, `steel-chain.js`, ou `electric-axe-strike.js`).
+3. Remplissez les bonus manuels demandés dans les dialogues (objets, enchantements temporaires, etc.).
+4. Si la macro demande un ciblage Portal :
+   - En mode normal : sélectionnez la direction / point d'impact depuis votre position.
+   - En mode portail (Steel Lance) : sélectionnez d'abord le point d'origine du portail, puis la direction/point d'impact.
+   - Pour Steel Chain : sélectionnez la cible à enchaîner.
+5. La macro jouera la séquence d'animations et publiera le(s) roll(s) d'attaque et de dégâts dans le chat.
+6. Pour Steel Chain : utilisez `steel-chain-end.js` quand vous voulez libérer les cibles enchaînées.
 
-- "Aucun acteur valide" : assurez-vous que le token du joueur est bien sélectionné.
-- Portal ne répond pas : vérifiez que le module `Portal` est installé et activé.
-- Pas d'animations : vérifiez que `Sequencer` et `JB2A` sont installés et que les chemins des fichiers sont valides.
+## Remarques & dépannage
 
-## Contributions
+- Vérifiez que `Sequencer` et `JB2A` (free ou patreon selon les fichiers référencés) sont installés et activés. Sans eux, les macros afficheront des erreurs ou ne joueront pas d'effets.
+- `Portal` est requis pour les macros qui utilisent le crosshair (sélection de point/direction). Assurez-vous que les permissions et paramètres du module permettent aux joueurs d'utiliser les crosshairs.
+- Si une macro attend une caractéristique en entrée (ex. Dextérité en mode portail), la valeur est lue via les utilitaires fournis : si vos feuilles ne contiennent pas ces attributs au bon emplacement, vous devrez fournir ou adapter manuellement.
+- Les macros n'appliquent pas automatiquement les pertes de ressources (mana, HP) ni les effets de dégâts : elles affichent les résultats et animations uniquement.
 
-- Suggestions d'amélioration, corrections d'animations et ajouts de sorts sont bienvenus. Ouvrez une issue ou proposez une PR.
+## Contribution
+
+Propositions d'amélioration, corrections FX ou nouvelles variantes : ouvrez une issue ou une PR. Indiquez : quel fichier, ce que vous voulez changer, et quels assets/modules sont nécessaires.
 
 ---
 
-README rédigé pour être cohérent avec les autres personnages (ex. `ora/README.md`). Pour une adaptation plus poussée (nouveaux sorts, conditions de dégâts critiques, ou FX spécifiques), dites-moi ce que vous voulez et je l'ajouterai.
+Pour toute précision sur une macro en particulier (changer l'asset utilisé, modifier la formule des dégâts, ajouter une variante), dites-moi laquelle et j'ajusterai le README et la macro en conséquence.

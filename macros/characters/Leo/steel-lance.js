@@ -27,55 +27,98 @@
 (async () => {
     // ===== SPELL CONFIGURATION =====
     const SPELL_VARIANTS = {
-        standard: {
+        "standard-normal": {
             name: "Lance d'Acier",
             description: "Lance d'acier qui transperce les ennemis sur une ligne de 1 case de large",
             manaCost: 2,
-            lineWidth: 1, // 1 case wide
+            lineWidth: 1,
             damageType: "physique",
             element: "steel",
+            castMode: "normal",
+            characteristic: "physique",
+            allowEffectBonuses: true,
             animations: {
-                lance: "jb2a_patreon.javelin.throw", // Steel lance projectile
-                impact: "jb2a.impact.010.orange", // Steel impact
+                lance: "jb2a_patreon.javelin.throw",
+                impact: "jb2a.impact.010.orange",
                 sound: null
             },
             targeting: {
-                color: "#c0c0c0", // Steel silver
+                color: "#c0c0c0",
                 texture: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Blue_400x400.webm"
             }
         },
-        electric: {
+        "electric-normal": {
             name: "Lance d'Acier Électrique",
-            description: "Lance d'acier électrifiée qui touche aussi les cibles adjacentes (5 cases de large)",
+            description: "Lance d'acier électrifiée qui touche aussi les cibles adjacentes (5 cases de large, sans bonus d'effets)",
             manaCost: 5,
-            lineWidth: 5, // 5 cases wide (2 on each side + center)
+            lineWidth: 5,
             damageType: "électrique",
             element: "electric",
-            // Keep the same javelin projectile as the standard version, but add
-            // a chain-lightning overlay to visually show the wider electric area.
+            castMode: "normal",
+            characteristic: "physique",
+            allowEffectBonuses: false,
             animations: {
-                // Primary projectile (same as standard)
                 lance: "jb2a_patreon.javelin.throw",
-                // Extra stretched overlay to show the electric width
                 extraLance: "jb2a_patreon.chain_lightning.primary.red",
-                impact: "animated-spell-effects-cartoon.electricity.18", // Electric impact
+                impact: "animated-spell-effects-cartoon.electricity.18",
                 sound: null
             },
             targeting: {
-                color: "#00ffff", // Electric cyan
+                color: "#00ffff",
                 texture: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Blue_400x400.webm"
+            }
+        },
+        "standard-portal": {
+            name: "Lance d'Acier via Portail",
+            description: "Lance d'acier lancée depuis un portail (+3 mana, basée sur Dextérité, sans bonus d'effets)",
+            manaCost: 5, // 2 base + 3 portal
+            lineWidth: 1,
+            damageType: "physique",
+            element: "steel",
+            castMode: "portal",
+            characteristic: "dexterite",
+            allowEffectBonuses: false,
+            animations: {
+                portal: "jb2a.misty_step.02.blue",
+                lance: "jb2a_patreon.javelin.throw",
+                impact: "jb2a.impact.010.orange",
+                sound: null
+            },
+            targeting: {
+                color: "#8a2be2",
+                texture: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Purple_400x400.webm"
+            }
+        },
+        "electric-portal": {
+            name: "Lance d'Acier Électrique via Portail",
+            description: "Lance d'acier électrifiée depuis un portail (+3 mana, basée sur Dextérité, sans bonus d'effets)",
+            manaCost: 8, // 5 base + 3 portal
+            lineWidth: 5,
+            damageType: "électrique",
+            element: "electric",
+            castMode: "portal",
+            characteristic: "dexterite",
+            allowEffectBonuses: false,
+            animations: {
+                portal: "jb2a.misty_step.02.blue",
+                lance: "jb2a_patreon.javelin.throw",
+                extraLance: "jb2a_patreon.chain_lightning.primary.red",
+                impact: "animated-spell-effects-cartoon.electricity.18",
+                sound: null
+            },
+            targeting: {
+                color: "#8a2be2",
+                texture: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Purple_400x400.webm"
             }
         }
     };
 
     const BASE_CONFIG = {
-        characteristic: "physique",
-        characteristicDisplay: "Physique",
         spellLevel: 1,
         damageFormula: "1d4",
         isDirect: true,
         isFocusable: true,
-        serpentExclusion: true, // Special: Serpent effect doesn't work
+        serpentExclusion: true, // Special: Serpent effect doesn't work (only for normal mode)
         maxRange: 600 // Maximum range for the line
     };
 
@@ -160,44 +203,70 @@
     }
 
     const currentStance = getCurrentStance(actor);
-    const characteristicInfo = getCharacteristicValue(actor, BASE_CONFIG.characteristic);
 
     // ===== SPELL VARIANT SELECTION =====
     async function selectSpellVariant() {
         return new Promise((resolve) => {
             new Dialog({
-                title: "Lance d'Acier - Sélection de Variante",
+                title: "🔸 Sélection du Sort - Lance d'Acier",
                 content: `
-                    <div style="margin: 10px 0;">
-                        <h3>Choisissez la variante du sort :</h3>
-                        <div style="margin: 10px 0; padding: 10px; border: 2px solid #c0c0c0; background: #f5f5f5;">
-                            <h4>🔸 Lance d'Acier Standard</h4>
-                            <p><strong>Coût :</strong> ${calculateManaCost(SPELL_VARIANTS.standard.manaCost, currentStance, BASE_CONFIG.isFocusable)} mana${currentStance === 'focus' ? ' (Gratuit en Focus)' : ''}</p>
-                            <p><strong>Zone :</strong> Ligne de 1 case de large</p>
-                            <p><em>${SPELL_VARIANTS.standard.description}</em></p>
+                    <div style="margin-bottom: 15px;">
+                        <h3>Mode de Lancement :</h3>
+                        <p><strong>Normal :</strong> Lancé depuis votre position (Physique + bonus d'effets)</p>
+                        <p><strong>Portail :</strong> Lancé depuis un point choisi (+3 mana, Dextérité, aucun bonus d'effets)</p>
+                    </div>
+
+                    <div style="margin-bottom: 15px;">
+                        <h3>Type de Lance :</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+
+                            <div style="border: 1px solid #ccc; padding: 10px; border-radius: 5px;">
+                                <h4>🔸 Mode Normal</h4>
+                                <label style="display: block; margin: 5px 0;">
+                                    <input type="radio" name="variant" value="standard-normal" checked>
+                                    Lance d'Acier Standard (2 mana)
+                                </label>
+                                <label style="display: block; margin: 5px 0;">
+                                    <input type="radio" name="variant" value="electric-normal">
+                                    Lance Électrique (5 mana)
+                                </label>
+                            </div>
+
+                            <div style="border: 1px solid #ccc; padding: 10px; border-radius: 5px; background: #f0f0f8;">
+                                <h4>🌀 Mode Portail</h4>
+                                <label style="display: block; margin: 5px 0;">
+                                    <input type="radio" name="variant" value="standard-portal">
+                                    Lance d'Acier via Portail (5 mana)
+                                </label>
+                                <label style="display: block; margin: 5px 0;">
+                                    <input type="radio" name="variant" value="electric-portal">
+                                    Lance Électrique via Portail (8 mana)
+                                </label>
+                            </div>
+
                         </div>
-                        <div style="margin: 10px 0; padding: 10px; border: 2px solid #00ffff; background: #f0f8ff;">
-                            <h4>⚡ Lance d'Acier Électrique</h4>
-                            <p><strong>Coût :</strong> ${calculateManaCost(SPELL_VARIANTS.electric.manaCost, currentStance, BASE_CONFIG.isFocusable)} mana${currentStance === 'focus' ? ' (Gratuit en Focus)' : ''}</p>
-                            <p><strong>Zone :</strong> Ligne de 5 cases de large (2 de chaque côté)</p>
-                            <p><em>${SPELL_VARIANTS.electric.description}</em></p>
-                        </div>
+                    </div>
+
+                    <div style="background: #e8f4f8; padding: 10px; border-radius: 5px; margin-top: 15px;">
+                        <p><strong>Note :</strong> Les versions portail et électrique utilisent soit la Dextérité (portail) soit la Physique (électrique) mais ne bénéficient d'aucun bonus d'effets actifs (hors bonus manuels).</p>
                     </div>
                 `,
                 buttons: {
-                    standard: {
-                        label: "🔸 Standard",
-                        callback: () => resolve('standard')
-                    },
-                    electric: {
-                        label: "⚡ Électrique",
-                        callback: () => resolve('electric')
+                    ok: {
+                        icon: '<i class="fas fa-check"></i>',
+                        label: "Confirmer",
+                        callback: (html) => {
+                            const selected = html.find('input[name="variant"]:checked').val();
+                            resolve(selected);
+                        }
                     },
                     cancel: {
+                        icon: '<i class="fas fa-times"></i>',
                         label: "Annuler",
                         callback: () => resolve(null)
                     }
-                }
+                },
+                default: "ok"
             }).render(true);
         });
     }
@@ -209,21 +278,35 @@
     }
 
     const spellConfig = { ...BASE_CONFIG, ...SPELL_VARIANTS[selectedVariant] };
-    const actualManaCost = calculateManaCost(spellConfig.manaCost, currentStance, spellConfig.isFocusable);
+
+    // Update characteristic info based on spell variant
+    const characteristicInfo = getCharacteristicValue(actor, spellConfig.characteristic);
+
+    // Calculate mana cost (portal versions are never focusable for the portal bonus)
+    const isFocusableForThis = spellConfig.castMode === 'portal' ? false : spellConfig.isFocusable;
+    const actualManaCost = calculateManaCost(spellConfig.manaCost, currentStance, isFocusableForThis);
 
     // ===== SPELL CONFIGURATION DIALOG =====
     async function showSpellConfigDialog() {
-        const effectDamageBonus = getActiveEffectBonus(actor, "damage", spellConfig.serpentExclusion);
+        // Calculate effect bonuses (only if spell allows them)
+        const effectDamageBonus = spellConfig.allowEffectBonuses ?
+            getActiveEffectBonus(actor, "damage", spellConfig.serpentExclusion) : 0;
+
         const manaCostInfo = actualManaCost === 0 ?
             `<strong>Coût en Mana :</strong> Gratuit <em>(Position Focus)</em>` :
             `<strong>Coût en Mana :</strong> ${actualManaCost} mana`;
 
+        // Format characteristic display based on spell variant
+        const characteristicDisplay = spellConfig.characteristic === 'physique' ? 'Physique' : 'Dextérité';
+
         let damageInfo;
         const damageBonus = effectDamageBonus !== 0 ? ` <em>(+${effectDamageBonus} bonus d'effets${spellConfig.serpentExclusion ? ', Serpent exclu' : ''})</em>` : '';
+        const noBonusNote = !spellConfig.allowEffectBonuses ? ' <em>(aucun bonus d\'effets en mode portail)</em>' : '';
+
         if (currentStance === 'offensif') {
-            damageInfo = `Dégâts : <strong>${spellConfig.damageFormula} + ${spellConfig.characteristicDisplay} (MAXIMISÉ en Position Offensive)</strong>${damageBonus}`;
+            damageInfo = `Dégâts : <strong>${spellConfig.damageFormula} + ${characteristicDisplay} (MAXIMISÉ en Position Offensive)</strong>${damageBonus}${noBonusNote}`;
         } else {
-            damageInfo = `Dégâts : <strong>${spellConfig.damageFormula} + ${spellConfig.characteristicDisplay}</strong>${damageBonus}`;
+            damageInfo = `Dégâts : <strong>${spellConfig.damageFormula} + ${characteristicDisplay}</strong>${damageBonus}${noBonusNote}`;
         }
 
         return new Promise((resolve) => {
@@ -232,7 +315,7 @@
                 content: `
                     <h3>${spellConfig.name} :</h3>
                     <p>${manaCostInfo}</p>
-                    <p><strong>Caractéristique ${spellConfig.characteristicDisplay} :</strong> ${characteristicInfo.final}${characteristicInfo.injuries > 0 || characteristicInfo.effectBonus !== 0 ? ` <em>(${characteristicInfo.base}${characteristicInfo.injuries > 0 ? ` - ${characteristicInfo.injuries} blessures` : ''}${characteristicInfo.effectBonus !== 0 ? ` + ${characteristicInfo.effectBonus} effets` : ''})</em>` : ''}</p>
+                    <p><strong>Caractéristique ${characteristicDisplay} :</strong> ${characteristicInfo.final}${characteristicInfo.injuries > 0 || characteristicInfo.effectBonus !== 0 ? ` <em>(${characteristicInfo.base}${characteristicInfo.injuries > 0 ? ` - ${characteristicInfo.injuries} blessures` : ''}${characteristicInfo.effectBonus !== 0 ? ` + ${characteristicInfo.effectBonus} effets` : ''})</em>` : ''}</p>
 
                     <div style="margin: 10px 0; border: 1px solid #ccc; padding: 10px; background: #fffbf0;">
                         <h4>Description</h4>
@@ -295,33 +378,90 @@
 
     const { damageBonus, attackBonus } = bonusConfig;
 
-    // ===== PORTAL TARGETING - SELECT DIRECTION =====
-    async function selectDirection() {
-        try {
-            const portal = new Portal()
-                .origin(caster)
-                .range(spellConfig.maxRange)
-                .color(spellConfig.targeting.color)
-                .texture(spellConfig.targeting.texture);
+    // ===== TARGETING SYSTEM =====
+    async function selectTargeting() {
+        if (spellConfig.castMode === 'portal') {
+            // Portal mode: first select origin, then direction
+            try {
+                // Step 1: Select portal origin point
+                ui.notifications.info("Sélectionnez le point d'origine du portail...");
+                const portalOrigin = new Portal()
+                    .origin(caster)
+                    .range(spellConfig.maxRange)
+                    .color(spellConfig.targeting.color)
+                    .texture(spellConfig.targeting.texture);
 
-            const target = await portal.pick();
-            return target;
-        } catch (error) {
-            ui.notifications.error("Erreur lors du ciblage. Assurez-vous que le module Portal est installé et activé.");
-            return null;
+                const originPoint = await portalOrigin.pick();
+                if (!originPoint) return null;
+
+                // Step 2: Select direction from portal origin
+                ui.notifications.info("Maintenant sélectionnez la direction de la lance depuis le portail...");
+                const directionPortal = new Portal()
+                    .origin({ x: originPoint.x, y: originPoint.y })
+                    .range(spellConfig.maxRange)
+                    .color(spellConfig.targeting.color)
+                    .texture(spellConfig.targeting.texture);
+
+                const directionPoint = await directionPortal.pick();
+                if (!directionPoint) return null;
+
+                return {
+                    originPoint: originPoint,
+                    targetPoint: directionPoint,
+                    isPortalMode: true
+                };
+            } catch (error) {
+                console.error("Portal targeting error:", error);
+                ui.notifications.error("Erreur lors de la sélection du portail !");
+                return null;
+            }
+        } else {
+            // Normal mode: select direction from caster
+            try {
+                const portal = new Portal()
+                    .origin(caster)
+                    .range(spellConfig.maxRange)
+                    .color(spellConfig.targeting.color)
+                    .texture(spellConfig.targeting.texture);
+
+                const target = await portal.pick();
+                if (!target) return null;
+
+                return {
+                    originPoint: caster,
+                    targetPoint: target,
+                    isPortalMode: false
+                };
+            } catch (error) {
+                console.error("Normal targeting error:", error);
+                ui.notifications.error("Erreur lors du ciblage. Assurez-vous que le module Portal est installé et activé.");
+                return null;
+            }
         }
     }
 
-    const targetPoint = await selectDirection();
-    if (!targetPoint) {
+    const targetingResult = await selectTargeting();
+    if (!targetingResult) {
         ui.notifications.info("Sort annulé.");
         return;
     }
 
+    const { originPoint, targetPoint, isPortalMode } = targetingResult;
+
     // ===== LINE CALCULATION AND TARGET DETECTION =====
-    function calculateLineTargets(origin, target, lineWidth) {
-        const startX = origin.x + (origin.document.width * canvas.grid.size) / 2;
-        const startY = origin.y + (origin.document.height * canvas.grid.size) / 2;
+    function calculateLineTargets(origin, target, lineWidth, isPortalMode = false) {
+        let startX, startY;
+
+        if (isPortalMode) {
+            // In portal mode, origin is a coordinate point
+            startX = origin.x;
+            startY = origin.y;
+        } else {
+            // In normal mode, origin is a token
+            startX = origin.x + (origin.document.width * canvas.grid.size) / 2;
+            startY = origin.y + (origin.document.height * canvas.grid.size) / 2;
+        }
+
         const endX = target.x;
         const endY = target.y;
 
@@ -388,7 +528,7 @@
         return targets;
     }
 
-    const lineTargets = calculateLineTargets(caster, targetPoint, spellConfig.lineWidth);
+    const lineTargets = calculateLineTargets(originPoint, targetPoint, spellConfig.lineWidth, isPortalMode);
 
     console.log(`[DEBUG] Line targets found: ${lineTargets.length}`);
     lineTargets.forEach((target, index) => {
@@ -397,7 +537,9 @@
 
     // ===== DAMAGE CALCULATION =====
     async function calculateDamage() {
-        const effectDamageBonus = getActiveEffectBonus(actor, "damage", spellConfig.serpentExclusion);
+        // Calculate effect bonuses (only if spell allows them)
+        const effectDamageBonus = spellConfig.allowEffectBonuses ?
+            getActiveEffectBonus(actor, "damage", spellConfig.serpentExclusion) : 0;
         const totalDamageBonus = characteristicInfo.final + damageBonus + effectDamageBonus;
 
         if (currentStance === 'offensif') {
@@ -427,21 +569,34 @@
     async function playSpellAnimation() {
         let sequence = new Sequence();
 
-        // Lance projectile from caster to target point
+        // Add portal opening animation if in portal mode
+        if (isPortalMode && spellConfig.animations.portal) {
+            sequence.effect()
+                .file(spellConfig.animations.portal)
+                .atLocation(originPoint)
+                .scale(0.8)
+                .duration(1500)
+                .fadeOut(300);
+        }
+
+        // Lance projectile from origin to target point
         if (spellConfig.animations.lance) {
+            const startDelay = isPortalMode ? 800 : 0; // Delay for portal animation
+
             // Primary projectile (javelin) for both variants
             sequence.effect()
                 .file(spellConfig.animations.lance)
-                .atLocation(caster)
+                .atLocation(originPoint)
                 .stretchTo(targetPoint)
-                .scale(selectedVariant === 'electric' ? 1.2 : 1.5)
+                .scale(spellConfig.element === 'electric' ? 1.2 : 1.5)
+                .delay(startDelay)
                 .waitUntilFinished(-2000);
 
 
             // If the variant provides an extra lance (electric), play it as a
             // stretched overlay and make it wider to represent +2 cases each side.
             const extra = spellConfig.animations.extraLance;
-            if (selectedVariant === 'electric' && extra) {
+            if (spellConfig.element === 'electric' && extra) {
                 // Compute a scale multiplier so the chain lightning covers the
                 // spell's line width plus 4 extra cells (2 each side).
                 const extraCases = 4; // 2 each side
@@ -452,10 +607,10 @@
 
                 sequence.effect()
                     .file(extra)
-                    .atLocation(caster)
+                    .atLocation(originPoint)
                     .stretchTo(targetPoint)
                     .scale({ x: baseScale , y: chainWidthScale }) // Only scale width, keep original height
-                    .delay(150) // slight delay so projectile is visible first
+                    .delay(startDelay + 150) // slight delay so projectile is visible first
                     .waitUntilFinished(-300);
             }
         }
@@ -498,7 +653,8 @@
 
     // Add damage roll (only if not maximized)
     if (currentStance !== 'offensif') {
-        const effectDamageBonus = getActiveEffectBonus(actor, "damage", spellConfig.serpentExclusion);
+        const effectDamageBonus = spellConfig.allowEffectBonuses ?
+            getActiveEffectBonus(actor, "damage", spellConfig.serpentExclusion) : 0;
         const totalDamageBonus = characteristicInfo.final + damageBonus + effectDamageBonus;
         combinedRollParts.push(`${spellConfig.damageFormula} + ${totalDamageBonus}`);
     }
@@ -528,11 +684,19 @@
                 <i>⚠️ Ajusté pour blessures: Base ${characteristicInfo.base} - ${characteristicInfo.injuries} = ${characteristicInfo.injuryAdjusted}</i>
             </div>` : '';
 
-        const effectDamageBonus = getActiveEffectBonus(actor, "damage", spellConfig.serpentExclusion);
+        const effectDamageBonus = spellConfig.allowEffectBonuses ?
+            getActiveEffectBonus(actor, "damage", spellConfig.serpentExclusion) : 0;
+        const characteristicDisplay = spellConfig.characteristic === 'physique' ? 'Physique' : 'Dextérité';
+
         const effectInfo = (characteristicInfo.effectBonus !== 0 || effectDamageBonus !== 0) ?
             `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
-                ${characteristicInfo.effectBonus !== 0 ? `<div>✨ Bonus de ${spellConfig.characteristicDisplay}: +${characteristicInfo.effectBonus}</div>` : ''}
-                ${effectDamageBonus !== 0 ? `<div>${selectedVariant === 'electric' ? '⚡' : '🔸'} Bonus de Dégâts: +${effectDamageBonus}${spellConfig.serpentExclusion ? ' (Serpent exclu)' : ''}</div>` : ''}
+                ${characteristicInfo.effectBonus !== 0 ? `<div>✨ Bonus de ${characteristicDisplay}: +${characteristicInfo.effectBonus}</div>` : ''}
+                ${effectDamageBonus !== 0 ? `<div>${spellConfig.element === 'electric' ? '⚡' : '🔸'} Bonus de Dégâts: +${effectDamageBonus}${spellConfig.serpentExclusion ? ' (Serpent exclu)' : ''}</div>` : ''}
+            </div>` : '';
+
+        const portalInfo = isPortalMode ?
+            `<div style="color: #8a2be2; font-size: 0.9em; margin: 5px 0;">
+                🌀 <strong>Mode Portail:</strong> Lancé via portail (+3 mana, ${characteristicDisplay}, aucun bonus d'effets)
             </div>` : '';
 
         const bonusInfo = (damageBonus > 0 || attackBonus > 0) ?
@@ -557,7 +721,7 @@
                 <div style="font-size: 1.1em; color: ${selectedVariant === 'electric' ? '#1565c0' : '#424242'}; margin-bottom: 6px;"><strong>${selectedVariant === 'electric' ? '⚡' : '🔸'} ${spellConfig.name}${stanceNote}</strong></div>
                 ${targetSummary}
                 <div style="font-size: 1.4em; color: #1565c0; font-weight: bold;">💥 DÉGÂTS: ${finalDamageResult.total}</div>
-                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${spellConfig.damageFormula} + Physique + bonus)</div>
+                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${spellConfig.damageFormula} + ${characteristicDisplay} + bonus)</div>
                 <div style="font-size: 0.8em; color: #666;">Ligne de ${spellConfig.lineWidth} case${spellConfig.lineWidth > 1 ? 's' : ''} de large</div>
             </div>
         `;
@@ -572,6 +736,7 @@
                 </div>
                 ${injuryInfo}
                 ${effectInfo}
+                ${portalInfo}
                 ${bonusInfo}
                 ${attackDisplay}
                 ${damageDisplay}
@@ -589,8 +754,9 @@
     // ===== FINAL NOTIFICATION =====
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
     const maximizedInfo = currentStance === 'offensif' ? ' MAXIMISÉ' : '';
+    const portalInfo = isPortalMode ? ' via Portail' : '';
     const targetCount = lineTargets.length;
 
-    ui.notifications.info(`${selectedVariant === 'electric' ? '⚡' : '🔸'} ${spellConfig.name} lancée !${stanceInfo} ${targetCount} cible${targetCount > 1 ? 's' : ''} touchée${targetCount > 1 ? 's' : ''}. Attaque: ${attackResult.result}, Dégâts: ${finalDamageResult.total}${maximizedInfo}.`);
+    ui.notifications.info(`${spellConfig.element === 'electric' ? '⚡' : '🔸'} ${spellConfig.name} lancée${portalInfo} !${stanceInfo} ${targetCount} cible${targetCount > 1 ? 's' : ''} touchée${targetCount > 1 ? 's' : ''}. Attaque: ${attackResult.result}, Dégâts: ${finalDamageResult.total}${maximizedInfo}.`);
 
 })();
