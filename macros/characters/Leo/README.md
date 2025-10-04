@@ -113,6 +113,17 @@ Modules requis (parmi les plus importants) : Sequencer, JB2A (free et/ou patreon
   - Animations : Projectile de flèche avec effets spéciaux selon la variante (électrique, perçage, impact lourd).
   - Modules requis : Sequencer, JB2A, Portal.
 
+- Ragnarok — fichier : `ragnarok.js`
+
+  - Objectif : Sort ultime projetant toutes les armes créées sur le terrain vers une cible unique avec convergence spectaculaire.
+  - Caractéristique : Volonté (+ effets actifs + bonus manuels pour l'attaque uniquement).
+  - Coût : 10 mana (demi-focalisable — coût réduit de moitié en Position Focus), niveau 3.
+  - Dégâts : `Nombre d'armes × 1d6 + Physique×2 + bonus manuels` (les bonus d'effet ne s'appliquent pas aux dégâts).
+  - Mécanique spéciale : La cible subit la moitié des dégâts même si elle réussit à esquiver (au lieu de subir aucun dégât).
+  - Ciblage : Portal pour sélectionner la cible unique, puis dialogue pour indiquer le nombre d'armes (1-20).
+  - Animations : Multiples projectiles d'armes convergeant depuis des directions aléatoires (360°), distances aléatoires (2-4 cases), délais répartis sur 2 secondes, impact final spectaculaire.
+  - Modules requis : Sequencer, JB2A, Portal.
+
 ## Utilisation rapide
 
 1. Sélectionnez le token de Léo.
