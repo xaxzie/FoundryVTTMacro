@@ -1,6 +1,6 @@
 # Ora - Water Elementalist (RPG-Compliant Spells)
 
-RPG-compliant spell animations for Ora, designed to work with the custom RPG system outlined in [GAME-RULES.md](../../../GAME-RULES.md).
+RPG-compliant spell animations for Ora, designed to work with the custom RPG system outlined in [GAME-RULES.md](../../../GAME-RULES.md). **Toutes les macros ont été mises à jour avec le format standard**.
 
 ## 🌊 Character Overview
 
@@ -17,27 +17,27 @@ RPG-compliant spell animations for Ora, designed to work with the custom RPG sys
 
 ### Bubbles
 
-**File**: `bubbles.js`
+**File**: `bubbles.js` (⭐ **NOUVELLE VERSION - FORMAT STANDARD**)
 **Type**: Dual projectile attack / Single healing
-**Mana Cost**: Stance-dependent (see Combat Stance Integration below)
-**Range**: Crosshair targeting (unlimited range)
+**Mana Cost**: 4 mana (focusable - gratuit en Position Focus, sauf Eau Vivante: 2 mana)
+**Range**: 120 (Portal targeting)
 
-**Description**: Launches elemental projectiles that can be customized for different tactical effects or healing. **Now features automatic stance detection and stance-specific mechanics.**
+**Description**: Lance des projectiles élémentaires personnalisables pour différents effets tactiques ou de soin. **Version réécrite avec le format standard utilisé par les sorts de Léo**.
 
-**Element Options**:
+**Éléments Disponibles**:
 
-- **Water**: Increases vulnerability to electrical damage (+2 next electrical attack) (2 projectiles)
-- **Ice**: Reduces target movement by 1 square (2 projectiles)
-- **Oil**: Increases vulnerability to fire damage (+2 next fire attack) (2 projectiles)
-- **Living Water**: Heals target for 1d6 + (Esprit + bonus)/2 (1 projectile, can target self, special mana cost)
+- **Eau**: Augmente les futurs dégâts électriques (+2 prochaine attaque électrique) (2 projectiles)
+- **Glace**: Diminue la vitesse de la cible de 1 case (2 projectiles)
+- **Huile**: Augmente les futurs dégâts de feu (+2 prochaine attaque de feu) (2 projectiles)
+- **Eau Vivante**: Soigne la cible pour 1d6 + (Esprit + bonus)/2 (1 projectile, peut se cibler soi-même, NON focalisable)
 
-**Damage**: Each damage projectile deals `1d6 + (Esprit + bonus)/2` OR **maximized in Offensive stance**
-**Healing**: Living Water heals `1d6 + (Esprit + bonus)/2` (unaffected by stance)
+**Dégâts**: Chaque projectile de dégât inflige `1d6 + (Esprit + bonus)/2` OU **maximisé en Position Offensive**
+**Soin**: Eau Vivante soigne `1d6 + (Esprit + bonus)/2` (non affecté par la position)
 
-**Targeting**:
+**Ciblage**:
 
-- **Damage variants**: 1 target (both projectiles) or 2 targets (one each)
-- **Living Water**: Single target only, can target self by clicking near caster token
+- **Variantes de dégâts**: 1 cible (deux projectiles) ou 2 cibles (un chacun)
+- **Eau Vivante**: Cible unique seulement, peut se cibler soi-même en cliquant près de son token
 
 **Combat Stance Integration** ⚔️:
 
@@ -78,27 +78,109 @@ RPG-compliant spell animations for Ora, designed to work with the custom RPG sys
 - JB2A (visual effects)
 - Portal (crosshair/targeting - primary targeting system)
 
-**Usage Example**:
+### Bubble Spam
 
-1. Select Ora's token (stance will be automatically detected)
-2. Activate the Bubbles macro
-3. **Stance information displayed** in dialog titles and mana cost descriptions
-4. Choose element type (Water/Ice/Oil/Living Water)
-5. Review stance-specific damage information (maximized in Offensive stance)
-6. Enter manual damage bonus when prompted
-7. Target first location (can target self for Living Water)
-8. For damage variants: Choose second target or same target
-9. Watch animation and check chat for results with stance information
+**File**: `bubble-spam.js` (⭐ **NOUVELLE VERSION - FORMAT STANDARD**)
+**Type**: Utilitaire de tir rapide
+**Coût**: Aucun (mode utilitaire)
+**Range**: Illimitée (clic direct)
 
-**Special Notes**:
+**Description**: Mode tir rapide pour lancer des bulles d'eau en continu sans dialogs. **Version réécrite avec configuration structurée**.
 
-- **Stance Detection**: Automatically detects Focus/Offensif/Defensif from Active Effects
-- **Offensive Stance**: Damage dice are maximized (6 + stat bonus), shown as "MAXIMISÉ" in results
-- **Focus Stance**: Water/Ice/Oil become free, Living Water costs only 2 mana
-- **Living Water**: Only healing variant, single projectile, can target self
-- **Stance Display**: Current stance shown in dialog titles and chat output
-- **Self-Targeting**: For Living Water, click within 1 square of your token to heal yourself
-- **Damage Formula**: `1d6 + (Esprit + bonus)/2` or maximized in Offensive stance
+**Contrôles**:
+
+- **Clic**: Tire une bulle vers la position cliquée
+- **ESC**: Quitte le mode spam
+
+### Tourbillon
+
+**File**: `tourbillon.js` (⭐ **NOUVELLE VERSION - FORMAT STANDARD**)
+**Type**: Création de vortex persistants
+**Coût**: 4 mana (focusable - gratuit en Position Focus, pas de choix sur protection)
+**Range**: 150 (Portal targeting)
+
+**Description**: Crée un ou plusieurs tourbillons d'eau persistants qui infligent des dégâts lors de la traversée. **Version réécrite avec le format standard**.
+
+**Types de Tourbillon**:
+
+- **Simple**: 1 tourbillon puissant (2d6 + Esprit + bonus)
+- **Divisé**: 2 tourbillons faibles (1d6 + Esprit/2 + bonus chacun)
+
+**Mécaniques Spéciales**:
+
+- **Protection**: Peut bloquer les attaques traversantes (Position Focus = toujours actif)
+- **Vision**: Bloque la ligne de vue (géré manuellement)
+- **Évasion**: Jet d'Agilité pour traverser sans dégâts (coûte une action de mouvement)
+- **Durée**: Persistant (2 minutes) jusqu'à destruction manuelle
+
+### Tourbillon Destroyer
+
+**File**: `tourbillon-destroy.js` (⭐ **NOUVELLE VERSION - FORMAT STANDARD**)
+**Type**: Utilitaire de destruction
+**Coût**: Aucun (mode utilitaire)
+**Range**: 200 (Portal targeting)
+
+**Description**: Détruit automatiquement le tourbillon le plus proche de la position ciblée. **Version réécrite avec détection optimisée**.
+
+**Fonctionnalités**:
+
+- **Détection**: Recherche dans un rayon de 1.5 cases
+- **Ciblage**: Rouge pour indiquer la destruction
+- **Suppression**: Immédiate avec animation de destruction
+- **Mode**: Silencieux (pas de notifications)
+
+## 🎯 Exemples d'Usage
+
+### Bubbles - Usage Standard
+
+1. Sélectionner le token d'Ora (position détectée automatiquement)
+2. Activer la macro Bubbles
+3. **Information de position affichée** dans les titres de dialogue
+4. Choisir le type d'élément (Eau/Glace/Huile/Eau Vivante)
+5. Examiner les informations de dégâts spécifiques à la position (maximisé en Position Offensive)
+6. Entrer les bonus manuels de dégâts/attaque
+7. Cibler la première position (peut se cibler soi-même pour Eau Vivante)
+8. Pour les variantes de dégâts : Choisir une deuxième cible ou la même cible
+9. Observer l'animation et vérifier le chat pour les résultats avec information de position
+
+### Tourbillon - Usage Standard
+
+1. Sélectionner le token d'Ora (position détectée automatiquement)
+2. Activer la macro Tourbillon
+3. Choisir le type (Simple/Divisé) et la protection (sauf Position Focus)
+4. Entrer les bonus manuels de dégâts/attaque
+5. Cibler les positions pour les tourbillons
+6. Observer l'animation et vérifier le chat pour les résultats
+7. Utiliser Tourbillon Destroyer pour supprimer les effets plus tard
+
+## 🔮 Format Standard - Nouvelles Fonctionnalités
+
+**Toutes les macros d'Ora utilisent maintenant le format standard des sorts de Léo** :
+
+### Structure de Configuration
+
+- **Configuration centralisée** en haut de chaque macro
+- **Animations configurables** avec paramètres ajustables
+- **Ciblage standardisé** via Portal avec couleurs spécifiques
+- **Calculs de dégâts uniformes** avec support des positions de combat
+
+### Améliorations Techniques
+
+- **Détection de position automatique** : Focus/Offensif/Défensif via Active Effects
+- **Gestion des bonus d'effets actifs** : Intégration complète des bonus d'effets
+- **Calculs de blessures** : Ajustement automatique des caractéristiques
+- **Messages de chat enrichis** : HTML formaté avec informations de position
+- **Validation robuste** : Vérifications d'entrée et gestion d'erreurs
+
+### Notes Spéciales
+
+- **Détection de Position** : Détecte automatiquement Focus/Offensif/Défensif depuis les Active Effects
+- **Position Offensive** : Les dés de dégâts sont maximisés (6 + bonus de caractéristique), affiché comme "MAXIMISÉ"
+- **Position Focus** : Eau/Glace/Huile deviennent gratuits, Eau Vivante coûte 2 mana
+- **Eau Vivante** : Seule variante de soin, projectile unique, peut se cibler soi-même
+- **Affichage de Position** : Position actuelle montrée dans les titres de dialogue et la sortie de chat
+- **Auto-Ciblage** : Pour Eau Vivante, cliquer dans un rayon de 50 pixels de son token pour se soigner
+- **Formule de Dégâts** : `1d6 + (Esprit + bonus)/2` ou maximisé en Position Offensive
 
 ## 🎯 RPG Compliance Features
 
