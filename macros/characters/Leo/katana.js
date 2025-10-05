@@ -25,8 +25,7 @@
         isFocusable: true,
         animations: {
             // Small default Sequencer assets (adjust to your installed JB2A/patreon paths)
-            cast: "jb2a.melee.attack.forward.white",
-            hit: "jb2a.impact.010.orange",
+            sword: "jb2a_patreon.falchion.melee.01.orange.5",
             sound: null
         }
     };
@@ -170,28 +169,16 @@
         return;
     }
 
-    // Play a short Sequencer animation: cast on caster, hit on target
+    // Play a short Sequencer animation: sword strike from caster to target
     try {
         if (typeof Sequence !== 'undefined') {
             const seq = new Sequence();
-            // cast effect on caster
-            if (SPELL.animations.cast) {
+            // sword effect from caster to target
+            if (SPELL.animations.sword) {
                 seq.effect()
-                    .file(SPELL.animations.cast)
-                    .atLocation(caster)
-                    .scale(0.6)
-                    .duration(500)
-                    .fadeOut(150);
-            }
-            // hit effect at target
-            if (SPELL.animations.hit) {
-                seq.effect()
-                    .file(SPELL.animations.hit)
-                    .atLocation({ x: targetPoint.x, y: targetPoint.y })
-                    .scale(0.6)
-                    .delay(400)
-                    .duration(600)
-                    .fadeOut(150);
+                    .file(SPELL.animations.sword)
+                    .attachTo(caster)
+                    .stretchTo(targetPoint)
             }
             await seq.play();
         }
@@ -199,65 +186,199 @@
         console.warn('Sequencer play failed', err);
     }
 
-    // ===== ROLLS =====
-    // Attack
+    // ===== DAMAGE CALCULATION WITH STANCE SYSTEM =====
+    async function calculateDamage() {
+        const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
+        const totalDamageBonus = SPELL.flatDamageBonus + charInfo.final + (damageBonus || 0) + effectDamageBonus;
+
+        if (currentStance === 'offensif') {
+            // Offensive stance: main damage is maximized
+            const diceMax = 7; // 1d7 maximized
+            const maxDamage = diceMax + totalDamageBonus;
+
+            console.log(`[DEBUG] Maximized damage: ${maxDamage} (${diceMax} + ${totalDamageBonus})`);
+
+            return {
+                total: maxDamage,
+                formula: `${diceMax} + ${totalDamageBonus}`,
+                result: maxDamage,
+                isMaximized: true
+            };
+        } else {
+            // Normal dice rolling
+            const damage = new Roll(`${SPELL.baseDamageFormula} + @totalBonus`, { totalBonus: totalDamageBonus });
+            await damage.evaluate({ async: true });
+
+            console.log(`[DEBUG] Rolled damage: ${damage.total} (formula: ${damage.formula})`);
+            return damage;
+        }
+    }
+
+    const damageResult = await calculateDamage();
+
+    // ===== FOURREAU CALCULATION WITH STANCE SYSTEM =====
+    function calculateFourreau() {
+        if (!foureau) return null;
+
+        if (currentStance === 'offensif') {
+            // Offensive stance: fourreau is also maximized
+            const foureauMax = 6; // 1d6 maximized
+            console.log(`[DEBUG] Maximized fourreau: ${foureauMax}`);
+
+            return {
+                total: foureauMax,
+                formula: `${foureauMax}`,
+                result: foureauMax,
+                isMaximized: true
+            };
+        } else {
+            // Will be rolled normally in the combined roll
+            return null;
+        }
+    }
+
+    const maximizedFourreau = calculateFourreau();
+
+    // ===== COMBINED ROLL SYSTEM WITH STANCE SUPPORT =====
     const totalAttackDice = charInfo.final + (attackBonus || 0);
     const levelBonus = 2 * SPELL.spellLevel; // level 0 -> 0
-    const attackRoll = new Roll(`${totalAttackDice}d7 + ${levelBonus}`);
-    await attackRoll.evaluate({ async: true });
 
-    // Damage: 1d7 + flat + Physique(final) + manual damage bonus + active effect damage bonuses
-    const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
-    const damageStatic = SPELL.flatDamageBonus + charInfo.final + (damageBonus || 0) + effectDamageBonus;
+    // Build combined roll formula
+    let combinedRollParts = [`${totalAttackDice}d7 + ${levelBonus}`];
 
-    const baseDamageRoll = new Roll(`${SPELL.baseDamageFormula} + ${damageStatic}`);
-    await baseDamageRoll.evaluate({ async: true });
-
-    let foureauRoll = { total: 0, formula: '' };
-    if (foureau) {
-        foureauRoll = new Roll('1d6');
-        await foureauRoll.evaluate({ async: true });
+    // Add damage roll (only if not maximized)
+    if (currentStance !== 'offensif') {
+        const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
+        const totalDamageBonus = SPELL.flatDamageBonus + charInfo.final + (damageBonus || 0) + effectDamageBonus;
+        combinedRollParts.push(`${SPELL.baseDamageFormula} + ${totalDamageBonus}`);
     }
 
-    const totalDamage = baseDamageRoll.total + (foureauRoll.total || 0);
+    // Add fourreau roll if enabled (never maximized)
+    if (foureau) {
+        combinedRollParts.push('1d6');
+    }
 
-    // ===== CHAT MESSAGE =====
-    const manaText = actualManaCost === 0 ? '0 mana (Focus possible)' : `${actualManaCost} mana`;
+    // Create and evaluate combined roll
+    const combinedRoll = new Roll(`{${combinedRollParts.join(', ')}}`);
+    await combinedRoll.evaluate({ async: true });
 
-    const flavor = `
-        <div style="padding:10px; border-radius:8px; background: linear-gradient(135deg,#fff,#f7f7ff); border:1px solid #ddd;">
-            <h3 style="margin:0;">🗡️ ${SPELL.name}</h3>
-            <div style="font-size:0.9em; color:#444; margin-top:6px;">Lanceur: <strong>${actor.name}</strong> | Coût: <strong>${manaText}</strong></div>
-            <div style="margin-top:8px; font-size:0.95em;">
-                <div><strong>Attaque:</strong> ${attackRoll.total} (${attackRoll.formula})</div>
-                <div style="margin-top:6px;"><strong>Dégâts:</strong> ${totalDamage} <small style="color:#666;">(${baseDamageRoll.formula}${foureau ? ` + ${foureauRoll.formula}` : ''})</small></div>
-                <div style="margin-top:6px; color:#666; font-size:0.85em;">Dégâts détaillés: 1d7 + ${SPELL.flatDamageBonus} + Physique(${charInfo.final}) + bonus manuel(${damageBonus || 0}) + effets(${effectDamageBonus})${foureau ? ` + fourreau(${foureauRoll.total})` : ''}</div>
+    // Extract results
+    const attackResult = combinedRoll.terms[0].results[0];
+    let finalDamageResult = damageResult;
+    let foureauResult = null;
+
+    if (currentStance !== 'offensif') {
+        const damageRollResult = combinedRoll.terms[0].results[1];
+        const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
+        const totalDamageBonus = SPELL.flatDamageBonus + charInfo.final + (damageBonus || 0) + effectDamageBonus;
+        const damageFormulaString = `${SPELL.baseDamageFormula} + ${totalDamageBonus}`;
+        finalDamageResult = {
+            total: damageRollResult?.result ?? damageRollResult?.total ?? (typeof damageResult === 'object' ? damageResult.total : null),
+            formula: damageFormulaString,
+            result: damageRollResult?.result ?? damageRollResult?.total ?? (typeof damageResult === 'object' ? damageResult.total : null)
+        };
+
+        // Fourreau result extraction (if enabled)
+        if (foureau) {
+            foureauResult = combinedRoll.terms[0].results[2];
+        }
+    } else {
+        // In offensive stance, fourreau is the second result (if enabled)
+        if (foureau) {
+            foureauResult = combinedRoll.terms[0].results[1];
+        }
+    }
+
+    // Calculate total damage including maximized fourreau if applicable
+    let foureauDamage = 0;
+    if (foureau) {
+        if (currentStance === 'offensif') {
+            // Use maximized fourreau value
+            foureauDamage = maximizedFourreau.total;
+        } else {
+            // Use rolled fourreau value
+            foureauDamage = foureauResult ? foureauResult.result : 0;
+        }
+    }
+    const totalDamage = finalDamageResult.total + foureauDamage;
+
+    // ===== CREATE ENHANCED CHAT MESSAGE =====
+    function createChatFlavor() {
+        const actualManaCostDisplay = actualManaCost === 0 ? '0 mana (Focus possible)' : `${actualManaCost} mana`;
+        const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
+
+        const injuryInfo = charInfo.injuries > 0 ?
+            `<div style="color: #d32f2f; font-size: 0.9em; margin: 5px 0;">
+                <i>⚠️ Ajusté pour blessures: Base ${charInfo.base} - ${charInfo.injuries} = ${charInfo.injuryAdjusted}</i>
+            </div>` : '';
+
+        const effectInfo = (charInfo.effectBonus !== 0 || effectDamageBonus !== 0) ?
+            `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
+                ${charInfo.effectBonus !== 0 ? `<div>✨ Bonus de ${SPELL.characteristicDisplay}: +${charInfo.effectBonus}</div>` : ''}
+                ${effectDamageBonus !== 0 ? `<div>🗡️ Bonus de Dégâts: +${effectDamageBonus}</div>` : ''}
+            </div>` : '';
+
+        const bonusInfo = (damageBonus > 0 || attackBonus > 0) ?
+            `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
+                ${damageBonus > 0 ? `<div>🔧 Bonus Manuel de Dégâts: +${damageBonus}</div>` : ''}
+                ${attackBonus > 0 ? `<div>⚡ Bonus Manuel d'Attaque: +${attackBonus} dés</div>` : ''}
+            </div>` : '';
+
+        const foureauInfo = foureau ?
+            `<div style="color: #9c27b0; font-size: 0.9em; margin: 5px 0;">
+                <div>💖 Fourreau de la waifu activé: +${foureauDamage} dégâts${currentStance === 'offensif' ? ' (MAXIMISÉ)' : ''}</div>
+            </div>` : '';
+
+        const attackDisplay = `
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff8e1; border-radius: 4px;">
+                <div style="font-size: 1.4em; color: #f57f17; font-weight: bold;">🎯 ATTAQUE: ${attackResult.result}</div>
             </div>
-        </div>
-    `;
+        `;
 
-    // Post rolls to chat as a grouped message (attack roll with flavor and damage as separate message could be implemented but here we present both in one flavor)
-    await attackRoll.toMessage({
-        speaker: ChatMessage.getSpeaker({ token: caster }),
-        flavor: flavor,
-        rollMode: game.settings.get('core', 'rollMode')
-    });
+        const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
+        const damageDisplay = `
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                <div style="font-size: 1.1em; color: #424242; margin-bottom: 6px;"><strong>🗡️ ${SPELL.name}${stanceNote}</strong></div>
+                <div style="font-size: 1.4em; color: #1565c0; font-weight: bold;">💥 DÉGÂTS: ${totalDamage}</div>
+                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">
+                    (${SPELL.baseDamageFormula} + ${SPELL.flatDamageBonus} + ${SPELL.characteristicDisplay} + bonus${foureau ? ' + fourreau' : ''})
+                </div>
+                <div style="font-size: 0.8em; color: #666;">
+                    Base: ${finalDamageResult.total}${foureau ? ` + Fourreau: ${foureauDamage}` : ''}
+                </div>
+            </div>
+        `;
 
-    // Also post damage roll as a separate message for visibility
-    await baseDamageRoll.toMessage({
-        speaker: ChatMessage.getSpeaker({ token: caster }),
-        flavor: `<div><strong>${SPELL.name} — Dégâts</strong>${foureau ? ` + Fourreau(${foureauRoll.formula})` : ''}</div>`,
-        rollMode: game.settings.get('core', 'rollMode')
-    });
-
-    if (foureau) {
-        await ChatMessage.create({
-            speaker: ChatMessage.getSpeaker({ token: caster }),
-            content: `<div><strong>Fourreau de la waifu</strong> activé: ${foureauRoll.total} (${foureauRoll.formula})</div>`,
-            rollMode: game.settings.get('core', 'rollMode')
-        });
+        return `
+            <div style="background: linear-gradient(135deg, #f5f5f5, #fff8e1); padding: 12px; border-radius: 8px; border: 2px solid #8b4513; margin: 8px 0;">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; color: #424242;">🗡️ ${SPELL.name}</h3>
+                    <div style="margin-top: 3px; font-size: 0.9em;">
+                        <strong>Lanceur:</strong> ${actor.name} | <strong>Coût:</strong> ${actualManaCostDisplay}
+                        ${currentStance ? ` | <strong>Position:</strong> ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)}` : ''}
+                    </div>
+                </div>
+                ${injuryInfo}
+                ${effectInfo}
+                ${bonusInfo}
+                ${foureauInfo}
+                ${attackDisplay}
+                ${damageDisplay}
+            </div>
+        `;
     }
 
-    ui.notifications.info(`🗡️ ${SPELL.name} lancé ! Attaque: ${attackRoll.total}, Dégâts: ${totalDamage}.`);
+    // Send the combined roll to chat
+    await combinedRoll.toMessage({
+        speaker: ChatMessage.getSpeaker({ token: caster }),
+        flavor: createChatFlavor(),
+        rollMode: game.settings.get('core', 'rollMode')
+    });
+
+    // ===== FINAL NOTIFICATION =====
+    const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
+    const maximizedInfo = currentStance === 'offensif' ? ' MAXIMISÉ' : '';
+
+    ui.notifications.info(`🗡️ ${SPELL.name} lancé !${stanceInfo} Attaque: ${attackResult.result}, Dégâts: ${totalDamage}${maximizedInfo}.`);
 
 })();

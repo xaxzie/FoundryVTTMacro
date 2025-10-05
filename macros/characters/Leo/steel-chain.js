@@ -34,8 +34,8 @@
         hasNoDamage: true, // Pas de dégâts, juste un test de toucher
 
         animations: {
-            cast: "jb2a.chain.03.complete.blue",
-            chain: "jb2a.chain.02.complete.blue", // Chaîne persistante
+            cast: "jb2a.markers.chain.standard.complete.02.red",
+            chain: "jaamod.spells_effects.chain2", // Chaîne persistante
             sound: null
         },
 
@@ -244,9 +244,7 @@
             seq.effect()
                 .file(SPELL_CONFIG.animations.cast)
                 .atLocation(caster)
-                .scale(0.8)
-                .duration(2000)
-                .fadeOut(300);
+                .scale(0.7)
         }
 
         // Chaîne persistante si on a une cible valide
@@ -254,12 +252,13 @@
             seq.effect()
                 .file(SPELL_CONFIG.animations.chain)
                 .attachTo(caster)
-                .stretchTo(targetActor.token)
-                .scale(0.6)
+                .stretchTo(targetActor.token, { attachTo: true })
+                .scale(0.2)
                 .delay(1500)
                 .persist() // Animation persistante !
                 .name(`steel-chain-${caster.id}-${targetActor.token.id}`) // Nom unique pour la retrouver
-                .fadeIn(500);
+                .fadeIn(500)
+                .fadeOut(500);
         }
 
         await seq.play();
@@ -281,6 +280,7 @@
                 name: SPELL_CONFIG.chainEffect.name,
                 icon: SPELL_CONFIG.chainEffect.icon,
                 description: SPELL_CONFIG.chainEffect.description,
+                duration : { seconds : 86400},
                 flags: {
                     world: {
                         chainCaster: caster.id, // ID du lanceur pour retrouver la chaîne
@@ -356,7 +356,7 @@
         rollMode: game.settings.get("core", "rollMode")
     });
 
-    // ===== FINAL NOTIFICATION =====
+    // ===== FINAL NOTIFICATION == ===
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
 
     ui.notifications.info(`🔗 ${SPELL_CONFIG.name} lancée !${stanceInfo} Cible: ${targetName}. Attaque: ${attackRoll.total}. Chaîne active !`);
