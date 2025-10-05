@@ -29,9 +29,9 @@
             speedReduction: "1d3",
             speedReductionDice: 1,
             animations: {
-                cast: "jb2a.spike_growth.green",
-                impact: "jb2a.spikes.earth_brown.1x1.01",
-                area: "jb2a.template_circle.aura.01.complete.blue",
+                cast: "jb2a.aura_themed.01.outward.loop.metal.01.grey",
+                impact: "jb2a_patreon.impact.006.yellow",
+                area: "jaamod.traps.spikes_trap_d",
                 sound: null
             },
             targeting: {
@@ -48,10 +48,10 @@
             speedReduction: "2d3",
             speedReductionDice: 2,
             animations: {
-                cast: "jb2a.spike_growth.green",
-                impact: "jb2a.spikes.earth_brown.1x1.01",
-                electric: "jb2a.chain_lightning.secondary.blue",
-                area: "jb2a.template_circle.aura.01.complete.yellow",
+                cast: "jb2a.aura_themed.01.outward.loop.metal.01.grey",
+                impact: "jb2a_patreon.impact.006.yellow",
+                electric: "animated-spell-effects-cartoon.electricity.35",
+                area: "jaamod.traps.spikes_trap_d",
                 sound: null
             },
             targeting: {
@@ -311,19 +311,46 @@
     function findTargetsInArea(centerX, centerY, radius) {
         const targets = [];
         const gridSize = canvas.grid.size;
-        const radiusPixels = radius * gridSize;
+
+        // Convert center point to grid coordinates
+        const centerGridX = Math.floor(centerX / gridSize);
+        const centerGridY = Math.floor(centerY / gridSize);
 
         for (const token of canvas.tokens.placeables) {
             if (token === caster) continue; // Don't hit the caster
 
-            const tokenCenterX = token.x + (token.document.width * gridSize) / 2;
-            const tokenCenterY = token.y + (token.document.height * gridSize) / 2;
+            // Get token's grid position (top-left corner)
+            const tokenGridX = Math.floor(token.x / gridSize);
+            const tokenGridY = Math.floor(token.y / gridSize);
 
-            const distance = Math.sqrt(
-                Math.pow(tokenCenterX - centerX, 2) + Math.pow(tokenCenterY - centerY, 2)
-            );
+            // For tokens larger than 1x1, check all grid squares they occupy
+            const tokenWidth = token.document.width;
+            const tokenHeight = token.document.height;
 
-            if (distance <= radiusPixels) {
+            let tokenInRange = false;
+
+            // Check each grid square occupied by the token
+            for (let dx = 0; dx < tokenWidth; dx++) {
+                for (let dy = 0; dy < tokenHeight; dy++) {
+                    const tokenSquareX = tokenGridX + dx;
+                    const tokenSquareY = tokenGridY + dy;
+
+                    // Calculate grid distance (Chebyshev distance for D&D-style grids)
+                    // This treats diagonal movement as distance 1 (like D&D 5e)
+                    const gridDistance = Math.max(
+                        Math.abs(tokenSquareX - centerGridX),
+                        Math.abs(tokenSquareY - centerGridY)
+                    );
+
+                    if (gridDistance <= radius) {
+                        tokenInRange = true;
+                        break;
+                    }
+                }
+                if (tokenInRange) break;
+            }
+
+            if (tokenInRange) {
                 const targetActor = token.actor;
                 if (targetActor) {
                     const isOwner = targetActor.isOwner;
@@ -375,16 +402,7 @@
         }
     }
 
-    // ===== SPEED REDUCTION CALCULATION =====
-    async function calculateSpeedReduction() {
-        // Speed reduction is NEVER maximized, even in offensive stance
-        const speedRoll = new Roll(spellConfig.speedReduction);
-        await speedRoll.evaluate({ async: true });
-        return speedRoll;
-    }
-
     const damageResult = await calculateDamage();
-    const speedReductionResult = await calculateSpeedReduction();
 
     // ===== SEQUENCER ANIMATION =====
     async function playSpellAnimation() {
@@ -395,7 +413,7 @@
             sequence.effect()
                 .file(spellConfig.animations.cast)
                 .atLocation(caster)
-                .scale(0.8)
+                .scale(0.4)
                 .duration(1000)
                 .fadeOut(300);
         }
@@ -405,7 +423,7 @@
             sequence.effect()
                 .file(spellConfig.animations.area)
                 .atLocation(targetPoint)
-                .scale(BASE_CONFIG.areaRadius + 0.5)
+                .scale(BASE_CONFIG.areaRadius*0.8)
                 .delay(500)
                 .duration(2000)
                 .fadeOut(500);
@@ -463,24 +481,32 @@
     const combinedRoll = new Roll(`{${combinedRollParts.join(', ')}}`);
     await combinedRoll.evaluate({ async: true });
 
-    // Extract results
+    // Extract results (robustly). Grouped roll results may not expose a consistent
+    // `expression` property across Foundry versions/term types, so derive the
+    // human-readable formula from the original composed parts instead of
+    // relying on the term's `expression` to avoid "undefined" in the chat.
     const attackResult = combinedRoll.terms[0].results[0];
     let finalDamageResult = damageResult;
 
     if (currentStance !== 'offensif') {
         const damageRollResult = combinedRoll.terms[0].results[1];
+        // Use the composed formula string from combinedRollParts[1] (the damage part)
+        const damageFormulaString = combinedRollParts[1] ?? `${spellConfig.damageFormula} + ${characteristicInfo.final + damageBonus + getActiveEffectBonus(actor, "damage")}`;
         finalDamageResult = {
-            total: damageRollResult.result,
-            formula: damageRollResult.expression,
-            result: damageRollResult.result
+            total: damageRollResult?.result ?? damageRollResult?.total ?? (typeof damageResult === 'object' ? damageResult.total : null),
+            formula: damageFormulaString,
+            result: damageRollResult?.result ?? damageRollResult?.total ?? (typeof damageResult === 'object' ? damageResult.total : null)
         };
     }
 
-    const speedRollResult = combinedRoll.terms[0].results[currentStance !== 'offensif' ? 2 : 1];
+    const speedIndex = currentStance !== 'offensif' ? 2 : 1;
+    const speedRollResult = combinedRoll.terms[0].results[speedIndex];
+    const speedFormulaString = combinedRollParts[speedIndex] ?? spellConfig.speedReduction;
+    const speedTotal = speedRollResult?.result ?? speedRollResult?.total ?? 0;
     const finalSpeedReduction = {
-        total: speedRollResult.result,
-        formula: speedRollResult.expression,
-        result: speedRollResult.result
+        total: speedTotal,
+        formula: speedFormulaString,
+        result: speedTotal
     };
 
     // ===== APPLY SPEED REDUCTION EFFECT =====
@@ -489,7 +515,16 @@
             // Check if target already has a slowdown effect
             const existingEffect = target.actor.effects.find(e => e.name === "Ralentissement");
             if (existingEffect) {
-                console.log(`[DEBUG] Target ${target.name} already has slowdown effect, skipping`);
+                // Increase existing slowdown effect
+                const currentSlowdown = existingEffect.flags?.statuscounter?.value || 0;
+                const newSlowdown = currentSlowdown + finalSpeedReduction.total;
+
+                await existingEffect.update({
+                    "flags.statuscounter.value": newSlowdown,
+                    "description": `Ralentissement par Empalement (-${newSlowdown} cases de vitesse)`
+                });
+
+                console.log(`[DEBUG] Increased slowdown effect on ${target.name}: ${currentSlowdown} + ${finalSpeedReduction.total} = ${newSlowdown} speed reduction`);
                 continue;
             }
 
@@ -498,6 +533,7 @@
                 name: "Ralentissement",
                 icon: "icons/svg/downgrade.svg", // Native FoundryVTT SVG icon
                 description: `Ralentissement par Empalement (-${finalSpeedReduction.total} cases de vitesse)`,
+                duration: { seconds: 86400 },
                 flags: {
                     statuscounter: {
                         value: finalSpeedReduction.total

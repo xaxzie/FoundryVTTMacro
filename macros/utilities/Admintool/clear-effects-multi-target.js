@@ -1,19 +1,16 @@
 /**
  * Clear All Effects - Multi-Target Admin Tool
  *
- * Admin tool that allows Portal selection of multiple targets and removes
- * all their active effects and statuses when selection is complete.
+ * Admin tool that removes all active effects and statuses from selected tokens.
  *
  * Features:
- * - Portal crosshair targeting for multiple targets
- * - Selection continues until user presses Escape
- * - Detects all actors in selected areas
+ * - Works with currently controlled/selected tokens
  * - Removes all Active Effects from selected targets
  * - Shows confirmation dialog before clearing
  * - Provides detailed feedback on operations
  * - GM-only tool for administrative purposes
  *
- * Usage: Run as GM, use crosshair to select targets, press Escape when done
+ * Usage: Run as GM, select tokens on the canvas, then run this macro
  */
 
 (async () => {
@@ -23,53 +20,13 @@
         return;
     }
 
-    // ===== PORTAL MODULE CHECK =====
-    if (typeof portal === "undefined") {
-        ui.notifications.error("⚠️ Le module Portal est requis pour cette macro !");
+    // ===== TOKEN SELECTION CHECK =====
+    if (!canvas.tokens.controlled.length) {
+        ui.notifications.error("⚠️ Veuillez d'abord sélectionner les tokens dont vous voulez supprimer les effets !");
         return;
     }
 
-    // ===== CONFIGURATION =====
-    const CONFIG = {
-        targeting: {
-            range: 500,
-            color: "#ff4444",
-            width: 2,
-            texture: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Red_400x400.webm"
-        },
-        tolerance: 50, // Distance tolerance for detecting actors at target locations
-        maxSelections: 20 // Safety limit to prevent infinite selections
-    };
-
     // ===== UTILITY FUNCTIONS =====
-
-    /**
-     * Detects actors at a specific location with tolerance
-     */
-    function getActorAtLocation(targetX, targetY, tolerance = 50) {
-        for (const token of canvas.tokens.placeables) {
-            if (!token.actor) continue;
-
-            const tokenX = token.center.x;
-            const tokenY = token.center.y;
-            const distance = Math.sqrt(Math.pow(targetX - tokenX, 2) + Math.pow(targetY - tokenY, 2));
-
-            if (distance <= tolerance) {
-                return token;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Creates Portal instance for target selection
-     */
-    function createTargetingPortal() {
-        return new Portal()
-            .color(CONFIG.targeting.color)
-            .texture(CONFIG.targeting.texture)
-            .width(CONFIG.targeting.width);
-    }
 
     /**
      * Counts total active effects on an actor
@@ -87,7 +44,7 @@
         }
 
         try {
-            const effectIds = Array.from(actor.effects.keys());
+            const effectIds = actor.effects.contents.map(effect => effect.id);
             await actor.deleteEmbeddedDocuments("ActiveEffect", effectIds);
             return { success: true, count: effectIds.length };
         } catch (error) {
@@ -96,61 +53,15 @@
         }
     }
 
-    // ===== MULTI-TARGET SELECTION =====
-    ui.notifications.info("🎯 Sélection multi-cibles activée ! Cliquez sur les cibles, Échap pour terminer.");
+    // ===== GET SELECTED TARGETS =====
+    const selectedTargets = canvas.tokens.controlled.filter(token => token.actor);
 
-    const selectedTargets = [];
-    const targetLocations = [];
-    let selectionCount = 0;
-
-    try {
-        while (selectionCount < CONFIG.maxSelections) {
-            const targetPortal = createTargetingPortal();
-            const targetLocation = await targetPortal.pick();
-
-            // User pressed Escape or cancelled
-            if (!targetLocation) {
-                console.log(`[DEBUG] Selection cancelled or completed. Total selections: ${selectionCount}`);
-                break;
-            }
-
-            selectionCount++;
-            targetLocations.push({ x: targetLocation.x, y: targetLocation.y });
-
-            // Check for actor at this location
-            const targetToken = getActorAtLocation(targetLocation.x, targetLocation.y, CONFIG.tolerance);
-
-            if (targetToken && targetToken.actor) {
-                // Avoid duplicates
-                if (!selectedTargets.find(t => t.id === targetToken.id)) {
-                    selectedTargets.push(targetToken);
-                    console.log(`[DEBUG] Added target: ${targetToken.name}`);
-
-                    // Visual feedback
-                    ui.notifications.info(`🎯 Cible ajoutée: ${targetToken.name} (${selectedTargets.length} total)`);
-                } else {
-                    ui.notifications.warn(`⚠️ ${targetToken.name} déjà sélectionné !`);
-                }
-            } else {
-                ui.notifications.warn("⚠️ Aucun token trouvé à cet emplacement !");
-            }
-        }
-
-        if (selectionCount >= CONFIG.maxSelections) {
-            ui.notifications.warn(`⚠️ Limite de sélections atteinte (${CONFIG.maxSelections}) !`);
-        }
-
-    } catch (error) {
-        console.error("[ERROR] Portal selection failed:", error);
-        ui.notifications.error("❌ Erreur lors de la sélection Portal !");
-        return;
-    }
-
-    // ===== VALIDATION AND CONFIRMATION =====
     if (selectedTargets.length === 0) {
-        ui.notifications.info("ℹ️ Aucune cible sélectionnée. Opération annulée.");
+        ui.notifications.error("⚠️ Aucun token valide sélectionné ! Assurez-vous que les tokens ont des acteurs associés.");
         return;
     }
+
+    ui.notifications.info(`🎯 ${selectedTargets.length} token(s) sélectionné(s) pour suppression des effets.`);
 
     // Count total effects to be removed
     let totalEffects = 0;
@@ -278,7 +189,7 @@
             ` : ''}
 
             <div style="margin-top: 15px; padding: 10px; background: rgba(158, 158, 158, 0.1); border-radius: 5px; font-size: 0.9em;">
-                <strong>🎯 Outil Admin:</strong> Effacement multi-cibles
+                <strong>🎯 Outil Admin:</strong> Effacement des effets sur tokens sélectionnés
                 <br><strong>🕒 Exécuté:</strong> ${new Date().toLocaleString()}
                 <br><strong>👤 Par:</strong> ${game.user.name}
             </div>
