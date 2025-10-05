@@ -262,47 +262,86 @@
     // ===== ACTOR DETECTION UTILITY =====
     function getActorAtLocation(targetX, targetY) {
         console.log(`[DEBUG] Recherche d'acteur à la position: x=${targetX}, y=${targetY}`);
+        const gridSize = canvas.grid.size;
 
-        const tolerance = canvas.grid.size;
-        console.log(`[DEBUG] Tolérance de détection: ${tolerance}`);
+        // Check if we have a grid
+        if (canvas.grid.type !== 0) {
+            // Grid-based detection: convert target coordinates to grid coordinates
+            const targetGridX = Math.floor(targetX / gridSize);
+            const targetGridY = Math.floor(targetY / gridSize);
 
-        const tokensAtLocation = canvas.tokens.placeables.filter(token => {
-            const tokenCenterX = token.x + (token.document.width * canvas.grid.size) / 2;
-            const tokenCenterY = token.y + (token.document.height * canvas.grid.size) / 2;
+            const tokensAtLocation = canvas.tokens.placeables.filter(token => {
+                // First check if the token is visible to the current user
+                const isOwner = token.actor?.isOwner;
+                const isVisible = token.visible;
+                const isGM = game.user.isGM;
 
-            const tokenDistance = Math.sqrt(
-                Math.pow(tokenCenterX - targetX, 2) + Math.pow(tokenCenterY - targetY, 2)
-            );
-            return tokenDistance <= tolerance;
-        });
+                // Skip tokens that aren't visible to the current user
+                if (!isOwner && !isVisible && !isGM) {
+                    return false;
+                }
 
-        if (tokensAtLocation.length === 0) {
-            return null;
-        }
+                // Get token's grid position (top-left corner)
+                const tokenGridX = Math.floor(token.x / gridSize);
+                const tokenGridY = Math.floor(token.y / gridSize);
 
-        const targetToken = tokensAtLocation[0];
-        const targetActor = targetToken.actor;
+                // Check if any grid square occupied by the token matches the target grid square
+                const tokenWidth = token.document.width;
+                const tokenHeight = token.document.height;
 
-        if (!targetActor) {
-            return null;
-        }
+                for (let dx = 0; dx < tokenWidth; dx++) {
+                    for (let dy = 0; dy < tokenHeight; dy++) {
+                        const tokenSquareX = tokenGridX + dx;
+                        const tokenSquareY = tokenGridY + dy;
 
-        const isOwner = targetActor.isOwner;
-        const isVisible = targetToken.visible;
-        const isGM = game.user.isGM;
+                        if (tokenSquareX === targetGridX && tokenSquareY === targetGridY) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            });
 
-        if (isOwner || isVisible || isGM) {
-            return {
-                name: targetActor.name,
-                token: targetToken,
-                actor: targetActor
-            };
+            if (tokensAtLocation.length === 0) return null;
+
+            const targetToken = tokensAtLocation[0];
+            const targetActor = targetToken.actor;
+            if (!targetActor) return null;
+
+            // Return appropriate name based on visibility (tokens are already filtered for visibility)
+            return { name: targetActor.name, token: targetToken, actor: targetActor };
         } else {
-            return {
-                name: "cible",
-                token: targetToken,
-                actor: targetActor
-            };
+            // No grid: use circular tolerance detection (original behavior)
+            const tolerance = gridSize;
+            console.log(`[DEBUG] Tolérance de détection: ${tolerance}`);
+
+            const tokensAtLocation = canvas.tokens.placeables.filter(token => {
+                // First check if the token is visible to the current user
+                const isOwner = token.actor?.isOwner;
+                const isVisible = token.visible;
+                const isGM = game.user.isGM;
+
+                // Skip tokens that aren't visible to the current user
+                if (!isOwner && !isVisible && !isGM) {
+                    return false;
+                }
+
+                const tokenCenterX = token.x + (token.document.width * gridSize) / 2;
+                const tokenCenterY = token.y + (token.document.height * gridSize) / 2;
+                const tokenDistance = Math.sqrt(
+                    Math.pow(tokenCenterX - targetX, 2) + Math.pow(tokenCenterY - targetY, 2)
+                );
+                return tokenDistance <= tolerance;
+            });
+
+            if (tokensAtLocation.length === 0) return null;
+
+            const targetToken = tokensAtLocation[0];
+            const targetActor = targetToken.actor;
+            if (!targetActor) return null;
+
+            // Return appropriate name based on visibility (tokens are already filtered for visibility)
+            return { name: targetActor.name, token: targetToken, actor: targetActor };
         }
     }
 

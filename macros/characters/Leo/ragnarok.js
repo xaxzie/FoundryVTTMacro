@@ -35,16 +35,16 @@
         halfDamageOnDodge: true, // Special mechanic
 
         animations: {
-            cast: "jb2a.cast_generic.01.orange.0",
+            cast: "jb2a_patreon.divine_smite.caster.dark_red",
             weaponProjectiles: [
-                "jb2a.sword.melee.01.white.4",
-                "jb2a.dagger.melee.01.white.4",
-                "jb2a.handaxe.melee.01.white.4",
-                "jb2a.spear.melee.01.white.4",
-                "jb2a.mace.melee.01.white.4"
+                "jb2a_patreon.javelin.throw",
+                "jb2a_patreon.dagger.throw.02.white",
+                "jb2a_patreon.greatsword.throw",
+                "jb2a_patreon.kunai.throw.01",
+                "jb2a.throwable.launch.missile.01.blue"
             ],
-            convergence: "jb2a.impact.ground_crack.orange.02",
-            finalImpact: "jb2a.explosion.07.orange",
+            convergence: "jb2a.ground_cracks.orange.02",
+            finalImpact: "jb2a_patreon.explosion.orange.1",
             sound: null
         },
 
@@ -77,38 +77,30 @@
 
     // ===== UTILITY FUNCTIONS =====
     function getCurrentStance(actor) {
-        return actor.getFlag("world", "combatStance") || "normal";
+        return actor?.effects?.contents?.find(e =>
+            ['focus', 'offensif', 'defensif'].includes(e.name?.toLowerCase())
+        )?.name?.toLowerCase() || null;
     }
 
-    // Active effect bonuses (only for attack, not damage due to spell restriction)
+    // Active effect bonuses (Ragnarok excludes ALL effect bonuses due to spell restriction)
     function getActiveEffectBonus(actor, flagKey) {
-        let total = 0;
-        for (const effect of actor.effects) {
-            if (effect.flags?.[flagKey]?.value) {
-                total += effect.flags[flagKey].value;
-            }
-        }
-        return total;
+        // Ragnarok excludes all effect bonuses except stance effects
+        console.log(`[DEBUG] Ragnarok excludes all effect bonuses for ${flagKey}`);
+        return 0;
     }
 
     function getCharacteristicValue(actor, characteristic) {
-        const baseValue = actor.system?.abilities?.[characteristic]?.value ||
-                         actor.system?.[characteristic] || 0;
-
-        // Detect injuries effect
-        const injuryEffect = actor.effects.find(e => e.name === "Blessures");
-        let injuryStacks = 0;
-        if (injuryEffect?.flags?.statuscounter?.value) {
-            injuryStacks = injuryEffect.flags.statuscounter.value;
+        const attr = actor.system?.attributes?.[characteristic];
+        if (!attr) {
+            throw new Error(`Caractéristique ${characteristic} non trouvée ! Veuillez d'abord exécuter l'utilitaire de Configuration des Statistiques de Personnage.`);
         }
-
-        const adjustedValue = Math.max(0, baseValue - injuryStacks);
-
-        return {
-            base: baseValue,
-            injuries: injuryStacks,
-            final: adjustedValue
-        };
+        const base = attr.value || 3;
+        const injuryEffect = actor?.effects?.contents?.find(e => e.name?.toLowerCase() === 'blessures');
+        const injuryStacks = injuryEffect?.flags?.statuscounter?.value || 0;
+        const effectBonus = getActiveEffectBonus(actor, characteristic);
+        const injuryAdjusted = Math.max(1, base - injuryStacks);
+        const final = Math.max(1, injuryAdjusted + effectBonus);
+        return { base, injuries: injuryStacks, effectBonus, injuryAdjusted, final };
     }
 
     function calculateManaCost(baseCost, stance, isFocusable) {
@@ -252,12 +244,69 @@
 
     // Find target actor
     function getActorAtLocation(x, y, tolerance = 50) {
-        for (const token of canvas.tokens.placeables) {
-            if (!token.actor) continue;
-            const distance = Math.sqrt(Math.pow(x - token.center.x, 2) + Math.pow(y - token.center.y, 2));
-            if (distance <= tolerance) return token;
+        const gridSize = canvas.grid.size;
+
+        // Check if we have a grid
+        if (canvas.grid.type !== 0) {
+            // Grid-based detection: convert target coordinates to grid coordinates
+            const targetGridX = Math.floor(x / gridSize);
+            const targetGridY = Math.floor(y / gridSize);
+
+            const tokensAtLocation = canvas.tokens.placeables.filter(token => {
+                // First check if the token is visible to the current user
+                const isOwner = token.actor?.isOwner;
+                const isVisible = token.visible;
+                const isGM = game.user.isGM;
+
+                // Skip tokens that aren't visible to the current user
+                if (!isOwner && !isVisible && !isGM) {
+                    return false;
+                }
+
+                // Get token's grid position (top-left corner)
+                const tokenGridX = Math.floor(token.x / gridSize);
+                const tokenGridY = Math.floor(token.y / gridSize);
+
+                // Check if any grid square occupied by the token matches the target grid square
+                const tokenWidth = token.document.width;
+                const tokenHeight = token.document.height;
+
+                for (let dx = 0; dx < tokenWidth; dx++) {
+                    for (let dy = 0; dy < tokenHeight; dy++) {
+                        const tokenSquareX = tokenGridX + dx;
+                        const tokenSquareY = tokenGridY + dy;
+
+                        if (tokenSquareX === targetGridX && tokenSquareY === targetGridY) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            });
+
+            if (tokensAtLocation.length === 0) return null;
+            return tokensAtLocation[0];
+        } else {
+            // No grid: use circular tolerance detection (original behavior with visibility check)
+            const tokensAtLocation = canvas.tokens.placeables.filter(token => {
+                // First check if the token is visible to the current user
+                const isOwner = token.actor?.isOwner;
+                const isVisible = token.visible;
+                const isGM = game.user.isGM;
+
+                // Skip tokens that aren't visible to the current user
+                if (!isOwner && !isVisible && !isGM) {
+                    return false;
+                }
+
+                if (!token.actor) return false;
+                const distance = Math.sqrt(Math.pow(x - token.center.x, 2) + Math.pow(y - token.center.y, 2));
+                return distance <= tolerance;
+            });
+
+            if (tokensAtLocation.length === 0) return null;
+            return tokensAtLocation[0];
         }
-        return null;
     }
 
     const targetToken = getActorAtLocation(target.x, target.y);
@@ -266,23 +315,42 @@
     // ===== DAMAGE CALCULATION =====
     async function calculateDamage() {
         // Multiple dice for weapons + flat bonus from Physique*2
-        const weaponDamageFormula = `${weaponCount}d6`;
         const physiqueBonus = physiqueInfo.final * 2;
         const totalBonus = physiqueBonus + damageBonus;
 
-        const fullFormula = totalBonus > 0 ?
-            `${weaponDamageFormula} + ${totalBonus}` :
-            weaponDamageFormula;
+        if (currentStance === 'offensif') {
+            // Offensive stance: damage is maximized
+            const diceMax = weaponCount * 6; // Each d6 maximized to 6
+            const maxDamage = diceMax + totalBonus;
 
-        const roll = new Roll(fullFormula);
-        await roll.evaluate({ async: true });
+            console.log(`[DEBUG] Maximized damage: ${maxDamage} (${diceMax} + ${totalBonus})`);
 
-        return {
-            roll: roll,
-            total: roll.total,
-            formula: fullFormula,
-            halfDamage: Math.floor(roll.total / 2)
-        };
+            return {
+                total: maxDamage,
+                formula: `${diceMax} + ${totalBonus}`,
+                result: maxDamage,
+                halfDamage: Math.floor(maxDamage / 2),
+                isMaximized: true
+            };
+        } else {
+            // Normal dice rolling
+            const weaponDamageFormula = `${weaponCount}d6`;
+            const fullFormula = totalBonus > 0 ?
+                `${weaponDamageFormula} + ${totalBonus}` :
+                weaponDamageFormula;
+
+            const damage = new Roll(fullFormula);
+            await damage.evaluate({ async: true });
+
+            console.log(`[DEBUG] Rolled damage: ${damage.total} (formula: ${damage.formula})`);
+
+            return {
+                roll: damage,
+                total: damage.total,
+                formula: fullFormula,
+                halfDamage: Math.floor(damage.total / 2)
+            };
+        }
     }
 
     // ===== RAGNAROK ANIMATION =====
@@ -290,15 +358,14 @@
         const sequence = new Sequence();
         const gridSize = canvas.grid.size;
 
-        // Cast effect on caster
+        // Cast effect on caster - starts immediately
         sequence
             .effect()
             .file(SPELL_CONFIG.animations.cast)
             .attachTo(caster)
             .scale(1.2)
-            .duration(1500);
 
-        // Generate weapon launch positions and timings
+        // Generate weapon launch positions
         const weaponLaunches = [];
         for (let i = 0; i < weaponCount; i++) {
             // Random angle (360 degrees)
@@ -312,9 +379,6 @@
             const launchX = target.x + Math.cos(angle) * distance;
             const launchY = target.y + Math.sin(angle) * distance;
 
-            // Random timing within 2 seconds
-            const delay = Math.random() * SPELL_CONFIG.weaponLimits.animationDuration;
-
             // Random weapon type
             const weaponAsset = SPELL_CONFIG.animations.weaponProjectiles[
                 Math.floor(Math.random() * SPELL_CONFIG.animations.weaponProjectiles.length)
@@ -324,44 +388,46 @@
                 weapon: weaponAsset,
                 startX: launchX,
                 startY: launchY,
-                delay: delay,
                 index: i
             });
         }
 
-        // Sort by delay to ensure proper sequencing
-        weaponLaunches.sort((a, b) => a.delay - b.delay);
+        // All weapon projectiles start after 3 seconds, with small random delays between them
+        let cumulativeDelay = 3000; // Start after 3 seconds
+        for (let i = 0; i < weaponLaunches.length; i++) {
+            const launch = weaponLaunches[i];
 
-        // Add each weapon projectile
-        for (const launch of weaponLaunches) {
+            // Add random delay between 20ms and 100ms for each weapon after the first
+            if (i > 0) {
+                cumulativeDelay += Math.random() * 80 + 20; // 20-100ms
+            }
+
             sequence
                 .effect()
                 .file(launch.weapon)
                 .atLocation({ x: launch.startX, y: launch.startY })
                 .stretchTo(target)
-                .scale(0.7)
-                .delay(launch.delay)
-                .duration(800)
-                .waitUntilFinished(-600); // Overlap for dramatic effect
+                .scale(1)
+                .delay(cumulativeDelay)
         }
 
-        // Convergence effect at target
+        // Convergence effect at target - starts after all weapons are launched
+        const convergenceDelay = cumulativeDelay + 1000; // A bit after the last weapon
         sequence
             .effect()
             .file(SPELL_CONFIG.animations.convergence)
+            .belowTokens()
             .atLocation(target)
-            .scale(1.5)
-            .duration(1000)
-            .delay(SPELL_CONFIG.weaponLimits.animationDuration);
+            .scale(0.5)
+            .delay(convergenceDelay)
 
-        // Final massive impact
+        // Final massive impact - after convergence
         sequence
             .effect()
             .file(SPELL_CONFIG.animations.finalImpact)
             .atLocation(target)
-            .scale(2.0)
-            .duration(2000)
-            .delay(SPELL_CONFIG.weaponLimits.animationDuration + 500);
+            .scale(1.0)
+            .delay(convergenceDelay)
 
         return sequence.play();
     }
@@ -371,7 +437,7 @@
 
     // ===== ATTACK RESOLUTION =====
     const totalAttackDice = volonteInfo.final + attackBonus;
-    const attackEffectBonus = getActiveEffectBonus(actor, SPELL_CONFIG.characteristic);
+    const attackEffectBonus = getActiveEffectBonus(actor, SPELL_CONFIG.characteristic); // Always 0 for Ragnarok
     const finalAttackDice = totalAttackDice + attackEffectBonus;
     const levelBonus = 2 * SPELL_CONFIG.spellLevel;
 
@@ -392,20 +458,34 @@
 
     if (currentStance !== 'offensif') {
         const damageRollResult = combinedRoll.terms[0].results[1];
+        const damageFormulaString = combinedRollParts[1] ?? damageResult.formula;
         finalDamageResult = {
-            total: damageRollResult.result,
-            formula: damageRollResult.expression,
-            result: damageRollResult.result,
-            halfDamage: Math.floor(damageRollResult.result / 2)
+            total: damageRollResult?.result ?? damageRollResult?.total ?? damageResult.total,
+            formula: damageFormulaString,
+            result: damageRollResult?.result ?? damageRollResult?.total ?? damageResult.total,
+            halfDamage: Math.floor((damageRollResult?.result ?? damageRollResult?.total ?? damageResult.total) / 2)
         };
-    } else {
-        // Recalculate half damage for offensive stance
-        finalDamageResult.halfDamage = Math.floor(finalDamageResult.total / 2);
     }
 
     // ===== CREATE ENHANCED CHAT MESSAGE =====
     function createChatFlavor() {
         const stanceText = currentStance === 'offensif' ? ' (Position Offensive - Dégâts maximisés)' : '';
+
+        const injuryInfo = (volonteInfo.injuries > 0 || physiqueInfo.injuries > 0) ?
+            `<div style="color: #d32f2f; font-size: 0.9em; margin: 5px 0;">
+                <i>⚠️ Ajusté pour blessures: Volonté ${volonteInfo.base} - ${volonteInfo.injuries} = ${volonteInfo.injuryAdjusted}${physiqueInfo.injuries > 0 ? `, Physique ${physiqueInfo.base} - ${physiqueInfo.injuries} = ${physiqueInfo.injuryAdjusted}` : ''}</i>
+            </div>` : '';
+
+        const effectInfo = `<div style="color: #d32f2f; font-size: 0.9em; margin: 5px 0;">
+                <div>🚫 <strong>Tous les bonus d'effets sont exclus par Ragnarok</strong></div>
+                <div><em>Seules les positions de combat (Focus/Offensif/Défensif) fonctionnent</em></div>
+            </div>`;
+
+        const bonusInfo = (damageBonus > 0 || attackBonus > 0) ?
+            `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
+                ${damageBonus > 0 ? `<div>🔧 Bonus Manuel de Dégâts: +${damageBonus}</div>` : ''}
+                ${attackBonus > 0 ? `<div>⚡ Bonus Manuel d'Attaque: +${attackBonus} dés</div>` : ''}
+            </div>` : '';
 
         return `
             <div style="border: 3px solid #ff4500; border-radius: 15px; padding: 20px; background: linear-gradient(135deg, #2c1810, #8b0000); color: #ffffff;">
@@ -414,12 +494,15 @@
                 </h3>
 
                 <div style="margin: 15px 0; padding: 10px; background: rgba(255, 69, 0, 0.2); border-radius: 8px;">
-                    <p><strong>🧙‍♂️ Invocateur:</strong> ${actor.name}</p>
+                    <p><strong>🧙‍♂️ Invocateur:</strong> ${actor.name}${currentStance ? ` | <strong>Position:</strong> ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)}` : ''}</p>
                     <p><strong>🎯 Cible:</strong> ${targetName}</p>
                     <p><strong>⚔️ Armes projetées:</strong> ${weaponCount}</p>
                     <p><strong>💫 Coût:</strong> ${actualManaCost} mana ${currentStance === 'focus' ? '(Demi-focalisable)' : ''}</p>
                     <p><strong>🎲 Caractéristique:</strong> ${SPELL_CONFIG.characteristicDisplay} (${volonteInfo.final} + ${attackEffectBonus} effets)</p>
                 </div>
+                ${injuryInfo}
+                ${effectInfo}
+                ${bonusInfo}
 
                 <div style="margin: 15px 0; padding: 15px; background: rgba(139, 0, 0, 0.3); border-radius: 8px; border: 2px solid #ff4500;">
                     <h4 style="color: #ff6347; margin-top: 0; text-shadow: 1px 1px 2px #000000;">💥 RÉSULTATS DE L'APOCALYPSE</h4>
@@ -431,25 +514,23 @@
                         <strong>⚡ Mécaniques spéciales :</strong>
                         <br>• ${weaponCount} armes convergent depuis toutes les directions
                         <br>• Esquive = dégâts réduits de moitié (au lieu d'annulés)
-                        <br>• Bonus d'effet exclus des dégâts (Volonté uniquement pour l'attaque)
+                        <br>• <strong>TOUS les bonus d'effets sont exclus</strong> (seules les positions de combat fonctionnent)
                     </div>
                 </div>
 
                 <div style="margin-top: 15px; padding: 10px; background: rgba(0, 0, 0, 0.4); border-radius: 5px; font-size: 0.9em;">
                     <strong>🌟 Sort Ultime:</strong> Ragnarok - Déluge d'armes magiques
-                    <br><strong>🕒 Déchaîné:</strong> ${new Date().toLocaleString()}
                     <br><strong>💥 Formule:</strong> ${weaponCount}d6 + Physique×2 + bonus manuels
                 </div>
             </div>
         `;
     }
 
-    await ChatMessage.create({
-        user: game.user.id,
+    // Send the combined roll to chat with visual dice
+    await combinedRoll.toMessage({
         speaker: ChatMessage.getSpeaker({ token: caster }),
-        content: createChatFlavor(),
-        type: CONST.CHAT_MESSAGE_TYPES.OTHER,
-        rollMode: game.settings.get("core", "rollMode")
+        flavor: createChatFlavor(),
+        rollMode: game.settings.get('core', 'rollMode')
     });
 
     console.log("[RAGNAROK] Ultimate spell completed:", {

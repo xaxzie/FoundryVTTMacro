@@ -494,6 +494,16 @@
                 const tokensAtLocation = canvas.tokens.placeables.filter(token => {
                     if (token === origin) return false; // Don't hit the caster
 
+                    // Check visibility before processing distance
+                    const isOwner = token.actor?.isOwner;
+                    const isVisible = token.visible;
+                    const isGM = game.user.isGM;
+
+                    // Skip tokens that aren't visible to the current user
+                    if (!isOwner && !isVisible && !isGM) {
+                        return false;
+                    }
+
                     const tokenCenterX = token.x + (token.document.width * gridSize) / 2;
                     const tokenCenterY = token.y + (token.document.height * gridSize) / 2;
 
@@ -509,12 +519,9 @@
                     if (!targets.find(t => t.token.id === token.id)) {
                         const targetActor = token.actor;
                         if (targetActor) {
-                            const isOwner = targetActor.isOwner;
-                            const isVisible = token.visible;
-                            const isGM = game.user.isGM;
-
+                            // Tokens are already filtered for visibility, so just use the name
                             targets.push({
-                                name: (isOwner || isVisible || isGM) ? targetActor.name : "cible",
+                                name: targetActor.name,
                                 token: token,
                                 actor: targetActor,
                                 position: { x: checkX, y: checkY }
@@ -603,7 +610,7 @@
                 const baseCases = Math.max(1, spellConfig.lineWidth);
                 const widthMultiplier = (baseCases + extraCases) / baseCases;
                 const baseScale = 1.2; // baseline electric scale used previously
-                const chainWidthScale = baseScale * widthMultiplier * 2;
+                const chainWidthScale = baseScale * widthMultiplier;
 
                 sequence.effect()
                     .file(extra)

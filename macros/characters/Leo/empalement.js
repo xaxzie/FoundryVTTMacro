@@ -357,11 +357,14 @@
                     const isVisible = token.visible;
                     const isGM = game.user.isGM;
 
-                    targets.push({
-                        name: (isOwner || isVisible || isGM) ? targetActor.name : "cible",
-                        token: token,
-                        actor: targetActor
-                    });
+                    // Only add targets that are visible to the current user
+                    if (isOwner || isVisible || isGM) {
+                        targets.push({
+                            name: targetActor.name,
+                            token: token,
+                            actor: targetActor
+                        });
+                    }
                 }
             }
         }

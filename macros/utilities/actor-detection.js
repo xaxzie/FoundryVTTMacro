@@ -15,69 +15,120 @@
  * @returns {Object|null} Actor info object or null if none found
  */
 function getActorAtLocation(targetX, targetY, tolerance = null) {
+    const gridSize = canvas.grid.size;
     if (!tolerance) {
-        tolerance = canvas.grid.size; // Full grid size tolerance
+        tolerance = gridSize; // Full grid size tolerance
     }
 
     console.log(`[DEBUG] Recherche d'acteur à la position: x=${targetX}, y=${targetY}`);
-    console.log(`[DEBUG] Tolérance de détection: ${tolerance} (taille de grille: ${canvas.grid.size})`);
+    console.log(`[DEBUG] Tolérance de détection: ${tolerance} (taille de grille: ${gridSize})`);
 
-    // Find tokens at or near the target location
-    const tokensAtLocation = canvas.tokens.placeables.filter(token => {
-        // Calculate token center coordinates (token.x and token.y are top-left corner)
-        // Most tokens are 1x1 grid unit, so center is at +50 pixels (half grid size)
-        const tokenCenterX = token.x + (token.document.width * canvas.grid.size) / 2;
-        const tokenCenterY = token.y + (token.document.height * canvas.grid.size) / 2;
+    // Check if we have a grid
+    if (canvas.grid.type !== 0) {
+        // Grid-based detection: convert target coordinates to grid coordinates
+        const targetGridX = Math.floor(targetX / gridSize);
+        const targetGridY = Math.floor(targetY / gridSize);
 
-        const tokenDistance = Math.sqrt(
-            Math.pow(tokenCenterX - targetX, 2) + Math.pow(tokenCenterY - targetY, 2)
-        );
+        const tokensAtLocation = canvas.tokens.placeables.filter(token => {
+            // First check if the token is visible to the current user
+            const isOwner = token.actor?.isOwner;
+            const isVisible = token.visible;
+            const isGM = game.user.isGM;
 
-        console.log(`[DEBUG] Token "${token.name}" à distance ${tokenDistance} (centre: x=${tokenCenterX}, y=${tokenCenterY}, coin: x=${token.x}, y=${token.y}, taille: ${token.document.width}x${token.document.height} grid)`);
-        return tokenDistance <= tolerance;
-    });
+            // Skip tokens that aren't visible to the current user
+            if (!isOwner && !isVisible && !isGM) {
+                return false;
+            }
 
-    console.log(`[DEBUG] Nombre de tokens trouvés dans la zone: ${tokensAtLocation.length}`);
+            // Get token's grid position (top-left corner)
+            const tokenGridX = Math.floor(token.x / gridSize);
+            const tokenGridY = Math.floor(token.y / gridSize);
 
-    if (tokensAtLocation.length === 0) {
-        console.log(`[DEBUG] Aucun token trouvé à la position cible`);
-        return null;
-    }
+            // Check if any grid square occupied by the token matches the target grid square
+            const tokenWidth = token.document.width;
+            const tokenHeight = token.document.height;
 
-    // Get the first token found
-    const targetToken = tokensAtLocation[0];
-    const targetActor = targetToken.actor;
+            for (let dx = 0; dx < tokenWidth; dx++) {
+                for (let dy = 0; dy < tokenHeight; dy++) {
+                    const tokenSquareX = tokenGridX + dx;
+                    const tokenSquareY = tokenGridY + dy;
 
-    console.log(`[DEBUG] Token sélectionné: "${targetToken.name}" (ID: ${targetToken.id})`);
-    console.log(`[DEBUG] Actor du token:`, targetActor ? `"${targetActor.name}" (ID: ${targetActor.id})` : "null");
+                    if (tokenSquareX === targetGridX && tokenSquareY === targetGridY) {
+                        console.log(`[DEBUG] Token "${token.name}" trouvé en grid (${targetGridX}, ${targetGridY})`);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        });
 
-    if (!targetActor) {
-        console.log(`[DEBUG] Aucun acteur associé au token`);
-        return null;
-    }
+        console.log(`[DEBUG] Nombre de tokens trouvés dans la zone (grid): ${tokensAtLocation.length}`);
 
-    // Check if the actor is visible/owned by the current user
-    const isOwner = targetActor.isOwner;
-    const isVisible = targetToken.visible;
-    const isGM = game.user.isGM;
+        if (tokensAtLocation.length === 0) {
+            console.log(`[DEBUG] Aucun token trouvé à la position cible (grid)`);
+            return null;
+        }
 
-    console.log(`[DEBUG] Permissions - isOwner: ${isOwner}, isVisible: ${isVisible}, isGM: ${isGM}`);
-    console.log(`[DEBUG] Utilisateur actuel: "${game.user.name}" (ID: ${game.user.id})`);
+        const targetToken = tokensAtLocation[0];
+        const targetActor = targetToken.actor;
 
-    if (isOwner || isVisible || isGM) {
-        console.log(`[DEBUG] Accès autorisé - retour du nom réel: "${targetActor.name}"`);
-        return {
-            name: targetActor.name,
-            token: targetToken,
-            actor: targetActor
-        };
+        console.log(`[DEBUG] Token sélectionné: "${targetToken.name}" (ID: ${targetToken.id})`);
+        console.log(`[DEBUG] Actor du token:`, targetActor ? `"${targetActor.name}" (ID: ${targetActor.id})` : "null");
+
+        if (!targetActor) {
+            console.log(`[DEBUG] Aucun acteur associé au token`);
+            return null;
+        }
+
+        // Tokens are already filtered for visibility
+        console.log(`[DEBUG] Retour de l'acteur visible: "${targetActor.name}"`);
+        return { name: targetActor.name, token: targetToken, actor: targetActor };
     } else {
-        console.log(`[DEBUG] Accès refusé - retour de "cible"`);
-        return {
-            name: "cible",
-            token: targetToken,
-            actor: targetActor
-        };
+        // No grid: use circular tolerance detection (original behavior)
+        const tokensAtLocation = canvas.tokens.placeables.filter(token => {
+            // First check if the token is visible to the current user
+            const isOwner = token.actor?.isOwner;
+            const isVisible = token.visible;
+            const isGM = game.user.isGM;
+
+            // Skip tokens that aren't visible to the current user
+            if (!isOwner && !isVisible && !isGM) {
+                return false;
+            }
+
+            // Calculate token center coordinates (token.x and token.y are top-left corner)
+            const tokenCenterX = token.x + (token.document.width * gridSize) / 2;
+            const tokenCenterY = token.y + (token.document.height * gridSize) / 2;
+
+            const tokenDistance = Math.sqrt(
+                Math.pow(tokenCenterX - targetX, 2) + Math.pow(tokenCenterY - targetY, 2)
+            );
+
+            console.log(`[DEBUG] Token "${token.name}" à distance ${tokenDistance} (centre: x=${tokenCenterX}, y=${tokenCenterY})`);
+            return tokenDistance <= tolerance;
+        });
+
+        console.log(`[DEBUG] Nombre de tokens trouvés dans la zone: ${tokensAtLocation.length}`);
+
+        if (tokensAtLocation.length === 0) {
+            console.log(`[DEBUG] Aucun token trouvé à la position cible`);
+            return null;
+        }
+
+        const targetToken = tokensAtLocation[0];
+        const targetActor = targetToken.actor;
+
+        console.log(`[DEBUG] Token sélectionné: "${targetToken.name}" (ID: ${targetToken.id})`);
+        console.log(`[DEBUG] Actor du token:`, targetActor ? `"${targetActor.name}" (ID: ${targetActor.id})` : "null");
+
+        if (!targetActor) {
+            console.log(`[DEBUG] Aucun acteur associé au token`);
+            return null;
+        }
+
+        // Tokens are already filtered for visibility
+        console.log(`[DEBUG] Retour de l'acteur visible: "${targetActor.name}"`);
+        return { name: targetActor.name, token: targetToken, actor: targetActor };
     }
 }
 
