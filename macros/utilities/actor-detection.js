@@ -250,3 +250,79 @@ if (!hasActorAtLocation(target.x, target.y)) {
     return;
 }
 */
+
+/**
+ * Example: Apply an Active Effect to a targeted actor using GM delegation (socketlib)
+ *
+ * This function uses socketlib to request the GM to apply an Active Effect to a token/actor
+ * when the player does not have permission. Requires socketlib and GM socket handlers.
+ *
+ * Usage in macro:
+ *   await applyEffectWithGMDelegation(targetActor, effectData);
+ *
+ * @param {Actor} targetActor - The actor to apply the effect to
+ * @param {Object} effectData - The Active Effect data object
+ * @returns {Promise}
+ */
+async function applyEffectWithGMDelegation(targetActor, effectData) {
+    if (!targetActor || !effectData) return;
+    if (targetActor.isOwner) {
+        // Directly apply if user has permission
+        await targetActor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+    } else {
+        // Use socketlib to request GM to apply effect
+        if (!game.modules.get("socketlib")?.active) {
+            ui.notifications.error("Socketlib module is required for GM delegation.");
+            return;
+        }
+        await game.socket.emit("module.socketlib", {
+            type: "executeAsGM",
+            function: "macro.applyEffectToActor",
+            args: [targetActor.id, effectData]
+        });
+    }
+}
+
+/**
+ * Example: Update an existing Active Effect using GM delegation (socketlib)
+ *
+ * This function uses socketlib to request the GM to update an Active Effect on a token/actor
+ * when the player does not have permission. Requires socketlib and GM socket handlers.
+ *
+ * Usage in macro:
+ *   await updateEffectWithGMDelegation(targetActor, effectId, updateData);
+ *
+ * @param {Actor} targetActor - The actor whose effect should be updated
+ * @param {string} effectId - The ID of the effect to update
+ * @param {Object} updateData - The update data for the effect
+ * @returns {Promise}
+ */
+async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
+    if (!targetActor || !effectId || !updateData) return;
+    if (targetActor.isOwner) {
+        // Directly update if user has permission
+        const effect = targetActor.effects.get(effectId);
+        if (effect) await effect.update(updateData);
+    } else {
+        // Use socketlib to request GM to update effect
+        if (!game.modules.get("socketlib")?.active) {
+            ui.notifications.error("Socketlib module is required for GM delegation.");
+            return;
+        }
+        await game.socket.emit("module.socketlib", {
+            type: "executeAsGM",
+            function: "macro.updateEffectOnActor",
+            args: [targetActor.id, effectId, updateData]
+        });
+    }
+}
+
+/*
+// GM Socket Handlers Setup:
+// Socket handlers are automatically registered by the custom-status-effects module
+// when a GM loads the world. The handlers are:
+// - applyEffectToActor: Creates new Active Effects
+// - updateEffectOnActor: Updates existing Active Effects
+//
+// No manual setup required - just ensure custom-status-effects module is enabled.
+*/

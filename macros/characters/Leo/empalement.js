@@ -513,28 +513,89 @@
     };
 
     // ===== APPLY SPEED REDUCTION EFFECT =====
+    // Helper for GM delegation (copied from actor-detection.js)
+
+async function applyEffectWithGMDelegation(targetActor, effectData) {
+    if (!targetActor || !effectData) return;
+    if (targetActor.isOwner) {
+        await targetActor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+    } else {
+        if (!game.modules.get("socketlib")?.active) {
+            ui.notifications.error("Socketlib module is required for GM delegation.");
+            return;
+        }
+
+        // Check if GM socket is available
+        if (!globalThis.gmSocket) {
+            ui.notifications.error("GM Socket not available. Make sure a GM is connected.");
+            return;
+        }
+
+        // Log the attempt
+        console.log("[DEBUG] Requesting GM to apply effect to", targetActor.name, effectData);
+
+        // CORRECT: Execute the function as GM using socketlib API
+        try {
+            const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.id, effectData);
+            console.log("[DEBUG] GM delegation result:", result);
+        } catch (err) {
+            console.error("[DEBUG] GM delegation failed:", err);
+            ui.notifications.error("Failed to apply effect via GM delegation");
+        }
+    }
+}
+
+// Similarly update updateEffectWithGMDelegation:
+async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
+    if (!targetActor || !effectId || !updateData) return;
+    if (targetActor.isOwner) {
+        const effect = targetActor.effects.get(effectId);
+        if (effect) await effect.update(updateData);
+    } else {
+        if (!game.modules.get("socketlib")?.active) {
+            ui.notifications.error("Socketlib module is required for GM delegation.");
+            return;
+        }
+
+        // Check if GM socket is available
+        if (!globalThis.gmSocket) {
+            ui.notifications.error("GM Socket not available. Make sure a GM is connected.");
+            return;
+        }
+
+        // Log the attempt
+        console.log("[DEBUG] Requesting GM to update effect", effectId, "on", targetActor.name, updateData);
+
+        // CORRECT: Execute the function as GM using socketlib API
+        try {
+            const result = await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetActor.id, effectId, updateData);
+            console.log("[DEBUG] GM delegation result:", result);
+        } catch (err) {
+            console.error("[DEBUG] GM delegation failed:", err);
+            ui.notifications.error("Failed to update effect via GM delegation");
+        }
+    }
+}
+
     for (const target of areaTargets) {
         try {
             // Check if target already has a slowdown effect
             const existingEffect = target.actor.effects.find(e => e.name === "Ralentissement");
             if (existingEffect) {
-                // Increase existing slowdown effect
                 const currentSlowdown = existingEffect.flags?.statuscounter?.value || 0;
                 const newSlowdown = currentSlowdown + finalSpeedReduction.total;
-
-                await existingEffect.update({
+                const updateData = {
                     "flags.statuscounter.value": newSlowdown,
                     "description": `Ralentissement par Empalement (-${newSlowdown} cases de vitesse)`
-                });
-
+                };
+                await updateEffectWithGMDelegation(target.actor, existingEffect.id, updateData);
                 console.log(`[DEBUG] Increased slowdown effect on ${target.name}: ${currentSlowdown} + ${finalSpeedReduction.total} = ${newSlowdown} speed reduction`);
                 continue;
             }
-
             // Create slowdown effect
             const slowdownEffect = {
                 name: "Ralentissement",
-                icon: "icons/svg/downgrade.svg", // Native FoundryVTT SVG icon
+                icon: "icons/svg/downgrade.svg",
                 description: `Ralentissement par Empalement (-${finalSpeedReduction.total} cases de vitesse)`,
                 duration: { seconds: 86400 },
                 flags: {
@@ -548,16 +609,12 @@
                     }
                 }
             };
-
-            await target.actor.createEmbeddedDocuments("ActiveEffect", [slowdownEffect]);
+            await applyEffectWithGMDelegation(target.actor, slowdownEffect);
             console.log(`[DEBUG] Applied slowdown effect to ${target.name}: -${finalSpeedReduction.total} speed`);
-
         } catch (error) {
             console.error(`[ERROR] Failed to apply slowdown effect to ${target.name}:`, error);
         }
-    }
-
-    // ===== CREATE ENHANCED CHAT MESSAGE =====
+    }    // ===== CREATE ENHANCED CHAT MESSAGE =====
     function createChatFlavor() {
         const actualManaCostDisplay = actualManaCost === 0 ? '0 mana (Focus)' : `${actualManaCost} mana`;
 

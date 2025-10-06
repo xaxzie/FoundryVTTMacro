@@ -66,6 +66,10 @@ Hooks.once('init', () => {
     } catch (error) {
         console.error('Custom Status Effects Override | Failed to register setting:', error);
     }
+
+    if (!game.modules.get("socketlib")?.active) return;
+
+    registerGMSocket();
 });
 
 // Apply the saved status effects after everything is fully loaded
@@ -119,4 +123,91 @@ Hooks.once('ready', () => {
     }, 500); // Wait 500ms after ready to let other systems settle
 });
 
-console.log('Custom Status Effects Override | Module loaded');
+// ===== GM SOCKET HANDLERS FOR EFFECT MANAGEMENT =====
+
+// Socket instance variable
+let gmSocketDone = false;
+
+// Register socket handlers following Sequencer pattern
+function registerGMSocket() {
+    console.log("[DEBUG] Custom Status Effects | gmSocketDone:", gmSocketDone);
+
+    if (gmSocketDone) return;
+    console.log("[DEBUG] Custom Status Effects | socketlib :", socketlib?.registerModule); // Already registered
+    if (!socketlib?.registerModule) return; // SocketLib not available
+
+    console.log("[DEBUG] Custom Status Effects | Initializing GM Socket Handlers for effect delegation");
+
+    try {
+        // Register module with socketlib (following Sequencer pattern)
+        const gmSocket = socketlib.registerModule("custom-status-effects");
+        console.log("[DEBUG] Custom Status Effects | GM Socket registered:", gmSocket);
+        // Handler for applying new effects to actors
+        const applyEffectHandler = async (actorId, effectData) => {
+            console.log(`[GM Socket] Applying effect to actor ${actorId}:`, effectData);
+
+            const actor = game.actors.get(actorId);
+            if (!actor) {
+                console.error(`[GM Socket] Actor with ID ${actorId} not found`);
+                return { success: false, error: "Actor not found" };
+            }
+
+            try {
+                const createdEffects = await actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+                console.log(`[GM Socket] Successfully applied effect "${effectData.name}" to ${actor.name}`);
+                return { success: true, effects: createdEffects };
+            } catch (error) {
+                console.error(`[GM Socket] Failed to apply effect to ${actor.name}:`, error);
+                return { success: false, error: error.message };
+            }
+        };
+
+        // Handler for updating existing effects on actors
+        const updateEffectHandler = async (actorId, effectId, updateData) => {
+            console.log(`[GM Socket] Updating effect ${effectId} on actor ${actorId}:`, updateData);
+
+            const actor = game.actors.get(actorId);
+            if (!actor) {
+                console.error(`[GM Socket] Actor with ID ${actorId} not found`);
+                return { success: false, error: "Actor not found" };
+            }
+
+            const effect = actor.effects.get(effectId);
+            if (!effect) {
+                console.error(`[GM Socket] Effect with ID ${effectId} not found on ${actor.name}`);
+                return { success: false, error: "Effect not found" };
+            }
+
+            try {
+                await effect.update(updateData);
+                console.log(`[GM Socket] Successfully updated effect "${effect.name}" on ${actor.name}`);
+                return { success: true };
+            } catch (error) {
+                console.error(`[GM Socket] Failed to update effect on ${actor.name}:`, error);
+                return { success: false, error: error.message };
+            }
+        };
+        console.log("[DEBUG] Custom Status Effects | GM Socket Handlers registered:", updateEffectHandler);
+        console.log("[DEBUG] Custom Status Effects | GM Socket Handlers registered:", applyEffectHandler);
+
+        // Register the handlers with socketlib
+        gmSocket.register("applyEffectToActor", applyEffectHandler);
+        gmSocket.register("updateEffectOnActor", updateEffectHandler);
+        console.log("[DEBUG] Custom Status Effects | GM Socket registered:", gmSocket);
+        // Store socket globally for access from macros
+        globalThis.gmSocket = gmSocket;
+
+        console.log("[DEBUG] Custom Status Effects | GM Socket Handlers registered successfully");
+        console.log("[GM Socket] Handlers registered:", {
+            "applyEffectToActor": "Creates new Active Effects",
+            "updateEffectOnActor": "Updates existing Active Effects"
+        });
+        gmSocketDone = true;
+
+    } catch (error) {
+        console.error("[DEBUG] Custom Status Effects | Failed to register GM socket handlers:", error);
+    }
+}
+
+// Register socket handlers following Sequencer pattern
+Hooks.once("socketlib.ready", registerGMSocket);
