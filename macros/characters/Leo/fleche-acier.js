@@ -134,10 +134,6 @@
         return;
     }
 
-    // ===== UTILITY FUNCTIONS =====
-    function getCurrentStance(actor) {
-        return actor.getFlag("world", "combatStance") || "normal";
-    }
 
     // Active effect bonuses (excludes Serpent for this spell)
     function getActiveEffectBonus(actor, flagKey) {

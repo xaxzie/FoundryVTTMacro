@@ -27,53 +27,6 @@
 
     // Custom Active Effects with Flags
     const CUSTOM_EFFECTS = {
-        "Red Eyes": {
-            name: "Red Eyes",
-            icon: "icons/creatures/eyes/humanoid-single-red-brown.webp",
-            flags: [
-                { key: "agilite", value: 1 },
-                { key: "damage", value: 2 }
-            ],
-            description: "Bonus de +2 aux dégâts, +1 Agilité",
-            category: "custom"
-        },
-        "Serpent": {
-            name: "Serpent",
-            icon: "icons/creatures/reptiles/snake-fangs-bite-green.webp",
-            flags: [
-                { key: "damage", value: 4 }
-            ],
-            description: "Bonus de +4 aux dégâts",
-            category: "custom"
-        },
-        "Ora Eyes": {
-            name: "Ora Eyes",
-            icon: "icons/svg/eye.svg",
-            flags: [
-                { key: "damage", value: 3 }
-            ],
-            description: "Bonus de +3 aux dégâts",
-            category: "custom"
-        },
-        "Electrical Armor": {
-            name: "Electrical Armor",
-            icon: "icons/magic/lightning/bolt-strike-blue.webp",
-            flags: [
-                { key: "agilite", value: -3 },
-                { key: "physique", value: 1 }
-            ],
-            description: "Agilité -3, Physique +1",
-            category: "custom"
-        },
-        "Bow": {
-            name: "Bow",
-            icon: "icons/weapons/bows/shortbow-recurve-yellow.webp",
-            flags: [
-                { key: "agilite", value: -3 }
-            ],
-            description: "Agilité -3",
-            category: "custom"
-        }
     };
 
     // === DYNAMIC STATUS EFFECTS FROM CONFIG ===
