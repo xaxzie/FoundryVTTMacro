@@ -39,9 +39,9 @@ Notes about the macro behavior
 
 - If the module does not appear in the list, verify the folder is at `Data/modules/custom-status-effects` and that `module.json` is present and valid.
 - If your changes do not persist after restart:
-	- Ensure the module is enabled and you saved the world settings.
-	- Check the browser console for messages from `Custom Status Effects Override | ...` (init/ready messages).
-	- Confirm the macro reports "Saved status effects to world settings." when you save edits.
+  - Ensure the module is enabled and you saved the world settings.
+  - Check the browser console for messages from `Custom Status Effects Override | ...` (init/ready messages).
+  - Confirm the macro reports "Saved status effects to world settings." when you save edits.
 - If another module or system re-adds effects, inspect `CONFIG.statusEffects` on ready to determine the source and adjust load order or disable the conflicting package.
 
 ## Removal
@@ -61,6 +61,67 @@ To remove the module:
 ## Where this repo stores the module
 
 If you want to track the module in git, this repository contains a copy under `modules/custom-status-effects/`. Copy that folder into Foundry's `Data/modules/` or deploy from git to use the module in your local Foundry instance.
+
+## GM Socket helpers (apply/update/remove effects)
+
+This module registers a small set of GM-side socket handlers (via SocketLib) to let player-run macros request that a GM create, update or remove Active Effects on actors the player does not own. This is intentionally minimal and safe: the handlers are implemented inside the module and exposed through a `globalThis.gmSocket` object when SocketLib is present.
+
+Handlers registered by the module (available after `Hooks.once("socketlib.ready", registerGMSocket)` runs):
+
+- `applyEffectToActor(actorId, effectData)`
+
+  - Purpose: Create a new ActiveEffect on the actor with id `actorId`.
+  - Returns: `{ success: true, effects: [createdEffect] }` on success, or `{ success: false, error: "..." }`.
+  - Example (player macro):
+    ```js
+    if (!globalThis.gmSocket) throw new Error("GM socket not available");
+    const result = await globalThis.gmSocket.executeAsGM(
+      "applyEffectToActor",
+      targetActorId,
+      effectData
+    );
+    if (!result.success)
+      ui.notifications.error(result.error || "Failed to apply effect");
+    ```
+
+- `updateEffectOnActor(actorId, effectId, updateData)`
+
+  - Purpose: Update an existing ActiveEffect (identified by `effectId`) on the given actor.
+  - Returns: `{ success: true }` on success or `{ success: false, error: '...' }` on failure.
+  - Example (player macro):
+    ```js
+    const res = await globalThis.gmSocket.executeAsGM(
+      "updateEffectOnActor",
+      targetActorId,
+      effectId,
+      { "flags.statuscounter.value": 2 }
+    );
+    if (!res.success) console.error(res.error);
+    ```
+
+- `removeEffectFromActor(actorId, effectId)`
+  - Purpose: Delete an ActiveEffect from an actor.
+  - Returns: `{ success: true }` or `{ success: false, error: '...' }`.
+  - Example (player macro):
+    ```js
+    await globalThis.gmSocket.executeAsGM(
+      "removeEffectFromActor",
+      targetActorId,
+      effectId
+    );
+    ```
+
+Notes and best-practices
+
+- The module exposes the SocketLib `gmSocket` object as `globalThis.gmSocket` for convenience. Always guard your macros with `if (!globalThis.gmSocket) { ui.notifications.error('GM socket not available'); return; }`.
+- All handlers run on the GM client and therefore require at least one GM to be online and SocketLib to be active.
+- The handlers perform basic validation (actor existence, effect existence). They return structured objects so your macro can present friendly errors to players.
+- When creating effects intended to show a status counter on tokens, include a `flags.statuscounter` object with `value` and `visible: true` properties (for example: `flags: { statuscounter: { value: 1, visible: true } }`). This ensures the token HUD shows the stack number.
+
+Packaging / manifest notes
+
+- The `module.json` in this folder now includes `url`, `manifest` and `download` fields pointing to this repository's main branch. If you publish a separate release (recommended for distribution), update `manifest` to point to the release `module.json` and `download` to the release ZIP or module package URL.
+- Foundry's install-from-manifest UI installs by manifest URL, which must point to a `module.json` that names only this module. If you want the manifest to reference only this module, publish the `modules/custom-status-effects/module.json` file on its own (for example, using GitHub Releases or a dedicated repo) — otherwise the `download` link will fetch the whole repository archive.
 
 ---
 
