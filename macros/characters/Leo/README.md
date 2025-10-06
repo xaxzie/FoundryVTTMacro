@@ -37,7 +37,7 @@ Modules requis (parmi les plus importants) : Sequencer, JB2A (free et/ou patreon
   - Animations : Marker cast sous le lanceur, transition attachée à l'arme, finish lightning (JB2A / jaamod / patreon assets selon configuration).
   - Modules requis : Sequencer, JB2A (et jb2a_patreon si utilisé), Portal.
 
-- Steel Chain (Chaîne d'Acier) — fichiers : `steel-chain.js` + `steel-chain-end.js`
+- Steel Chain (Chaîne d'Acier) — fichier : `steel-chain.js`
 
   - Objectif : Créer une chaîne magique persistante qui relie Léo à sa cible. Aucun dégât, juste enchaînement.
   - Caractéristique : Physique (l'effet "Serpent" ne fonctionne pas avec ce sort).
@@ -46,7 +46,6 @@ Modules requis (parmi les plus importants) : Sequencer, JB2A (free et/ou patreon
   - Effet : Seul le jet d'attaque compte (pas de dégâts). En cas de réussite, la cible est "enchaînée" visuellement.
   - Ciblage : Portal (sélection de la cible).
   - Animations : Animation de lancement + chaîne persistante visible entre Léo et la cible (reste affichée jusqu'à libération).
-  - Libération : Utiliser `steel-chain-end.js` pour choisir quelle(s) chaîne(s) terminer.
   - Modules requis : Sequencer, JB2A, Portal.
 
 - Electric Axe Strike (Frappe Électrique) — fichier : `electric-axe-strike.js`
@@ -89,6 +88,10 @@ Modules requis (parmi les plus importants) : Sequencer, JB2A (free et/ou patreon
   - Objectif : Sort spécial permettant d'obtenir une action supplémentaire au risque de subir des blessures.
   - Caractéristique : Physique (pour le jet de réussite uniquement).
   - Coût : 0 mana (focalisable), niveau 2.
+  - **Nouvelles corrections (v2024-01)** :
+    - ✅ Utilise maintenant le système de dés d7 conforme aux règles du jeu (`[physique]d7` au lieu de `1d100`).
+    - ✅ Récupération de la caractéristique via `actor.system.attributes` avec gestion des blessures.
+    - ✅ Jet et résumé affichés dans le même message (format katana.js).
   - Mécaniques :
     - **Tentative de jet** : Jet de Physique vs difficulté 40 (de base). Réussite = action supplémentaire. Échec = pas de tour + blessure.
     - **Sacrifice volontaire** : Subir directement une blessure pour garantir l'action supplémentaire.
@@ -124,6 +127,21 @@ Modules requis (parmi les plus importants) : Sequencer, JB2A (free et/ou patreon
   - Animations : Multiples projectiles d'armes convergeant depuis des directions aléatoires (360°), distances aléatoires (2-4 cases), délais répartis sur 2 secondes, impact final spectaculaire.
   - Modules requis : Sequencer, JB2A, Portal.
 
+## Macros Utilitaires
+
+- End Leo Effects (Terminer Effets de Léo) — fichier : `endLeoEffect.js`
+
+  - Objectif : Terminer les effets négatifs que Léo a appliqués sur d'autres tokens durant le combat.
+  - Fonctionnalités :
+    - **Détection automatique** : Scanne tous les tokens sur le canvas pour trouver les effets appliqués par Léo.
+    - **Interface de sélection** : Permet de choisir quels effets supprimer individuellement ou tous à la fois.
+    - **Effets supportés** : "Chaîne d'Acier" (steel-chain.js) et "Ralentissement" (empalement.js).
+    - **Animations** : Supprime les animations Sequencer persistantes (chaînes).
+    - **GM Delegation** : Fonctionne même sur des tokens non possédés par le joueur.
+  - Usage : Sélectionner Léo, lancer la macro. Si aucun effet détecté → "Pas de malus détecté à supprimer".
+  - Interface : Similaire à AddEffect.js mais en mode "suppression uniquement".
+  - Modules requis : custom-status-effects (GM delegation), Sequencer.
+
 ## Utilisation rapide
 
 1. Sélectionnez le token de Léo.
@@ -134,7 +152,7 @@ Modules requis (parmi les plus importants) : Sequencer, JB2A (free et/ou patreon
    - En mode portail (Steel Lance) : sélectionnez d'abord le point d'origine du portail, puis la direction/point d'impact.
    - Pour Steel Chain : sélectionnez la cible à enchaîner.
 5. La macro jouera la séquence d'animations et publiera le(s) roll(s) d'attaque et de dégâts dans le chat.
-6. Pour Steel Chain : utilisez `steel-chain-end.js` quand vous voulez libérer les cibles enchaînées.
+6. Pour nettoyer les effets : utilisez `endLeoEffect.js` pour supprimer tous les effets négatifs appliqués par Léo (chaînes, ralentissements, etc.).
 
 ## Remarques & dépannage
 

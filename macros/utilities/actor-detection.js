@@ -323,6 +323,7 @@ async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
 // when a GM loads the world. The handlers are:
 // - applyEffectToActor: Creates new Active Effects
 // - updateEffectOnActor: Updates existing Active Effects
+// - removeEffectFromActor: Removes Active Effects
 //
 // No manual setup required - just ensure custom-status-effects module is enabled.
 */

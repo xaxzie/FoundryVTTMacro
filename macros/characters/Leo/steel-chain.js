@@ -336,22 +336,37 @@
 
     // ===== ADD ACTIVE EFFECT TO TARGET =====
     if (targetActor?.actor) {
-        try {
-            await targetActor.actor.createEmbeddedDocuments("ActiveEffect", [{
-                name: SPELL_CONFIG.chainEffect.name,
-                icon: SPELL_CONFIG.chainEffect.icon,
-                description: SPELL_CONFIG.chainEffect.description,
-                duration : { seconds : 86400},
-                flags: {
-                    world: {
-                        chainCaster: caster.id, // ID du lanceur pour retrouver la chaîne
-                        chainTarget: targetActor.token.id, // ID de la cible
-                        chainSequenceName: `steel-chain-${caster.id}-${targetActor.token.id}` // Nom de l'animation
-                    }
+        const effectData = {
+            name: SPELL_CONFIG.chainEffect.name,
+            icon: SPELL_CONFIG.chainEffect.icon,
+            description: SPELL_CONFIG.chainEffect.description,
+            duration: { seconds: 86400 },
+            flags: {
+                world: {
+                    chainCaster: caster.id, // ID du lanceur pour retrouver la chaîne
+                    chainTarget: targetActor.token.id, // ID de la cible
+                    chainSequenceName: `steel-chain-${caster.id}-${targetActor.token.id}` // Nom de l'animation
                 }
-            }]);
+            }
+        };
 
-            console.log(`[DEBUG] Applied chain effect to ${targetName}`);
+        try {
+            // Use GM delegation for effect application
+            if (!globalThis.gmSocket) {
+                ui.notifications.error("GM Socket non disponible ! Assurez-vous que le module custom-status-effects est actif.");
+                console.error("[DEBUG] GM Socket not available for effect application");
+                return;
+            }
+
+            console.log(`[DEBUG] Applying chain effect to ${targetName} via GM socket`);
+            const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.actor.id, effectData);
+
+            if (result?.success) {
+                console.log(`[DEBUG] Successfully applied chain effect to ${targetName}`);
+            } else {
+                console.error(`[DEBUG] Failed to apply chain effect: ${result?.error}`);
+                ui.notifications.error(`Impossible d'appliquer l'effet d'enchaînement : ${result?.error}`);
+            }
         } catch (error) {
             console.error("Error applying chain effect:", error);
             ui.notifications.warn("Impossible d'appliquer l'effet d'enchaînement !");

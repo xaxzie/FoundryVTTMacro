@@ -339,8 +339,8 @@
         combinedRollParts.push(`${SPELL.baseDamageFormula} + ${totalDamageBonus}`);
     }
 
-    // Add fourreau roll if enabled (never maximized)
-    if (foureau) {
+    // Add fourreau roll if enabled and NOT in offensive stance (in offensive stance it's maximized so no roll needed)
+    if (foureau && currentStance !== 'offensif') {
         combinedRollParts.push('1d6');
     }
 
@@ -369,8 +369,9 @@
             foureauResult = combinedRoll.terms[0].results[2];
         }
     } else {
-        // In offensive stance, fourreau is the second result (if enabled)
-        if (foureau) {
+        // In offensive stance the fourreau is maximized and therefore not rolled.
+        // If a roll happens to be present (defensive fallback), read it; otherwise leave null and use maximized value.
+        if (foureau && combinedRoll.terms[0].results.length > 1) {
             foureauResult = combinedRoll.terms[0].results[1];
         }
     }

@@ -187,12 +187,39 @@ function registerGMSocket() {
                 return { success: false, error: error.message };
             }
         };
+
+        // Handler for removing effects from actors
+        const removeEffectHandler = async (actorId, effectId) => {
+            console.log(`[GM Socket] Removing effect ${effectId} from actor ${actorId}`);
+
+            const actor = game.actors.get(actorId);
+            if (!actor) {
+                console.error(`[GM Socket] Actor with ID ${actorId} not found`);
+                return { success: false, error: "Actor not found" };
+            }
+
+            const effect = actor.effects.get(effectId);
+            if (!effect) {
+                console.error(`[GM Socket] Effect with ID ${effectId} not found on ${actor.name}`);
+                return { success: false, error: "Effect not found" };
+            }
+
+            try {
+                await effect.delete();
+                console.log(`[GM Socket] Successfully removed effect "${effect.name}" from ${actor.name}`);
+                return { success: true };
+            } catch (error) {
+                console.error(`[GM Socket] Failed to remove effect from ${actor.name}:`, error);
+                return { success: false, error: error.message };
+            }
+        };
         console.log("[DEBUG] Custom Status Effects | GM Socket Handlers registered:", updateEffectHandler);
         console.log("[DEBUG] Custom Status Effects | GM Socket Handlers registered:", applyEffectHandler);
 
         // Register the handlers with socketlib
         gmSocket.register("applyEffectToActor", applyEffectHandler);
         gmSocket.register("updateEffectOnActor", updateEffectHandler);
+        gmSocket.register("removeEffectFromActor", removeEffectHandler);
         console.log("[DEBUG] Custom Status Effects | GM Socket registered:", gmSocket);
         // Store socket globally for access from macros
         globalThis.gmSocket = gmSocket;
@@ -200,7 +227,8 @@ function registerGMSocket() {
         console.log("[DEBUG] Custom Status Effects | GM Socket Handlers registered successfully");
         console.log("[GM Socket] Handlers registered:", {
             "applyEffectToActor": "Creates new Active Effects",
-            "updateEffectOnActor": "Updates existing Active Effects"
+            "updateEffectOnActor": "Updates existing Active Effects",
+            "removeEffectFromActor": "Removes Active Effects"
         });
         gmSocketDone = true;
 
