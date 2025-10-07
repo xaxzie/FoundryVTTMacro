@@ -27,10 +27,10 @@
         maxBooks: 2,
         isFocusable: true,
         animations: {
-            cast: "jb2a.shield.02.intro.blue",
-            projectile: "jb2a.magic_missile.blue",
-            impact: "jb2a.shield.03.complete.blue",
-            attachment: "jb2a.magic_signs.circle.02.abjuration.loop.blue",
+            cast: "jb2a.cast_shape.square.01.blue",
+            projectile: "jb2a_patreon.magic_missile.blue",
+            impact: "jb2a.shield.01.complete.01.blue",
+            attachment: "jb2a_patreon.markers.shield.green.03",
             sound: null
         },
         targeting: {
@@ -427,8 +427,7 @@
         sequence.effect()
             .file(SPELL_CONFIG.animations.cast)
             .attachTo(caster)
-            .scale(0.7)
-            .duration(2000);
+            .scale(0.4)
 
         // Pour chaque position de livre
         for (let i = 0; i < targets.length; i++) {
@@ -439,14 +438,14 @@
                 .file(SPELL_CONFIG.animations.projectile)
                 .attachTo(caster)
                 .stretchTo(target)
-                .scale(0.6)
+                .scale(0.4)
                 .delay(500 + i * 200);
 
             // Impact à chaque position
             sequence.effect()
                 .file(SPELL_CONFIG.animations.impact)
                 .atLocation(target)
-                .scale(0.8)
+                .scale(0.4)
                 .delay(800 + i * 200);
         }
 
@@ -456,7 +455,7 @@
                 .file(SPELL_CONFIG.animations.attachment)
                 .attachTo(targetInfo.token)
                 .scale(0.5)
-                .duration(4000)
+                .duration(6042)
                 .delay(1200);
         }
 
@@ -534,7 +533,7 @@
             // Créer un nouvel effet sur la cible
             const effectData = {
                 name: effectName,
-                icon: "icons/sundries/books/book-blue-shield.webp",
+                icon: "icons/sundries/books/book-symbol-cross-blue.webp",
                 description: `Livres défensifs de Urgen. Protection magique active.`,
                 disabled: false,
                 duration: { seconds: 86400 },
