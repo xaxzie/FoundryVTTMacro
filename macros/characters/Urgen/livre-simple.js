@@ -26,9 +26,7 @@
         isDirect: true,
         isFocusable: false, // Toujours gratuit
         animations: {
-            cast: "jb2a.condition.boon.01.007.blue",
-            projectile: "jb2a.throwable.launch.dagger.01.white",
-            impact: "jb2a.impact.ground_crack.blue.01",
+            projectile: "jb2a.throwable.launch.cannon_ball.01.black",
             sound: null
         },
         targeting: {
@@ -150,27 +148,26 @@
             new Dialog({
                 title: `🎯 Configuration - ${SPELL_CONFIG.name}`,
                 content: `
-                    <div style="background: linear-gradient(135deg, #4fc3f7, #29b6f6); padding: 20px; border-radius: 12px; color: white; font-family: 'Roboto', sans-serif;">
+                    <div style="background: linear-gradient(135deg, #bdbdbd, #757575); padding: 20px; border-radius: 12px; color: #f5f5f5; font-family: 'Roboto', sans-serif;">
                         <h2 style="text-align: center; margin-top: 0; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">📖 ${SPELL_CONFIG.name}</h2>
-
-                        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <h3 style="margin-top: 0; color: #e1f5fe;">🎭 État du Lanceur</h3>
+                            <div style="background: rgba(0,0,0,0.25); padding: 15px; border-radius: 8px; margin: 15px 0; color: #f3f3f3;">
+                                <h3 style="margin-top: 0; color: #e0e0e0;">🎭 État du Lanceur</h3>
                             <p><strong>Lanceur:</strong> ${actor.name}</p>
                             <p><strong>Stance:</strong> ${stanceName}</p>
                             <p><strong>Blessures:</strong> ${injuryDisplay}</p>
                             <p><strong>Coût Mana:</strong> ${SPELL_CONFIG.manaCost} (toujours gratuit)</p>
                         </div>
 
-                        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <h3 style="margin-top: 0; color: #e1f5fe;">⚔️ Statistiques d'Attaque</h3>
+                        <div style="background: rgba(0,0,0,0.22); padding: 15px; border-radius: 8px; margin: 15px 0; color: #f3f3f3;">
+                            <h3 style="margin-top: 0; color: #e0e0e0;">⚔️ Statistiques d'Attaque</h3>
                             <p><strong>${SPELL_CONFIG.characteristicDisplay}:</strong> ${characteristicInfo.base} ${characteristicInfo.injuries > 0 ? `→ ${characteristicInfo.final}` : ''}</p>
                             <p><strong>Bonus d'Effets Actifs (${SPELL_CONFIG.characteristicDisplay}):</strong> +${characteristicBonus}</p>
                             <p><strong>Bonus d'Effets Actifs (Dégâts):</strong> +${damageBonus}</p>
                             <p><strong>Niveau de Sort:</strong> ${SPELL_CONFIG.spellLevel} (+${SPELL_CONFIG.spellLevel} à l'attaque)</p>
                         </div>
 
-                        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <h3 style="margin-top: 0; color: #e1f5fe;">🎯 Bonus Manuels</h3>
+                        <div style="background: rgba(0,0,0,0.22); padding: 15px; border-radius: 8px; margin: 15px 0; color: #f3f3f3;">
+                            <h3 style="margin-top: 0; color: #e0e0e0;">🎯 Bonus Manuels</h3>
                             <p><label><strong>Bonus d'Attaque Supplémentaire:</strong></label></p>
                             <input type="number" id="attackBonus" value="0" min="-10" max="20"
                                    style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: none;"/>
@@ -179,9 +176,9 @@
                                    style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: none;"/>
                         </div>
 
-                        <div style="background: rgba(76,175,80,0.2); padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #4caf50;">
-                            <h3 style="margin-top: 0; color: #c8e6c9;">✨ Sort Simple</h3>
-                            <p style="font-size: 0.9em; margin-top: 10px; color: #e8f5e8;">
+                        <div style="background: rgba(158,158,158,0.12); padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #9e9e9e;">
+                            <h3 style="margin-top: 0; color: #cfcfcf;">✨ Sort Simple</h3>
+                            <p style="font-size: 0.9em; margin-top: 10px; color: #ececec;">
                                 📌 <strong>Niveau:</strong> 0.5 (Sort mineur)<br>
                                 💰 <strong>Coût:</strong> Toujours gratuit<br>
                                 🎯 <strong>Dégâts:</strong> 1d2 + Dextérité÷2 (${Math.floor(characteristicInfo.final / 2)})<br>
@@ -378,26 +375,13 @@
     async function playSpellAnimation() {
         let sequence = new Sequence();
 
-        // Animation de cast sur le lanceur
-        sequence.effect()
-            .file(SPELL_CONFIG.animations.cast)
-            .attachTo(caster)
-            .scale(0.4)
-            .belowTokens(true)
-
         // Projectile du livre vers la cible
         sequence.effect()
             .file(SPELL_CONFIG.animations.projectile)
             .attachTo(caster)
             .stretchTo(target)
-            .scale(0.5)
-            .waitUntilFinished(-500);
+            .scale(0.5);
 
-        // Impact sur la cible
-        sequence.effect()
-            .file(SPELL_CONFIG.animations.impact)
-            .atLocation({ x: target.x, y: target.y })
-            .scale(0.6)
 
         if (SPELL_CONFIG.animations.sound) {
             sequence.sound().file(SPELL_CONFIG.animations.sound);
@@ -411,7 +395,7 @@
     // ===== COMBINED ATTACK AND DAMAGE RESOLUTION =====
     const characteristicBonus = getActiveEffectBonus(actor, SPELL_CONFIG.characteristic);
     const totalAttackDice = characteristicInfo.final + characteristicBonus + attackBonus;
-    const levelBonus = SPELL_CONFIG.spellLevel; // 0.5 level gives +0.5 to attack
+    const levelBonus = SPELL_CONFIG.spellLevel*2;
 
     // Build combined roll formula: attack roll + damage roll
     let combinedRollParts = [`${totalAttackDice}d7 + ${levelBonus}`];
@@ -456,16 +440,16 @@
                 currentStance === 'defensif' ? 'Défensif' : 'Aucune') : 'Aucune';
 
     let enhancedFlavor = `
-        <div style="background: linear-gradient(135deg, #4fc3f7, #29b6f6); padding: 15px; border-radius: 10px; color: white; border: 2px solid #03a9f4;">
+        <div style="background: linear-gradient(135deg, #bdbdbd, #757575); padding: 15px; border-radius: 10px; color: #f5f5f5; border: 2px solid #9e9e9e;">
             <h3 style="margin-top: 0; text-align: center; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.7);">📖 ${SPELL_CONFIG.name}</h3>
 
-            <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin: 10px 0;">
+            <div style="background: rgba(0,0,0,0.22); padding: 10px; border-radius: 5px; margin: 10px 0; color: #f3f3f3;">
                 <p style="margin: 5px 0;"><strong>🧙 Lanceur:</strong> ${actor.name}</p>
                 <p style="margin: 5px 0;"><strong>🎯 Cible:</strong> ${targetName}</p>
                 <p style="margin: 5px 0;"><strong>🎭 Stance:</strong> ${stanceName} : ${SPELL_CONFIG.manaCost} mana</p>
             </div>
 
-            <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin: 10px 0;">
+            <div style="background: rgba(0,0,0,0.22); padding: 10px; border-radius: 5px; margin: 10px 0; color: #f3f3f3;">
                 <p style="margin: 5px 0;"><strong>⚔️ Attaque (${SPELL_CONFIG.characteristicDisplay}):</strong> ${totalAttackDice}d7 + ${levelBonus}</p>`;
 
     if (targetActor) {
@@ -474,7 +458,7 @@
 
     enhancedFlavor += `</div>
 
-            <div style="background: rgba(76,175,80,0.3); padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #4caf50;">`;
+        <div style="background: rgba(90,90,90,0.25); padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #757575; color: #f3f3f3;">`;
 
     if (damageResult.isMaximized) {
         enhancedFlavor += `<p style="margin: 5px 0;"><strong>💥 Dégâts (Stance Offensive - Maximisés):</strong> ${finalDamageResult.total}</p>
@@ -486,7 +470,7 @@
 
     enhancedFlavor += `</div>
 
-            <div style="background: rgba(76,175,80,0.2); padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #4caf50;">
+        <div style="background: rgba(158,158,158,0.14); padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #9e9e9e;">
                 <p style="margin: 5px 0;"><strong>✨ Sort Simple:</strong> Niveau 0.5 - Toujours gratuit</p>
                 <p style="margin: 5px 0; font-size: 0.9em;">🎯 Attaque de précision avec dextérité</p>
             </div>

@@ -30,11 +30,10 @@
         areaRadius: 2, // 2 cases de rayon
         maxRange: 400,
         animations: {
-            cast: "jb2a.condition.boon.01.007.green",
+            cast: "jb2a.cast_generic.03.blue.0",
             projectile: "jb2a.throwable.launch.cannon_ball.01.black",
-            explosion: "jb2a_patreon.explosion.side_effects.orange.1400x933",
-            area: "jb2a_patreon.template_circle.aura.01.dark_purple.1800x1800",
-            pages: "jb2a_patreon.swirling_leaves.outward.orange.01",
+            area: "jb2a.whirlwind.bluegrey",
+            pages: "animated-spell-effects.magic.shockwave.circle.08",
             sound: null
         },
         targeting: {
@@ -401,7 +400,7 @@
             .file(SPELL_CONFIG.animations.cast)
             .attachTo(caster)
             .scale(0.6)
-            .belowTokens(true)
+            .belowTokens(true);
 
         // Projectile du livre vers la cible
         sequence.effect()
@@ -409,28 +408,22 @@
             .attachTo(caster)
             .stretchTo(target)
             .scale(0.8)
-            .waitUntilFinished(-500);
+            .delay(300)
+            .waitUntilFinished(-100);
+
 
         // Zone d'effet au point d'impact
         sequence.effect()
             .file(SPELL_CONFIG.animations.area)
             .atLocation(target)
             .scale(SPELL_CONFIG.areaRadius * 0.4)
-            .duration(1000)
+            .duration(3000)
             .belowTokens(true)
-
-        // Explosion principale
-        sequence.effect()
-            .file(SPELL_CONFIG.animations.explosion)
-            .atLocation(target)
-            .scale(SPELL_CONFIG.areaRadius * 0.6)
-
         // Effet de pages tourbillonnantes
         sequence.effect()
             .file(SPELL_CONFIG.animations.pages)
             .atLocation(target)
-            .scale(SPELL_CONFIG.areaRadius * 0.8)
-            .duration(2000)
+            .scale(SPELL_CONFIG.areaRadius * 0.4)
             .delay(200);
 
         if (SPELL_CONFIG.animations.sound) {
