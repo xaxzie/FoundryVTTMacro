@@ -124,5 +124,3 @@ Packaging / manifest notes
 - Foundry's install-from-manifest UI installs by manifest URL, which must point to a `module.json` that names only this module. If you want the manifest to reference only this module, publish the `modules/custom-status-effects/module.json` file on its own (for example, using GitHub Releases or a dedicated repo) — otherwise the `download` link will fetch the whole repository archive.
 
 ---
-
-If you want, I can add a small Settings menu (FormApplication) to let you edit the array from within Foundry without using the macro, or I can add a sample exported JSON file to source-control your preferred default list. Which would you prefer?
