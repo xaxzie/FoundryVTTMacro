@@ -453,6 +453,11 @@
             .attachTo(caster)
             .scale(0.4)
 
+        // Analyser si nous avons 2 livres vers la même cible
+        const twoBooksSameTarget = bookCount === 2 &&
+            targetActors[0] && targetActors[1] &&
+            targetActors[0].actor.id === targetActors[1].actor.id;
+
         // Pour chaque position de livre
         for (let i = 0; i < targets.length; i++) {
             const target = targets[i];
@@ -461,20 +466,29 @@
 
             // Projectile vers chaque position (sauf si c'est Urgen lui-même)
             if (!isSelfTarget) {
-                sequence.effect()
+                let projectileEffect = sequence.effect()
                     .file(SPELL_CONFIG.animations.projectile)
                     .attachTo(caster)
                     .stretchTo(target)
                     .scale(1)
-                    .delay(500 + i * 200);
+                    .delay(500 + i * 300);
+
+                // Si c'est le 2ème projectile vers la même cible, le faire tourner de 180°
+                if (twoBooksSameTarget && i === 1) {
+                    projectileEffect.rotate(180);
+                }
             }
 
-            // Impact à chaque position
-            sequence.effect()
-                .file(SPELL_CONFIG.animations.impact)
-                .atLocation(target)
-                .scale(0.4)
-                .delay(isSelfTarget ? 500 + i * 200 : 800 + i * 200); // Délai plus court si self-target
+            // Impact à chaque position - mais seulement une fois si même cible
+            const shouldPlayImpact = twoBooksSameTarget ? (i === 0) : true;
+
+            if (shouldPlayImpact) {
+                sequence.effect()
+                    .file(SPELL_CONFIG.animations.impact)
+                    .atLocation(target)
+                    .scale(0.4)
+                    .delay(isSelfTarget ? 500 + i * 200 : 1100); // Délai ajusté pour synchroniser avec les 2 projectiles
+            }
         }
 
         // Animation d'attachement sur chaque cible avec un livre
