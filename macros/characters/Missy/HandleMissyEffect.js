@@ -27,19 +27,19 @@
 
     // Custom Active Effects with Flags for Missy
     const CUSTOM_EFFECTS = {
-        // TODO: Add Missy's specific effects here when spells are created
-        // Example for future effects:
-        // "CheveuRenforcé": {
-        //     name: "Cheveu Renforcé",
-        //     icon: "icons/magic/symbols/runes-star-magenta.webp",
-        //     flags: [
-        //         { key: "dexterite", value: 2 }
-        //     ],
-        //     description: "Cheveux magiquement renforcés (+2 Dextérité)",
-        //     category: "custom",
-        //     increasable: false,
-        //     manaCost: 2
-        // }
+        "Cheveuxlerie": {
+            name: "Cheveuxlerie",
+            icon: "icons/equipment/shield/heater-steel-worn.webp",
+            flags: [
+                { key: "resistance", value: Math.floor((actor.system.attributes?.dexterite?.value || 3) / 2) }
+            ],
+            description: "Cheveux formant une protection magique - Coûte 2 mana par tour",
+            category: "custom",
+            increasable: false,
+            manaCost: 2,
+            isPerTurn: true, // Coût par tour
+            statusCounterValue: Math.floor((actor.system.attributes?.dexterite?.value || 3) / 2) // Toujours dextérité/2
+        }
     };
 
     // === DYNAMIC STATUS EFFECTS FROM CONFIG ===
@@ -246,16 +246,28 @@
                     return `+${flag.value} ${flag.key}`;
                 }).join(', ') : '';
 
+            // Add status counter display if present
+            const counterDisplay = effectData.statusCounterValue !== undefined ?
+                ` [${effectData.statusCounterValue}]` : '';
+
+            // Add mana cost display
+            const manaCostDisplay = effectData.manaCost ?
+                (effectData.isPerTurn ? ` (${effectData.manaCost} mana/tour)` : ` (${effectData.manaCost} mana)`) : '';
+
+            const statusDisplayText = isActive ?
+                (existingEffect?.flags?.statuscounter?.value !== undefined ?
+                    `ACTIF [${existingEffect.flags.statuscounter.value}]` : "ACTIF") : "INACTIF";
+
             dialogContent += `
                 <div class="effect-item">
                     <div style="display: flex; align-items: center; margin-bottom: 8px;">
                         <div class="effect-icon" data-src="${effectData.icon}" data-is-svg="${isSvg}" style="background-image: url(${effectData.icon});"></div>
                         <div style="flex-grow: 1;">
-                            <strong>${effectData.name}</strong>${bonusDisplay ? ` (${bonusDisplay})` : ''}
+                            <strong>${effectData.name}</strong>${bonusDisplay ? ` (${bonusDisplay})` : ''}${counterDisplay}${manaCostDisplay}
                             <br><small style="color: #666;">${effectData.description}</small>
                         </div>
                         <div class="status-indicator status-${key}" style="color: ${statusColor};">
-                            ${statusIcon} ${statusText}
+                            ${statusIcon} ${statusDisplayText}
                         </div>
                     </div>
                     <div class="button-group">
@@ -571,6 +583,11 @@
                     // Add custom flags
                     for (const flag of effectData.flags) {
                         effectConfig.flags[flag.key] = { value: flag.value };
+                    }
+
+                    // Add status counter if defined
+                    if (effectData.statusCounterValue !== undefined) {
+                        effectConfig.flags.statuscounter = { value: effectData.statusCounterValue };
                     }
 
                     await actor.createEmbeddedDocuments("ActiveEffect", [effectConfig]);
