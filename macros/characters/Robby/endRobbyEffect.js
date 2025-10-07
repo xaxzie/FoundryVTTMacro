@@ -298,40 +298,36 @@
                 title: "🩸 Terminer Effets de Robby",
                 content: dialogContent,
                 buttons: {
-                    selectAll: {
-                        icon: '<i class="fas fa-check-double"></i>',
-                        label: "Tout Sélectionner",
-                        callback: (html) => {
-                            html.find('input[type="checkbox"]').prop('checked', true);
-                            return false; // Prevent dialog from closing
-                        }
-                    },
-                    deselectAll: {
-                        icon: '<i class="fas fa-times"></i>',
-                        label: "Tout Désélectionner",
-                        callback: (html) => {
-                            html.find('input[type="checkbox"]').prop('checked', false);
-                            return false; // Prevent dialog from closing
-                        }
-                    },
-                    remove: {
+                    removeSelected: {
                         icon: '<i class="fas fa-trash-alt"></i>',
-                        label: "Supprimer Sélectionnés",
+                        label: "🩸 Retirer Sélectionnés",
                         callback: (html) => {
                             const selectedIndices = [];
                             html.find('input[type="checkbox"]:checked').each(function () {
                                 selectedIndices.push(parseInt($(this).val()));
                             });
+                            if (selectedIndices.length === 0) {
+                                ui.notifications.warn("Aucun effet sélectionné !");
+                                return;
+                            }
                             resolve({ selectedIndices });
                         }
                     },
-                    cancel: {
+                    removeAll: {
                         icon: '<i class="fas fa-ban"></i>',
-                        label: "Annuler",
+                        label: "🩸 Retirer Tous",
+                        callback: () => {
+                            const allIndices = robbyEffects.map((_, index) => index);
+                            resolve({ selectedIndices: allIndices });
+                        }
+                    },
+                    cancel: {
+                        icon: '<i class="fas fa-times"></i>',
+                        label: "❌ Annuler",
                         callback: () => resolve(null)
                     }
                 },
-                default: "remove",
+                default: "removeSelected",
                 close: () => resolve(null)
             }, {
                 width: 500,
