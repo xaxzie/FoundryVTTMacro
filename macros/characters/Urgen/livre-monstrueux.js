@@ -466,8 +466,8 @@
         // Projectile du livre vers la cible
         sequence.effect()
             .file(SPELL_CONFIG.animations.projectile)
-            .from(caster)
-            .to({ x: target.x, y: target.y })
+            .attachTo(caster)
+            .stretchTo(target)
             .scale(0.7)
             .duration(1000)
             .waitUntilFinished(-500);
