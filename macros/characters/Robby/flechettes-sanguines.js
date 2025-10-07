@@ -180,9 +180,6 @@
                                     </div>
                                 </div>
 
-                                <div style="text-align: center; margin-top: 10px;">
-                                    <button type="button" id="aggressiveMode" style="background: #8b0000; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Sélectionner</button>
-                                </div>
                             </div>
 
                             <div style="border: 2px solid #228b22; padding: 15px; border-radius: 8px; background: #f0fff0;">
@@ -192,9 +189,6 @@
                                 <p style="margin: 8px 0; font-size: 0.9em;"><strong>Utilisations:</strong> 3 maximum</p>
                                 <p style="margin: 8px 0; font-size: 0.9em;"><strong>Durée:</strong> ${Math.floor(spiritInfo.final / 2)} tours maximum</p>
                                 <p style="margin: 8px 0; font-size: 0.8em; color: #666;"><em>Application automatique (pas de jet d'attaque)</em></p>
-                                <div style="text-align: center; margin-top: 10px;">
-                                    <button type="button" id="defensiveMode" style="background: #228b22; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Sélectionner</button>
-                                </div>
                             </div>
                         </div>
 
@@ -206,26 +200,30 @@
                     </div>
                 `,
                 buttons: {
+                    aggressive: {
+                        icon: '<i class="fas fa-sword"></i>',
+                        label: "⚔️ Mode Agressif",
+                        callback: (html) => {
+                            const attackBonus = parseInt(html.find("#aggressiveAttackBonus").val()) || 0;
+                            const damageBonus = parseInt(html.find("#aggressiveDamageBonus").val()) || 0;
+                            resolve({ mode: "aggressive", attackBonus, damageBonus });
+                        }
+                    },
+                    defensive: {
+                        icon: '<i class="fas fa-shield"></i>',
+                        label: "🛡️ Mode Défensif",
+                        callback: () => {
+                            resolve({ mode: "defensive", attackBonus: 0, damageBonus: 0 });
+                        }
+                    },
                     cancel: {
                         icon: '<i class="fas fa-times"></i>',
                         label: "Annuler",
                         callback: () => resolve(null)
                     }
                 },
-                default: "cancel",
-                close: () => resolve(null),
-                render: (html) => {
-                    html.find("#aggressiveMode").click(() => {
-                        const attackBonus = parseInt(html.find("#aggressiveAttackBonus").val()) || 0;
-                        const damageBonus = parseInt(html.find("#aggressiveDamageBonus").val()) || 0;
-                        html.closest('.app').find('.header-button.close').click();
-                        resolve({ mode: "aggressive", attackBonus, damageBonus });
-                    });
-                    html.find("#defensiveMode").click(() => {
-                        html.closest('.app').find('.header-button.close').click();
-                        resolve({ mode: "defensive", attackBonus: 0, damageBonus: 0 });
-                    });
-                }
+                default: "aggressive",
+                close: () => resolve(null)
             }, {
                 width: 600,
                 height: 500,
