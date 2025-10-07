@@ -20,13 +20,13 @@
         description: "Frappe puissante avec une masse de cheveux magiques",
         characteristic: "dexterite",
         characteristicDisplay: "Dextérité",
-        manaCost: 0,
-        spellLevel: 0,
+        manaCost: 2,
+        spellLevel: 1,
         damageFormula: "1d6",
         isDirect: true,
         isFocusable: true,
         animations: {
-            whip: "jb2a.whip.01.purple.01",
+            whip: "jb2a.melee_generic.creature_attack.fist.002.blue.1",
             sound: null
         },
         targeting: {
@@ -209,7 +209,7 @@
                 close: () => resolve(null)
             }, {
                 width: 450,
-                height: 600,
+                height: 630,
                 resizable: true
             }).render(true);
         });
@@ -384,7 +384,7 @@
                 .attachTo(caster)
                 .stretchTo(target)
                 .tint("#9c27b0") // Magenta/violet pour les cheveux magiques
-                .scale(0.9)
+                .scale(0.5)
                 .waitUntilFinished(-300)
                 .play();
         } catch (error) {
