@@ -524,14 +524,6 @@
         };
     }
 
-    // Prepare result variables for final message
-    let bookAttachmentResult = { success: false, message: "" };
-
-    // ===== BOOK ATTACHMENT SYSTEM =====
-    if (attachBook && targetActor) {
-        bookAttachmentResult = await handleBookAttachment(targetActor.actor);
-    }
-
     /**
      * Gère l'accrochage du livre à la cible et met à jour le compteur de Urgen
      */
@@ -670,6 +662,14 @@
         }
 
         return { success: attachmentSuccess, message: attachmentMessage };
+    }
+
+    // Prepare result variables for final message
+    let bookAttachmentResult = { success: false, message: "" };
+
+    // ===== BOOK ATTACHMENT SYSTEM =====
+    if (attachBook && targetActor) {
+        bookAttachmentResult = await handleBookAttachment(targetActor.actor);
     }
 
     // Build enhanced flavor for the final dice roll message
