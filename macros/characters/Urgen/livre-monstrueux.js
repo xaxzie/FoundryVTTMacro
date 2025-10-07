@@ -258,7 +258,7 @@
                             <p style="font-size: 0.9em; margin-top: 10px; color: #ffe082;">
                                 ⚠️ <strong>Coût:</strong> ${SPELL_CONFIG.maintenanceCost} mana/tour (non focalisable)<br>
                                 📌 <strong>Effet:</strong> Ajoute "Livre Monstrueux" (Counter: Esprit÷2 = ${Math.floor(characteristicInfo.final / 2)})<br>
-                                🔢 <strong>Limite:</strong> Max ${SPELL_CONFIG.maxBooksPerTarget} livres par cible (cumul possible)
+                                🔢 <strong>Cumul:</strong> Livres illimités par cible (cumul possible)
                             </p>
                         </div>
                     </div>
@@ -521,9 +521,16 @@
     if (currentStance !== 'offensif') {
         // Extract damage result from dice roll
         const damageRollResult = combinedRoll.terms[0].results[1];
+        // Build the damage formula for display
+        const effectDamageBonus = getActiveEffectBonus(actor, "damage");
+        const totalCharacteristic = characteristicInfo.final + characteristicBonus;
+        const totalDamageBonus = damageBonus + effectDamageBonus;
+        const statBonus = totalCharacteristic + totalDamageBonus;
+        const displayFormula = `${SPELL_CONFIG.damageFormula} + ${statBonus}`;
+
         finalDamageResult = {
             total: damageRollResult.result,
-            formula: damageRollResult.expression,
+            formula: displayFormula,
             result: damageRollResult.result
         };
     }
@@ -562,11 +569,12 @@
             // Calculer combien de livres cela représente (approximativement)
             const currentBooks = Math.ceil(currentCounter / counterValue) || 1;
 
-            if (currentBooks >= SPELL_CONFIG.maxBooksPerTarget) {
-                ui.notifications.warn(`⚠️ ${targetActor.name} a déjà ${SPELL_CONFIG.maxBooksPerTarget} livres attachés (maximum atteint) !`);
-                attachmentMessage = `❌ Limite atteinte (${SPELL_CONFIG.maxBooksPerTarget} livres max)`;
-                return { success: false, message: attachmentMessage };
-            }
+            // Removed book limit - infinite books allowed
+            // if (currentBooks >= SPELL_CONFIG.maxBooksPerTarget) {
+            //     ui.notifications.warn(`⚠️ ${targetActor.name} a déjà ${SPELL_CONFIG.maxBooksPerTarget} livres attachés (maximum atteint) !`);
+            //     attachmentMessage = `❌ Limite atteinte (${SPELL_CONFIG.maxBooksPerTarget} livres max)`;
+            //     return { success: false, message: attachmentMessage };
+            // }
 
             // Mettre à jour le counter existant avec GM delegation
             const currentBookCount = existingEffect.flags?.BookCount.value || 0;
@@ -595,7 +603,7 @@
                 duration: { seconds: 84600 },
                 flags: {
                     statuscounter: {
-                        active: true,
+                        visible: true,
                         value: counterValue
                     },
                     BookCount: {
@@ -649,13 +657,13 @@
                 // Créer un nouvel effet "Book" sur Urgen
                 const urgenBookData = {
                     name: bookEffectName,
-                    icon: "icons/sundries/books/book-stack-blue.webp",
+                    icon: "icons/sundries/books/book-embossed-blue.webp",
                     description: "Livres magiques créés et attachés aux ennemis",
                     disabled: false,
                     duration: { seconds: 84600 },
                     flags: {
                         statuscounter: {
-                            active: true,
+                            visible: true,
                             value: 1
                         }
                     },
@@ -706,7 +714,7 @@
                           <p style="margin: 5px 0; font-style: italic;">Formule: ${finalDamageResult.formula}</p>`;
     } else {
         enhancedFlavor += `<p style="margin: 5px 0;"><strong>💥 Dégâts (si touche):</strong> ${finalDamageResult.total}</p>
-                          <p style="margin: 5px 0; font-style: italic;">Formule: ${finalDamageResult.formula || finalDamageResult.expression}</p>`;
+                          <p style="margin: 5px 0; font-style: italic;">Formule: ${finalDamageResult.formula}</p>`;
     }
 
     enhancedFlavor += `</div>`;
@@ -723,7 +731,7 @@
 
         if (bookAttachmentResult.success) {
             enhancedFlavor += `<p style="margin: 5px 0; font-size: 0.9em;">💰 Coût: ${SPELL_CONFIG.maintenanceCost} mana/tour (non focalisable)</p>
-                              <p style="margin: 5px 0; font-size: 0.9em;">📊 Max: ${SPELL_CONFIG.maxBooksPerTarget} livres par cible</p>`;
+                              <p style="margin: 5px 0; font-size: 0.9em;">� Cumul: Livres illimités par cible</p>`;
         }
 
         enhancedFlavor += `</div>`;
