@@ -223,49 +223,80 @@
     }
 
     // === CUSTOM EFFECTS SECTION ===
-    dialogContent += `
-        <div class="effect-section" style="border-color: #4caf50;">
-            <h4>🎯 Effets Personnalisés</h4>
-    `;
-
-    for (const [key, effectData] of Object.entries(CUSTOM_EFFECTS)) {
-        const isActive = currentState.customEffects[key] !== null;
-        const statusIcon = isActive ? "✅" : "❌";
-        const statusText = isActive ? "ACTIF" : "INACTIF";
-        const statusColor = isActive ? "#2e7d32" : "#d32f2f";
-
-        const bonusDisplay = effectData.flags.map(flag => {
-            const sign = flag.value >= 0 ? '+' : '';
-            return `${sign}${flag.value}`;
-        }).join(', ');
-
-        const isSvg = effectData.icon.toLowerCase().endsWith('.svg');
+    if (Object.keys(CUSTOM_EFFECTS).length > 0) {
         dialogContent += `
-            <div class="effect-item">
-                <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                    <div class="effect-icon" data-src="${effectData.icon}" data-is-svg="${isSvg}" style="background-image: url(${effectData.icon});"></div>
-                    <div style="flex-grow: 1;">
-                        <strong>${effectData.name}</strong> (${bonusDisplay})
-                        <br><small style="color: #666;">${effectData.description}</small>
-                    </div>
-                    <div class="status-indicator status-${key}" style="color: ${statusColor};">
-                        ${statusIcon} ${statusText}
-                    </div>
-                </div>
-                <div class="button-group">
-                    <button type="button" class="btn btn-add" data-action="add" data-effect="${key}" data-category="custom" ${isActive ? 'disabled' : ''}>
-                        ➕ Ajouter
-                    </button>
-                    <button type="button" class="btn btn-remove" data-action="remove" data-effect="${key}" data-category="custom" ${!isActive ? 'disabled' : ''}>
-                        ➖ Supprimer
-                    </button>
-                </div>
-            </div>
+            <div class="effect-section" style="border-color: #4caf50;">
+                <h4>🎯 Effets Personnalisés</h4>
         `;
-    }
-    dialogContent += `</div>`;
 
-    // === POSTURES SECTION ===
+        for (const [key, effectData] of Object.entries(CUSTOM_EFFECTS)) {
+            const existingEffect = currentState.customEffects[key];
+            const isActive = existingEffect !== null;
+            const statusIcon = isActive ? "✅" : "❌";
+            const statusText = isActive ? "ACTIF" : "INACTIF";
+            const statusColor = isActive ? "#2e7d32" : "#d32f2f";
+            const isSvg = effectData.icon.toLowerCase().endsWith('.svg');
+
+            // Check if this is an increasable effect
+            if (effectData.increasable) {
+                // Display increasable effect with counter
+                const effectCount = existingEffect ? (existingEffect.flags?.statuscounter?.value || 0) : 0;
+
+                dialogContent += `
+                    <div class="effect-item">
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <div class="effect-icon" data-is-svg="${isSvg}" style="background-image: url(${effectData.icon});"></div>
+                            <div style="flex-grow: 1;">
+                                <strong>${effectData.name}</strong>
+                                <br><small style="color: #666;">${effectData.description}</small>
+                            </div>
+                            <div class="status-indicator status-${key}" style="color: ${effectCount > 0 ? '#673ab7' : '#666'};">
+                                📚 ${effectCount} ${effectData.name.toLowerCase()}${effectCount > 1 ? 's' : ''}
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            <label>Nombre: <input type="number" id="customCount-${key}" value="${effectCount}" min="0" max="20" style="width: 60px; margin: 0 8px;"></label>
+                            <button type="button" class="btn btn-add" data-action="setCustomCount" data-effect="${key}" data-category="custom">
+                                📚 Appliquer
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Display regular effect with flags
+                const bonusDisplay = effectData.flags.map(flag => {
+                    const sign = flag.value >= 0 ? '+' : '';
+                    return `${sign}${flag.value}`;
+                }).join(', ');
+
+                dialogContent += `
+                    <div class="effect-item">
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <div class="effect-icon" data-src="${effectData.icon}" data-is-svg="${isSvg}" style="background-image: url(${effectData.icon});"></div>
+                            <div style="flex-grow: 1;">
+                                <strong>${effectData.name}</strong> (${bonusDisplay})
+                                <br><small style="color: #666;">${effectData.description}</small>
+                            </div>
+                            <div class="status-indicator status-${key}" style="color: ${statusColor};">
+                                ${statusIcon} ${statusText}
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            ${isActive ?
+                        `<button type="button" class="btn btn-remove" data-action="remove" data-effect="${key}" data-category="custom">
+                                    ➖ Supprimer
+                                </button>` :
+                        `<button type="button" class="btn btn-add" data-action="add" data-effect="${key}" data-category="custom">
+                                    ➕ Ajouter
+                                </button>`
+                    }
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        dialogContent += `</div>`;
+    }    // === POSTURES SECTION ===
     dialogContent += `
         <div class="effect-section" style="border-color: #ff9800;">
             <h4>⚔️ Postures (Une seule active)</h4>
@@ -420,7 +451,13 @@
                         for (const key of Object.keys(INJURY_EFFECTS)) {
                             injuryValues[key] = parseInt(html.find(`#injuryCount-${key}`).val()) || 0;
                         }
-                        resolve({ pendingChanges, injuryValues });
+                        const customCountValues = {};
+                        for (const key of Object.keys(CUSTOM_EFFECTS)) {
+                            if (CUSTOM_EFFECTS[key].increasable) {
+                                customCountValues[key] = parseInt(html.find(`#customCount-${key}`).val()) || 0;
+                            }
+                        }
+                        resolve({ pendingChanges, injuryValues, customCountValues });
                     }
                 },
                 removeAll: {
@@ -446,13 +483,13 @@
                 });
 
                 // Button click handlers
-                html.find('button[data-action]').click(function() {
+                html.find('button[data-action]').click(function () {
                     const action = $(this).data('action');
                     const effectKey = $(this).data('effect');
                     const category = $(this).data('category');
 
-                    if (action === 'setInjuries') {
-                        // Handle injury setting directly
+                    if (action === 'setInjuries' || action === 'setCustomCount') {
+                        // Handle injury/custom count setting directly
                         return;
                     }
 
@@ -522,7 +559,7 @@
     }
 
     // === PROCESS CHANGES ===
-    const { pendingChanges: changes, injuryValues } = result;
+    const { pendingChanges: changes, injuryValues, customCountValues } = result;
 
     try {
         const effectsToAdd = [];
@@ -568,6 +605,44 @@
             }
         }
 
+        // Handle custom count effects updates (increasable effects)
+        for (const [customKey, newValue] of Object.entries(customCountValues || {})) {
+            const customData = CUSTOM_EFFECTS[customKey];
+            if (!customData || !customData.increasable) continue;
+
+            const currentCustomEffect = currentState.customEffects[customKey];
+            const currentValue = currentCustomEffect ? (currentCustomEffect.flags?.statuscounter?.value || 0) : 0;
+
+            if (newValue !== currentValue) {
+                if (newValue === 0 && currentCustomEffect) {
+                    effectsToRemove.push(currentCustomEffect.id);
+                    operationLog.push(`📚 ${customData.name} supprimé(s)`);
+                } else if (newValue > 0) {
+                    if (currentCustomEffect) {
+                        // Update existing
+                        await currentCustomEffect.update({
+                            "flags.statuscounter.value": newValue
+                        });
+                        operationLog.push(`📚 ${customData.name} mis à jour: ${newValue}`);
+                    } else {
+                        // Create new with statuscounter
+                        const customEffect = {
+                            name: customData.name,
+                            icon: customData.icon,
+                            origin: actor.uuid,
+                            duration: { seconds: 86400 },
+                            flags: {
+                                statuscounter: { value: newValue }
+                            }
+                        };
+
+                        effectsToAdd.push(customEffect);
+                        operationLog.push(`📚 ${customData.name} ajouté(s): ${newValue}`);
+                    }
+                }
+            }
+        }
+
         // Handle posture changes (remove current, add new)
         const hasPostureChange = Object.values(changes).some(c => c.action === 'setPosture' || c.action === 'removePostures');
         if (hasPostureChange) {
@@ -589,6 +664,9 @@
             switch (category) {
                 case 'custom':
                     const customData = CUSTOM_EFFECTS[effectKey];
+                    // Skip increasable effects - they're handled separately
+                    if (customData.increasable) break;
+
                     if (action === 'add') {
                         const flagsObject = {};
                         customData.flags.forEach(flag => {

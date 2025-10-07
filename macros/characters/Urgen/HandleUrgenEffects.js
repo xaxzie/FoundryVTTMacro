@@ -29,23 +29,12 @@
     const CUSTOM_EFFECTS = {
         "Book": {
             name: "Book",
-            icon: "icons/sundries/books/book-purple-worn.webp",
+            icon: "icons/sundries/books/book-embossed-blue.webp",
             description: "Livre Monstrueux actif - maintient la connexion magique",
             category: "custom",
             increasable: true,
             flags: [
                 { key: "statuscounter", value: 0 }
-            ]
-        },
-        "Mental Focus": {
-            name: "Mental Focus",
-            icon: "icons/magic/symbols/rune-sigil-black-pink.webp",
-            description: "Concentration mentale renforcée",
-            category: "custom",
-            increasable: false,
-            flags: [
-                { key: "esprit", value: 2 },
-                { key: "damage", value: 1 }
             ]
         }
     };
@@ -303,12 +292,14 @@
                             </div>
                         </div>
                         <div class="button-group">
-                            <button type="button" class="btn btn-add" data-action="add" data-effect="${key}" data-category="custom" ${isActive ? 'disabled' : ''}>
-                                ➕ Ajouter
-                            </button>
-                            <button type="button" class="btn btn-remove" data-action="remove" data-effect="${key}" data-category="custom" ${!isActive ? 'disabled' : ''}>
-                                ➖ Supprimer
-                            </button>
+                            ${isActive ?
+                        `<button type="button" class="btn btn-remove" data-action="remove" data-effect="${key}" data-category="custom">
+                                    ➖ Supprimer
+                                </button>` :
+                        `<button type="button" class="btn btn-add" data-action="add" data-effect="${key}" data-category="custom">
+                                    ➕ Ajouter
+                                </button>`
+                    }
                         </div>
                     </div>
                 `;
