@@ -179,13 +179,16 @@
     if (outsideEffects.length > 0) {
         dialogContent += `
             <div class="effect-section" style="border-color: #ff5722;">
-                <h4>🔍 Effets Externes Détectés</h4>
-                <p style="margin: 8px 0; font-size: 0.9em; color: #666;">Effets présents sur le token mais non configurés dans ce gestionnaire</p>
+                <h4>🔍 Effets Externes Détectés (Compteurs)</h4>
+                <p style="margin: 8px 0; font-size: 0.9em; color: #666;">Effets présents sur le token mais non configurés dans ce gestionnaire - traités comme des compteurs</p>
         `;
 
         for (const effect of outsideEffects) {
             const effectIcon = effect.icon || effect.img || 'icons/svg/mystery-man.svg';
             const isSvg = effectIcon.toLowerCase().endsWith('.svg');
+
+            // Get current count from statuscounter flag or default to 1
+            const effectCount = effect.flags?.statuscounter?.value || 1;
 
             // Try to get duration info
             let durationInfo = '';
@@ -208,10 +211,14 @@
                             <br><small style="color: #666;">Origine: ${effect.origin || 'Inconnue'}</small>
                         </div>
                         <div class="status-indicator" style="color: #ff5722;">
-                            🔍 EXTERNE
+                            🔍 ${effectCount} externe${effectCount > 1 ? 's' : ''}
                         </div>
                     </div>
                     <div class="button-group">
+                        <label>Nombre: <input type="number" id="externalCount-${effect.id}" value="${effectCount}" min="0" max="20" style="width: 60px; margin: 0 8px;"></label>
+                        <button type="button" class="btn btn-add" data-action="setExternalCount" data-effect="${effect.id}" data-category="external">
+                            🔍 Appliquer
+                        </button>
                         <button type="button" class="btn btn-remove" data-action="removeExternal" data-effect="${effect.id}" data-category="external">
                             🗑️ Supprimer
                         </button>
@@ -457,7 +464,11 @@
                                 customCountValues[key] = parseInt(html.find(`#customCount-${key}`).val()) || 0;
                             }
                         }
-                        resolve({ pendingChanges, injuryValues, customCountValues });
+                        const externalCountValues = {};
+                        for (const effect of outsideEffects) {
+                            externalCountValues[effect.id] = parseInt(html.find(`#externalCount-${effect.id}`).val()) || 0;
+                        }
+                        resolve({ pendingChanges, injuryValues, customCountValues, externalCountValues });
                     }
                 },
                 removeAll: {
@@ -488,8 +499,8 @@
                     const effectKey = $(this).data('effect');
                     const category = $(this).data('category');
 
-                    if (action === 'setInjuries' || action === 'setCustomCount') {
-                        // Handle injury/custom count setting directly
+                    if (action === 'setInjuries' || action === 'setCustomCount' || action === 'setExternalCount') {
+                        // Handle injury/custom/external count setting directly
                         return;
                     }
 
@@ -559,7 +570,7 @@
     }
 
     // === PROCESS CHANGES ===
-    const { pendingChanges: changes, injuryValues, customCountValues } = result;
+    const { pendingChanges: changes, injuryValues, customCountValues, externalCountValues } = result;
 
     try {
         const effectsToAdd = [];
@@ -638,6 +649,31 @@
 
                         effectsToAdd.push(customEffect);
                         operationLog.push(`📚 ${customData.name} ajouté(s): ${newValue}`);
+                    }
+                }
+            }
+        }
+
+        // Handle external count effects updates (all external effects treated as increasable)
+        for (const [effectId, newValue] of Object.entries(externalCountValues || {})) {
+            const currentExternalEffect = outsideEffects.find(e => e.id === effectId);
+            if (!currentExternalEffect) continue;
+
+            const currentValue = currentExternalEffect.flags?.statuscounter?.value || 1;
+
+            if (newValue !== currentValue) {
+                if (newValue === 0) {
+                    effectsToRemove.push(currentExternalEffect.id);
+                    operationLog.push(`🔍 ${currentExternalEffect.name} supprimé`);
+                } else if (newValue > 0) {
+                    if (newValue !== currentValue) {
+                        // Update existing external effect with new count
+                        const updateData = {
+                            _id: currentExternalEffect.id,
+                            "flags.statuscounter.value": newValue
+                        };
+                        await actor.updateEmbeddedDocuments("ActiveEffect", [updateData]);
+                        operationLog.push(`🔍 ${currentExternalEffect.name} mis à jour: ${newValue}`);
                     }
                 }
             }
