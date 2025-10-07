@@ -55,7 +55,7 @@
         // Les 7 caractéristiques du système
         characteristics: [
             "physique",
-            "dexterite", 
+            "dexterite",
             "perception",
             "esprit",
             "parole",
@@ -410,7 +410,7 @@
     // ===== CHAT MESSAGE =====
     function createFlavor() {
         const actualMana = (currentStance === 'focus' && SPELL_CONFIG.isFocusable) ?
-            `GRATUIT (Position Focus) + ${SPELL_CONFIG.maintenanceCost} par tour` : 
+            `GRATUIT (Position Focus) + ${SPELL_CONFIG.maintenanceCost} par tour` :
             `${SPELL_CONFIG.manaCost} mana + ${SPELL_CONFIG.maintenanceCost} par tour`;
 
         const injuryInfo = characteristicInfo.injuries > 0 ?
