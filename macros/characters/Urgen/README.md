@@ -1,105 +1,131 @@
 # Urgen - Maître des Livres Magiques
 
-Urgen est un personnage spécialisé dans la magie des livres. Il peut créer des livres magiques qui déclenchent des effets spécifiques selon ses maîtrises.
+Urgen est un personnage spécialisé dans la magie des livres et de la connaissance. Il manipule l'énergie magique à travers des ouvrages enchantés, utilisant sa maîtrise intellectuelle pour créer des effets variés.
 
 ## 🎯 Concept du Personnage
 
-### Spécialité : Magie des Livres
-- **Élément** : Mental/Esprit
-- **Style de Combat** : Attaque à distance avec livres magiques
-- **Caractéristique Principale** : **Esprit** (concentration et magie)
+### Spécialité : Magie des Livres et de l'Esprit
+- **Élément** : Mental/Esprit et Dextérité (selon le sort)
+- **Style de Combat** : Attaque à distance et zone d'effet avec livres magiques
+- **Caractéristiques** : **Esprit** (sorts magiques) et **Dextérité** (lancers précis)
 
-### Limitation Unique
-- **Maximum de Livres** : Ne peut avoir plus de **4 livres créés simultanément**
-- **Gestion des Resources** : Chaque livre attaché coûte de la mana par tour
+### Gamme de Sorts
+- **Sorts Simples** : Lancers rapides et économiques
+- **Sorts Puissants** : Attachements persistants avec coût de maintenance
+- **Sorts Défensifs** : Protection d'alliés avec mécaniques de portail
+- **Sorts de Zone** : Tempêtes magiques affectant plusieurs cibles
 
 ## 📚 Sorts de Urgen
 
-### 🔥 Livre Monstrueux
-**Fichier** : `livre-monstrueux.js`
+### � Livre Simple (Niveau 0.5)
+**Fichier** : `livre-simple.js`
 
-**Description** : Urgen utilise son esprit pour créer un livre magique qu'il lance sur un adversaire, infligeant des dégâts et pouvant s'accrocher à la cible.
+**Description** : Sort basique permettant de lancer un petit livre avec précision et agilité.
 
 **Mécaniques** :
-- **Caractéristique** : Esprit (pour attaque et dégâts)
-- **Dégâts** : 1d4 + Esprit (si touche)
-- **Coût de Base** : 2 mana (focalisable)
-- **Niveau de Sort** : 1
+- **Caractéristique** : Dextérité (attaque) + Dextérité/2 (dégâts)
+- **Dégâts** : 1d2 + Dextérité/2 + bonus
+- **Coût** : 0 mana (toujours gratuit)
+- **Type** : Attaque directe simple, pas d'effet persistant
 
-**Système d'Accrochage** :
-- **Option** : Peut choisir d'accrocher le livre à la cible
-- **Effet** : Ajoute un effet "Livre Monstrueux" avec statusCounter
-- **Valeur Counter** : Esprit/2 de Urgen
-- **Limite** : Jusqu'à 2 livres par cible
-- **Coût Maintenance** : 1 mana/tour (non focalisable)
-- **Stacking** : Si déjà présent, augmente le statusCounter de Esprit/2
+### 📚 Livre Monstrueux (Niveau 1)
+**Fichier** : `livre-monstrueux.js`
+
+**Description** : Livre magique lancé avec l'esprit, peut s'accrocher à la cible pour infliger des dégâts persistants.
+
+**Mécaniques** :
+- **Caractéristique** : Esprit (attaque et dégâts)
+- **Dégâts** : 1d4 + Esprit + bonus
+- **Coût** : 3 mana (focalisable)
+- **Attachement** : Option d'accrocher le livre (Counter: Esprit/2, coût: 1 mana/tour)
+- **Limite** : Livres illimités par cible (cumul possible)
+
+### 🛡️ Livre Défensif (Niveau 1)
+**Fichier** : `livre-defensif.js`
+
+**Description** : Sort défensif utilisant deux portails pour envoyer des livres protecteurs aux alliés.
+
+**Mécaniques** :
+- **Caractéristique** : Esprit (aucun jet d'attaque)
+- **Coût** : 2 mana par livre (non focalisable)
+- **Ciblage** : Double portail pour sélectionner 1-2 alliés
+- **Effet Défensif** : Applique "Livre Défensif" avec counter basé sur Esprit
+- **Book Counter** : Incrémente le compteur de livres de Urgen
+
+### 📚 Tempête Littéraire (Niveau 2)
+**Fichier** : `tempete-litteraire.js`
+
+**Description** : Livre explosant en tempête de pages magiques dans une zone de 2 cases de rayon.
+
+**Mécaniques** :
+- **Caractéristique** : Esprit (attaque et dégâts)
+- **Dégâts** : 1d6 + Esprit + bonus
+- **Coût** : 6 mana (demi-focalisable : 3 en Focus)
+- **Zone** : Cercle de 2 cases de rayon (étendu)
+- **Spécial** : L'esquive ne réduit les dégâts que de moitié
+
+## 🛠️ Utilitaires de Gestion
 
 ### 🎭 Gestionnaire d'Effets de Urgen
 **Fichier** : `HandleUrgenEffects.js`
 
-**Description** : Interface complète de gestion des effets actifs sur Urgen, incluant les effets personnalisés, postures, blessures et effets cumulables.
+**Description** : Interface unifiée pour gérer tous les effets actifs de Urgen.
 
 **Fonctionnalités** :
-- **Postures de Combat** : Focus, Offensif, Défensif (mutuellement exclusives)
-- **Système de Blessures** : Gestion des injuries avec counters cumulables
-- **Effets Cumulables** : Nouveaux effets avec système de statusCounter (ex: Livre "Book")
-- **Effets Externes** : Détection et gestion des effets non configurés
-- **Interface Unifiée** : Tous les effets gérés depuis une seule interface
+- **Postures** : Focus, Offensif, Défensif (mutuellement exclusives)
+- **Blessures** : Gestion des injuries avec counters
+- **Book Counter** : Compteur de livres magiques créés
+- **Effets Externes** : Auto-détection avec counters activés
+- **Interface Unifiée** : Gestion complète depuis une macro
 
-**Effets Cumulables** :
-- **Book** : Compteur de livres magiques créés par Urgen
-- **Système statusCounter** : Valeurs incrementables/decrementables
-- **Gestion Visual** : Interface similaire au système de blessures
-- **Persistance** : Sauvegarde automatique des valeurs
-
-**Usage** : Sélectionner le token de Urgen et lancer la macro pour gérer tous ses effets
-
-### 🗑️ Terminer Effets de Urgen
+### 🗑️ Nettoyage des Effets
 **Fichier** : `endUrgenEffect.js`
 
-**Description** : Macro utilitaire pour détacher et supprimer les livres magiques que Urgen a attachés à d'autres personnages.
+**Description** : Utilitaire pour détacher les livres magiques attachés aux autres personnages.
 
 **Fonctionnalités** :
-- **Détection Automatique** : Trouve tous les effets "Livre Monstrueux" sur le canvas
-- **Interface de Sélection** : Choisir quels livres détacher (sélectionnés ou tous)
-- **Animation de Détachement** : Effet visuel lors de la suppression
-- **Gestion GM** : Utilise le système de délégation GM pour les tokens non possédés
-- **Mise à Jour Compteur** : Met automatiquement à jour l'effet "Book" sur Urgen
-- **Extensible** : Configuration centralisée pour ajouter facilement de nouveaux types de livres
+- **Détection Auto** : Trouve tous les effets de livres sur le canvas
+- **Sélection** : Choisir quels livres détacher individuellement
+- **Animation** : Effets visuels de détachement
+- **Gestion GM** : Support pour tokens non possédés
+- **Mise à Jour** : Ajuste automatiquement le compteur Book de Urgen
 
-**Usage** : Sélectionner le token de Urgen et lancer la macro pour voir tous les livres attachés
+## 🎮 Mécaniques de Jeu
 
-## 🎮 Règles RPG Spécifiques
-
-### Système de Dés (d7)
-- **Attaque** : [Esprit de Urgen]d7 + bonus de niveau
+### Système d'Attaque
+- **Dés d'Attaque** : [Caractéristique]d7 + bonus de niveau (×2)
 - **Défense** : [Agilité du défenseur]d7
-- **Touche si** : Total attaque > Total défense
+- **Réussite** : Attaque > Défense
 
 ### Stances de Combat
-- **Offensive** : Dégâts maximisés (1d4 devient 4)
-- **Defensive** : Peut utiliser magie réactive
-- **Focus** : Sorts focalisables deviennent gratuits
+- **Offensive** : Dégâts maximisés (1d2→2, 1d4→4, 1d6→6)
+- **Défensive** : Résistance accrue et magie réactive
+- **Focus** : Sorts focalisables gratuits, demi-focalisables à moitié prix
 
-### Intégration Système
-- **Détection Stance** : Utilise les fonctions utilitaires du projet
-- **Gestion Effets** : Utilise le système GM delegation
-- **Interface** : Dialogs pour configuration manuelle des bonus
+### Types de Coûts en Mana
+- **Focalisable** : Gratuit en stance Focus
+- **Demi-focalisable** : Moitié prix en stance Focus
+- **Non focalisable** : Coût fixe (maintenance, sorts défensifs)
 
-## 📝 Notes de Développement
+### Caractéristiques Utilisées
+- **Esprit** : Sorts magiques offensifs et défensifs
+- **Dextérité** : Sorts de précision (Livre Simple)
+- **Système d'Injuries** : Réduction de caractéristiques par blessures
 
-### Conformité RPG
-- Suit les règles du système RPG personnalisé
-- Utilise les fonctions utilitaires standardisées
-- Intègre la détection de stance et calculs d'injury
-- Respecte le système de délégation GM pour les effets
+## 🎯 Stratégies de Combat
 
-### Animation et Effets
-- Utilise les assets JB2A et autres bibliothèques disponibles
-- Animations adaptées au thème "livre magique"
-- Effets visuels pour l'accrochage du livre à la cible
+### Économie de Mana
+- **Livre Simple** : Attaque gratuite de base
+- **Focus Stance** : Maximise l'efficacité des gros sorts
+- **Gestion Book Counter** : Limiter les coûts de maintenance
 
-### Future Expansion
-- Autres types de livres magiques
-- Système de maîtrise des livres
-- Interactions entre livres différents
+### Polyvalence Tactique
+- **Attaque Directe** : Livre Simple et Livre Monstrueux
+- **Contrôle de Zone** : Tempête Littéraire pour groupes d'ennemis
+- **Support Défensif** : Livre Défensif pour protéger les alliés
+- **Persistance** : Livres attachés pour dégâts continus
+
+### Optimisations
+- **Combinaisons** : Alterner sorts simples et complexes
+- **Positionnement** : Exploiter les portées et zones d'effet
+- **Timing** : Utiliser les stances au bon moment
