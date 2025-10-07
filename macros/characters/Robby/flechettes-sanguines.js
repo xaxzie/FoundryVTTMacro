@@ -226,7 +226,7 @@
                 close: () => resolve(null)
             }, {
                 width: 600,
-                height: 500,
+                height: 550,
                 resizable: true
             }).render(true);
         });
@@ -538,6 +538,11 @@
             }
         }
 
+        // Track whether we applied or found an existing effect
+        let slowdownWasAlreadyPresent = false;
+        let slowdownApplied = false;
+        let appliedSlowdownValue = SPELL_CONFIG.speedReduction;
+
         try {
             // Check if target already has a slowdown effect
             const existingSlowdown = targetActor.actor.effects.find(e =>
@@ -545,17 +550,11 @@
                 e.name === "Ralentissement" ||
                 e.name.toLowerCase().includes("ralentissement")
             );
-
             if (existingSlowdown) {
-                // Update existing slowdown effect
-                const currentSlowdown = existingSlowdown.flags?.statuscounter?.value || 0;
-                const newSlowdown = currentSlowdown + SPELL_CONFIG.speedReduction;
-                const updateData = {
-                    "flags.statuscounter.value": newSlowdown,
-                    "description": `Ralentissement par Fléchettes Sanguines (-${newSlowdown} cases de vitesse). La cible peut essayer de résister chaque tour avec un jet de Volonté contre l'Esprit du lanceur (${spiritInfo.final}), gagnant +1 dé bonus à chaque tentative.`
-                };
-                await updateEffectWithGMDelegation(targetActor.actor, existingSlowdown.id, updateData);
-                console.log(`[DEBUG] Updated existing slowdown effect on ${targetName}: ${currentSlowdown} + ${SPELL_CONFIG.speedReduction} = ${newSlowdown} speed reduction`);
+                // Do not increase the slowdown if it's already present.
+                slowdownWasAlreadyPresent = true;
+                appliedSlowdownValue = existingSlowdown.flags?.statuscounter?.value || SPELL_CONFIG.speedReduction;
+                console.log(`[DEBUG] Slowdown already present on ${targetName}, no change applied (value ${appliedSlowdownValue})`);
             } else {
                 // Create new slowdown effect
                 const slowdownEffect = {
@@ -576,6 +575,7 @@
                 };
 
                 await applyEffectWithGMDelegation(targetActor.actor, slowdownEffect);
+                slowdownApplied = true;
                 console.log(`[DEBUG] Applied new slowdown effect to ${targetName}: -${SPELL_CONFIG.speedReduction} speed`);
             }
         } catch (error) {
@@ -602,7 +602,15 @@
                 </div>
             `;
 
-            const slowdownDisplay = `
+            // Show whether the slow was newly applied or already present (réinitialisé)
+            const slowdownDisplay = slowdownWasAlreadyPresent
+                ? `
+                <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f3e5f5; border-radius: 4px;">
+                    <div style="font-size: 1.1em; color: #7b1fa2; font-weight: bold;">🐌 RALENTISSEMENT: réinitialisé</div>
+                    <div style="font-size: 0.8em; color: #666; margin-top: 2px;">Valeur actuelle: -${appliedSlowdownValue} cases • Résistance possible (Volonté vs Esprit ${spiritInfo.final})</div>
+                </div>
+            `
+                : `
                 <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f3e5f5; border-radius: 4px;">
                     <div style="font-size: 1.1em; color: #7b1fa2; font-weight: bold;">🐌 RALENTISSEMENT: -${SPELL_CONFIG.speedReduction} cases</div>
                     <div style="font-size: 0.8em; color: #666; margin-top: 2px;">Résistance possible (Volonté vs Esprit ${spiritInfo.final})</div>
@@ -670,31 +678,49 @@
             }
         }
 
+        // Track whether resistance was applied or already present
+        let resistanceWasAlreadyPresent = false;
+        let resistanceApplied = false;
+        let appliedResistanceValue = 0;
+
         try {
             const resistanceValue = Math.floor(spiritInfo.final / 2);
             const maxDuration = Math.floor(spiritInfo.final / 2);
 
-            // Create resistance effect
-            const resistanceEffect = {
-                name: "Résistance Sanguine",
-                icon: "icons/svg/upgrade.svg",
-                description: `Résistance par Fléchettes Sanguines. L'effet a 3 utilisations et dure maximum ${maxDuration} tours.`,
-                duration: {
-                    seconds: 86400
-                },
-                flags: {
-                    statuscounter: {
-                        value: resistanceValue
-                    },
-                    world: {
-                        spellCaster: caster.id,
-                        spellName: SPELL_CONFIG.name
-                    }
-                }
-            };
+            // Check if target already has the resistance effect
+            const existingResistance = targetActor.actor.effects.find(e =>
+                e.name === "Résistance Sanguine" || e.name.toLowerCase().includes("résistance")
+            );
 
-            await applyEffectWithGMDelegation(targetActor.actor, resistanceEffect);
-            console.log(`[DEBUG] Applied resistance effect to ${targetName}: +${resistanceValue} bonus, 3 uses, ${maxDuration} rounds max`);
+            if (existingResistance) {
+                resistanceWasAlreadyPresent = true;
+                appliedResistanceValue = existingResistance.flags?.statuscounter?.value || resistanceValue;
+                console.log(`[DEBUG] Resistance already present on ${targetName}, no change applied (value ${appliedResistanceValue})`);
+            } else {
+                // Create resistance effect
+                const resistanceEffect = {
+                    name: "Résistance Sanguine",
+                    icon: "icons/svg/upgrade.svg",
+                    description: `Résistance par Fléchettes Sanguines. L'effet a 3 utilisations et dure maximum ${maxDuration} tours.`,
+                    duration: {
+                        seconds: 86400
+                    },
+                    flags: {
+                        statuscounter: {
+                            value: resistanceValue
+                        },
+                        world: {
+                            spellCaster: caster.id,
+                            spellName: SPELL_CONFIG.name
+                        }
+                    }
+                };
+
+                await applyEffectWithGMDelegation(targetActor.actor, resistanceEffect);
+                resistanceApplied = true;
+                appliedResistanceValue = resistanceValue;
+                console.log(`[DEBUG] Applied resistance effect to ${targetName}: +${resistanceValue} bonus, 3 uses, ${maxDuration} rounds max`);
+            }
         } catch (error) {
             console.error(`[ERROR] Failed to apply resistance effect to ${targetName}:`, error);
         }
@@ -705,7 +731,15 @@
             const resistanceValue = Math.floor(spiritInfo.final / 2);
             const maxDuration = Math.floor(spiritInfo.final / 2);
 
-            return `
+            // Show réinitialisé if the resistance was already present
+            const resistanceDisplay = resistanceWasAlreadyPresent
+                ? `<div style="text-align: center; margin: 8px 0; padding: 10px; background: #f0fff0; border-radius: 4px;">
+                        <div style="font-size: 1.1em; color: #228b22; margin-bottom: 6px; font-weight: bold;">🛡️ RÉSISTANCE: réinitialisé</div>
+                        <div style="font-size: 0.9em; margin-bottom: 4px;">Cible: ${targetName}</div>
+                        <div style="font-size: 1.4em; color: #228b22; font-weight: bold;">✨ RÉSISTANCE: +${appliedResistanceValue}</div>
+                        <div style="font-size: 0.8em; color: #666; margin-top: 2px;">3 utilisations • ${maxDuration} tours maximum</div>
+                    </div>`
+                : `
                 <div style="background: linear-gradient(135deg, #f0fff0, #e8f5e8); padding: 12px; border-radius: 8px; border: 2px solid #228b22; margin: 8px 0;">
                     <div style="text-align: center; margin-bottom: 8px;">
                         <h3 style="margin: 0; color: #424242;">🩸 ${SPELL_CONFIG.name} - 🛡️ Défensif</h3>
@@ -718,11 +752,13 @@
                     <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f0fff0; border-radius: 4px;">
                         <div style="font-size: 1.1em; color: #228b22; margin-bottom: 6px;"><strong>🛡️ Application Automatique</strong></div>
                         <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cible:</strong> ${targetName}</div>
-                        <div style="font-size: 1.4em; color: #228b22; font-weight: bold;">✨ RÉSISTANCE: +${resistanceValue}</div>
+                        <div style="font-size: 1.4em; color: #228b22; font-weight: bold;">✨ RÉSISTANCE: +${appliedResistanceValue}</div>
                         <div style="font-size: 0.8em; color: #666; margin-top: 2px;">3 utilisations • ${maxDuration} tours maximum</div>
                     </div>
                 </div>
             `;
+
+            return resistanceDisplay;
         }
 
         // Send chat message for defensive mode

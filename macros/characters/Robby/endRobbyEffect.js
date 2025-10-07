@@ -43,15 +43,8 @@
             getDynamicDescription: (effect) => {
                 const slowdown = effect.flags?.statuscounter?.value || 0;
                 return `Ralentissement de ${slowdown} cases de vitesse`;
-            },
-            // Animation de suppression
-            removeAnimation: {
-                file: "jb2a.cure_wounds.400px.blue",
-                scale: 0.6,
-                duration: 1500,
-                fadeOut: 500,
-                tint: "#ffffff"
             }
+
         },
         "ResistanceSanguine": {
             displayName: "Résistance Sanguine",
@@ -74,14 +67,6 @@
             getDynamicDescription: (effect) => {
                 const resistance = effect.flags?.statuscounter?.value || 0;
                 return `Bonus de résistance de +${resistance}`;
-            },
-            // Animation de suppression
-            removeAnimation: {
-                file: "jb2a.cure_wounds.400px.green",
-                scale: 0.6,
-                duration: 1500,
-                fadeOut: 500,
-                tint: "#ffffff"
             }
         }
         // TODO: Add more Robby's specific effects here when other spells are created
