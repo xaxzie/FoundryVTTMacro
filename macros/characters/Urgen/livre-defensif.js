@@ -465,18 +465,13 @@
             const isSelfTarget = targetActor && targetActor.actor.id === actor.id;
 
             // Projectile vers chaque position (sauf si c'est Urgen lui-même)
-            if (!isSelfTarget) {
-                let projectileEffect = sequence.effect()
+            if (!isSelfTarget ) {
+                sequence.effect()
                     .file(SPELL_CONFIG.animations.projectile)
                     .attachTo(caster)
                     .stretchTo(target)
                     .scale(1)
                     .delay(500 + i * 300);
-
-                // Si c'est le 2ème projectile vers la même cible, le faire tourner de 180°
-                if (twoBooksSameTarget && i === 1) {
-                    projectileEffect.rotate(180);
-                }
             }
 
             // Impact à chaque position - mais seulement une fois si même cible
@@ -487,13 +482,13 @@
                     .file(SPELL_CONFIG.animations.impact)
                     .atLocation(target)
                     .scale(0.4)
-                    .delay(isSelfTarget ? 500 + i * 200 : 1100); // Délai ajusté pour synchroniser avec les 2 projectiles
+                    .delay(isSelfTarget ? 500 + i * 200 : 1100);
             }
         }
 
         // Animation d'attachement sur chaque cible avec un livre
         for (const targetInfo of validTargets) {
-            sequence.effect()
+             sequence.effect()
                 .file(SPELL_CONFIG.animations.attachment)
                 .attachTo(targetInfo.token)
                 .scale(0.5)
