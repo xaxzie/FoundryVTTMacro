@@ -34,8 +34,8 @@
         hasNoDamage: true, // Pas de dégâts, juste un test de toucher
 
         animations: {
-            cast: "jb2a.markers.rune.purple.03",
-            hairEmbrace: "jb2a.entangle.purple", // Animation persistante de cheveux
+            cast: "jb2a_patreon.markers.02.pink",
+            hairEmbrace: "jb2a_patreon.energy_strands.complete.pinkyellow.01", // Animation persistante de cheveux
             sound: null
         },
 
@@ -153,20 +153,6 @@
                         <div><strong>Jet d'attaque final :</strong> <span id="finalAttack">${characteristicInfo.final}d7 + ${SPELL_CONFIG.spellLevel * 2}</span></div>
                     </div>
 
-                    <div style="margin: 10px 0; padding: 8px; background: #ffebee; border-radius: 4px;">
-                        <h4 style="color: #d32f2f; margin-top: 0;">Effet sur la Cible</h4>
-                        <p style="margin: 5px 0; font-size: 0.9em;">Malus de -2 appliqué sur :</p>
-                        <ul style="margin: 5px 0; font-size: 0.8em;">
-                            <li>Physique</li>
-                            <li>Dextérité</li>
-                            <li>Perception</li>
-                            <li>Esprit</li>
-                            <li>Parole</li>
-                            <li>Savoir</li>
-                            <li>Volonté</li>
-                        </ul>
-                    </div>
-
                     <script>
                         document.getElementById('attackBonus').addEventListener('input', function() {
                             const base = ${characteristicInfo.final};
@@ -191,7 +177,7 @@
                 }
             }, {
                 width: 500,
-                height: 650,
+                height: 500,
                 resizable: true
             }).render(true);
         });
@@ -338,7 +324,7 @@
             seq.effect()
                 .file(SPELL_CONFIG.animations.hairEmbrace)
                 .attachTo(targetActor.token)
-                .scale(0.8)
+                .scale(0.3)
                 .delay(1500)
                 .persist() // Animation persistante !
                 .name(`hair-embrace-${caster.id}-${targetActor.token.id}`) // Nom unique pour la retrouver

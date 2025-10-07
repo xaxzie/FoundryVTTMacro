@@ -44,14 +44,6 @@
                 const malus = effect.flags?.statuscounter?.value || 2;
                 return `Malus de -${malus} sur toutes les caractéristiques (7 chars)`;
             },
-            // Animation de suppression
-            removeAnimation: {
-                file: "jb2a.cure_wounds.400px.purple",
-                scale: 0.6,
-                duration: 1500,
-                fadeOut: 500,
-                tint: "#9c27b0"
-            },
             // Nettoyage spécial pour l'animation persistante
             cleanup: {
                 sequencerName: "flags.world.embraceSequenceName"
