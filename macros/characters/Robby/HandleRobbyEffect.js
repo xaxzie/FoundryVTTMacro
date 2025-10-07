@@ -251,12 +251,19 @@
             const statusColor = isActive ? "#2e7d32" : "#d32f2f";
             const isSvg = effectData.icon.toLowerCase().endsWith('.svg');
 
+            // Build bonus display like Leo's system
+            const bonusDisplay = effectData.flags.length > 0 ?
+                effectData.flags.map(flag => {
+                    const sign = flag.value >= 0 ? '+' : '';
+                    return `${sign}${flag.value}`;
+                }).join(', ') : '';
+
             dialogContent += `
-                <div class="effect-item ${pendingChanges[key] ? 'pending-change' : ''}">
+                <div class="effect-item">
                     <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                        <div class="effect-icon" ${isSvg ? 'data-is-svg="true"' : ''} style="background-image: url('${effectData.icon}');"></div>
+                        <div class="effect-icon" data-src="${effectData.icon}" data-is-svg="${isSvg}" style="background-image: url(${effectData.icon});"></div>
                         <div style="flex-grow: 1;">
-                            <strong>${effectData.name}</strong>
+                            <strong>${effectData.name}</strong>${bonusDisplay ? ` (${bonusDisplay})` : ''}
                             <br><small style="color: #666;">${effectData.description}</small>
                         </div>
                         <div class="status-indicator status-${key}" style="color: ${statusColor};">
@@ -264,12 +271,14 @@
                         </div>
                     </div>
                     <div class="button-group">
-                        <button type="button" class="btn btn-add" data-action="add" data-effect="${key}" data-category="custom" ${isActive ? 'disabled' : ''}>
-                            ➕ Ajouter
-                        </button>
-                        <button type="button" class="btn btn-remove" data-action="remove" data-effect="${key}" data-category="custom" ${!isActive ? 'disabled' : ''}>
-                            ➖ Supprimer
-                        </button>
+                        ${isActive ?
+                    `<button type="button" class="btn btn-remove" data-action="remove" data-effect="${key}" data-category="custom">
+                                ➖ Supprimer
+                            </button>` :
+                    `<button type="button" class="btn btn-add" data-action="add" data-effect="${key}" data-category="custom">
+                                ➕ Ajouter
+                            </button>`
+                }
                     </div>
                 </div>
             `;
@@ -318,9 +327,9 @@
         const isSvg = postureIcon && postureIcon.toLowerCase().endsWith('.svg');
 
         dialogContent += `
-            <div class="effect-item ${pendingChanges[key] ? 'pending-change' : ''}">
+            <div class="effect-item">
                 <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                    <div class="effect-icon" ${isSvg ? 'data-is-svg="true"' : ''} style="background-image: url('${postureIcon}');"></div>
+                    <div class="effect-icon" data-src="${postureIcon}" data-is-svg="${isSvg}" style="background-image: url(${postureIcon});"></div>
                     <div style="flex-grow: 1;">
                         <strong>${postureData.name || postureData.label}</strong>
                         <br><small style="color: #666;">${postureData.description}</small>
@@ -330,7 +339,7 @@
                     </div>
                 </div>
                 <div class="button-group">
-                    <button type="button" class="btn btn-add" data-action="add" data-effect="${key}" data-category="posture" ${isActive ? 'disabled' : ''}>
+                    <button type="button" class="btn btn-add" data-action="setPosture" data-effect="${key}" data-category="posture" ${isActive ? 'disabled' : ''}>
                         ⚔️ Activer
                     </button>
                 </div>
@@ -434,9 +443,9 @@
             title: "🩸 Gestionnaire d'Effets - Robby",
             content: dialogContent,
             buttons: {
-                apply: {
-                    icon: '<i class="fas fa-check"></i>',
-                    label: "Appliquer les Changements",
+                save: {
+                    icon: '<i class="fas fa-save"></i>',
+                    label: "💾 Sauvegarder",
                     callback: (html) => {
                         const injuryValues = {};
                         for (const key of Object.keys(INJURY_EFFECTS)) {
@@ -449,55 +458,73 @@
                     }
                 },
                 removeAll: {
-                    icon: '<i class="fas fa-trash"></i>',
-                    label: "Supprimer Tous les Effets",
+                    icon: '<i class="fas fa-trash-alt"></i>',
+                    label: "🗑️ Supprimer Tout",
                     callback: () => resolve({ action: "removeAll" })
                 },
                 cancel: {
                     icon: '<i class="fas fa-times"></i>',
-                    label: "Annuler",
+                    label: "❌ Annuler",
                     callback: () => resolve(null)
                 }
             },
-            default: "apply",
+            default: "save",
             render: (html) => {
-                // Handle button clicks
-                html.find('button[data-action]').click(function (event) {
-                    event.preventDefault();
-                    const button = $(this);
-                    const action = button.data('action');
-                    const effect = button.data('effect');
-                    const category = button.data('category');
+                // Styling
+                html.find('.dialog-content').css({
+                    'max-height': '80vh',
+                    'overflow-y': 'auto',
+                    'width': '600px'
+                });
 
-                    if (action === 'removePostures') {
-                        // Clear all posture pending changes
-                        for (const key of Object.keys(POSTURES)) {
-                            delete pendingChanges[key];
-                        }
-                        // Add pending change to remove all postures
-                        pendingChanges['removeAllPostures'] = { action: 'removePostures' };
-                    } else if (action === 'setInjury') {
-                        const input = html.find(`#injury-${effect}`);
-                        const value = parseInt(input.val()) || 0;
-                        pendingChanges[effect] = { action: 'setInjury', value: value, category: category };
-                    } else if (action === 'add' && category === 'posture') {
-                        // Clear all other posture changes (mutually exclusive)
-                        for (const key of Object.keys(POSTURES)) {
-                            delete pendingChanges[key];
-                        }
-                        delete pendingChanges['removeAllPostures'];
-                        pendingChanges[effect] = { action: action, category: category };
+                // Button click handlers
+                html.find('button[data-action]').click(function () {
+                    const action = $(this).data('action');
+                    const effectKey = $(this).data('effect');
+                    const category = $(this).data('category');
+
+                    if (action === 'setInjury') {
+                        // Handle injury setting directly
+                        return;
+                    }
+
+                    // Handle other effects
+                    const isAlreadySelected = $(this).hasClass('pending-change');
+                    const statusDiv = $(this).closest('.effect-item').find('.status-indicator');
+
+                    if (isAlreadySelected) {
+                        // Cancel pending change
+                        delete pendingChanges[effectKey];
+                        $(this).removeClass('pending-change');
+
+                        // Reset status display
+                        const originalState = category === 'posture' ?
+                            (currentState.currentPosture === effectKey) :
+                            (category === 'custom' ? currentState.customEffects[effectKey] !== null : currentState.statusEffects[effectKey] !== null);
+
+                        const originalIcon = originalState ? "✅" : "❌";
+                        const originalText = originalState ? "ACTIF" : "INACTIF";
+                        const originalColor = originalState ? "#2e7d32" : "#d32f2f";
+                        statusDiv.html(`${originalIcon} ${originalText}`).css('color', originalColor);
                     } else {
-                        pendingChanges[effect] = { action: action, category: category };
-                    }
+                        // Set pending change
+                        pendingChanges[effectKey] = { action, category };
 
-                    // Update visual state
-                    html.find('.effect-item').removeClass('pending-change');
-                    for (const changedEffect of Object.keys(pendingChanges)) {
-                        html.find(`.effect-item:has([data-effect="${changedEffect}"])`).addClass('pending-change');
-                    }
+                        // Clear other buttons in this group
+                        $(this).closest('.button-group').find('button').removeClass('pending-change');
+                        $(this).addClass('pending-change');
 
-                    console.log("Pending changes:", pendingChanges);
+                        // Update status display
+                        let pendingText = '';
+                        switch (action) {
+                            case 'add': pendingText = '⏳ AJOUT EN ATTENTE'; break;
+                            case 'remove': pendingText = '⏳ SUPPRESSION EN ATTENTE'; break;
+                            case 'setPosture': pendingText = '⏳ ACTIVATION EN ATTENTE'; break;
+                            case 'removePostures': pendingText = '⏳ SUPPRESSION EN ATTENTE'; break;
+                            case 'removeExternal': pendingText = '⏳ SUPPRESSION EN ATTENTE'; break;
+                        }
+                        statusDiv.html(`<strong style="color: #2196f3;">${pendingText}</strong>`);
+                    }
                 });
             },
             close: () => resolve(null)
@@ -559,44 +586,23 @@
                     const effectData = CUSTOM_EFFECTS[effectKey];
                     if (!effectData) continue;
 
+                    const flagsObject = {};
+                    effectData.flags.forEach(flag => {
+                        flagsObject[`world.${flag.key}`] = flag.value;
+                    });
+
                     const effectConfig = {
                         name: effectData.name,
                         icon: effectData.icon,
-                        flags: {}
+                        origin: actor.uuid,
+                        duration: { seconds: 86400 }, // 24 hours default duration
+                        flags: flagsObject
                     };
-
-                    // Add custom flags
-                    for (const flag of effectData.flags) {
-                        effectConfig.flags[`world.${flag.key}`] = flag.value;
-                    }
 
                     await actor.createEmbeddedDocuments("ActiveEffect", [effectConfig]);
                     addedEffects.push(effectData.name);
 
-                } else if (category === 'posture') {
-                    // Remove all existing postures first
-                    for (const effect of actor.effects.contents) {
-                        const isPosture = Object.values(POSTURES).some(p =>
-                            effect.statuses?.has(p.id) ||
-                            effect.name.toLowerCase() === (p.name || p.label).toLowerCase()
-                        );
-                        if (isPosture) {
-                            await effect.delete();
-                        }
-                    }
 
-                    // Add the new posture
-                    const postureData = POSTURES[effectKey];
-                    if (postureData) {
-                        const effectConfig = {
-                            name: postureData.name || postureData.label,
-                            icon: postureData.icon || postureData.img,
-                            statuses: [postureData.id]
-                        };
-
-                        await actor.createEmbeddedDocuments("ActiveEffect", [effectConfig]);
-                        addedEffects.push(postureData.name || postureData.label);
-                    }
 
                 } else if (category === 'status') {
                     const statusData = configStatusEffects.other[effectKey];
@@ -604,6 +610,8 @@
                         const effectConfig = {
                             name: statusData.name || statusData.label,
                             icon: statusData.icon || statusData.img,
+                            origin: actor.uuid,
+                            duration: { seconds: 86400 }, // 24 hours default duration
                             statuses: [statusData.id]
                         };
 
@@ -648,6 +656,33 @@
                         await existingEffect.delete();
                         removedEffects.push(statusData.name || statusData.label);
                     }
+                }
+
+            } else if (action === 'setPosture') {
+                // Remove all existing postures first
+                for (const effect of actor.effects.contents) {
+                    const isPosture = Object.values(POSTURES).some(p =>
+                        effect.statuses?.has(p.id) ||
+                        effect.name.toLowerCase() === (p.name || p.label).toLowerCase()
+                    );
+                    if (isPosture) {
+                        await effect.delete();
+                    }
+                }
+
+                // Add the new posture
+                const postureData = POSTURES[effectKey];
+                if (postureData) {
+                    const effectConfig = {
+                        name: postureData.name || postureData.label,
+                        icon: postureData.icon || postureData.img,
+                        origin: actor.uuid,
+                        duration: { seconds: 86400 }, // 24 hours default duration
+                        statuses: [postureData.id]
+                    };
+
+                    await actor.createEmbeddedDocuments("ActiveEffect", [effectConfig]);
+                    addedEffects.push(postureData.name || postureData.label);
                 }
 
             } else if (action === 'setInjury') {
