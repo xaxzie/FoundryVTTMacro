@@ -146,7 +146,7 @@
                             token: token,
                             actor: token.actor,
                             effect: effect,
-                            name: token.actor.name || token.name,
+                            name: token.name,
                             effectType: effectName,
                             icon: config.icon,
                             description: config.description,

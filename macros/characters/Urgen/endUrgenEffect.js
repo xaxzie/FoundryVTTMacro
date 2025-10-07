@@ -208,7 +208,7 @@
         // Parcourir tous les tokens sur la scène
         for (const token of canvas.tokens.placeables) {
             if (!token.actor) continue;
-            
+
             // Check if this is Urgen himself
             const isUrgenToken = token.id === caster.id;
 
@@ -220,14 +220,14 @@
                     if (isUrgenToken && effectName === "Book") {
                         continue;
                     }
-                    
+
                     if (checkEffectFlags(effect, config, caster.id)) {
                         // Construire les informations de base
                         let effectInfo = {
                             token: token,
                             actor: token.actor,
                             effect: effect,
-                            name: token.actor.name || token.name,
+                            name: token.name,
                             effectType: effectName,
                             icon: config.icon,
                             description: config.description,

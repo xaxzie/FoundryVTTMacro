@@ -29,10 +29,9 @@
         resistanceCharacteristic: "physique",
         resistanceCharacteristicDisplay: "Physique",
         animations: {
-            cast: "jb2a.cast_generic.01.red",
-            projectile: "jb2a.magic_missile.red",
-            impact: "jb2a.impact.red",
-            blood: "animated-spell-effects.blood.splatter.red.01",
+            cast: "jb2a.cast_generic.02.blue",
+            projectile: "jb2a_patreon.magic_missile.dark_red",
+            impact: "jb2a.melee_generic.creature_attack.claw.001.red.0",
             sound: null
         },
         targeting: {
@@ -411,7 +410,7 @@
             .file(SPELL_CONFIG.animations.cast)
             .attachTo(caster)
             .scale(0.6)
-            .belowTokens(true);
+            .tint("#d41717");
 
         // Projectile (rongeur de sang) vers la cible
         sequence.effect()
@@ -428,12 +427,6 @@
             .atLocation(target)
             .scale(0.8)
             .delay(50);
-
-        sequence.effect()
-            .file(SPELL_CONFIG.animations.blood)
-            .atLocation(target)
-            .scale(0.6)
-            .delay(200);
 
         if (SPELL_CONFIG.animations.sound) {
             sequence.sound().file(SPELL_CONFIG.animations.sound);
