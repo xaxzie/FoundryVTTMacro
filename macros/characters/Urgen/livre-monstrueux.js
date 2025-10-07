@@ -644,7 +644,8 @@
                 const newUrgenCounter = currentUrgenCounter + 1;
 
                 const urgenUpdateData = {
-                    "flags.statuscounter.value": newUrgenCounter
+                    "flags.statuscounter.value": newUrgenCounter,
+                    "flags.statuscounter.visible": true
                 };
 
                 const urgenUpdateResult = await updateEffectWithGMDelegation(actor, urgenBookEffect.id, urgenUpdateData);
@@ -695,7 +696,7 @@
             <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin: 10px 0;">
                 <p style="margin: 5px 0;"><strong>🧙 Lanceur:</strong> ${actor.name}</p>
                 <p style="margin: 5px 0;"><strong>🎯 Cible:</strong> ${targetName}</p>
-                <p style="margin: 5px 0;"><strong>🎭 Stance:</strong> ${stanceName}</p>
+                <p style="margin: 5px 0;"><strong>🎭 Stance:</strong> ${stanceName} : ${actualManaCost} mana</p>
             </div>
 
             <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin: 10px 0;">

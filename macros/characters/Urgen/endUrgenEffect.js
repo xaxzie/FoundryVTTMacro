@@ -32,34 +32,35 @@
             cssClass: "book-effect",
             borderColor: "#3f51b5",
             bgColor: "#e8eaf6",
-            // Détection des flags - les livres utilisent statusCounter
+            // Détection des flags - les livres utilisent statuscounter
             detectFlags: [
-                { path: "flags.statusCounter.active", matchValue: true },
+                { path: "flags.statuscounter.active", matchValue: true },
                 // On peut aussi détecter par nom d'effet directement
                 { path: "name", matchValue: "Livre Monstrueux" }
             ],
             // Animation de suppression
             removeAnimation: {
-                file: "jb2a.explosion.07.blue",
-                scale: 0.8,
-                duration: 1500,
-                fadeOut: 600,
+                file: "animated-spell-effects-cartoon.earth.explosion.02",
+                scale: 0.5,
+                duration: 1201,
+                fadeOut: 10,
                 tint: "#4169e1"
             },
+            // Whether to play the removeAnimation when the effect is detached
+            shouldTriggerAnimation: false,
             // Description dynamique basée sur les stacks
             getDynamicDescription: (effect) => {
-                const counter = effect.flags?.statusCounter?.value || 1;
+                const counter = effect.flags?.statuscounter?.value || 1;
                 return `Livre magique attaché (Force: ${counter})`;
             },
             // Données supplémentaires pour l'affichage
             getExtraData: (effect) => {
                 return {
-                    counter: effect.flags?.statusCounter?.value || 1,
-                    bookCount: effect.flags?.BookCount || 1
+                    counter: effect.flags?.statuscounter?.value || 1,
+                    BookCount: effect.flags?.BookCount || 1
                 };
             }
         },
-
         "Book": {
             displayName: "Book",
             icon: "icons/sundries/books/book-stack-blue.webp",
@@ -71,7 +72,7 @@
             bgColor: "#e3f2fd",
             // Détection des flags - effect Book sur Urgen
             detectFlags: [
-                { path: "flags.statusCounter.active", matchValue: true },
+                { path: "flags.statuscounter.active", matchValue: true },
                 { path: "name", matchValue: "Book" }
             ],
             // Animation de suppression
@@ -82,15 +83,17 @@
                 fadeOut: 400,
                 tint: "#2196f3"
             },
+            // Whether to play the removeAnimation when the effect is detached
+            shouldTriggerAnimation: false,
             // Description dynamique basée sur les stacks
             getDynamicDescription: (effect) => {
-                const counter = effect.flags?.statusCounter?.value || 1;
+                const counter = effect.flags?.statuscounter?.value || 1;
                 return `Compteur de livres créés (Total: ${counter})`;
             },
             // Données supplémentaires pour l'affichage
             getExtraData: (effect) => {
                 return {
-                    counter: effect.flags?.statusCounter?.value || 1
+                    counter: effect.flags?.statuscounter?.value || 1
                 };
             }
         }
@@ -434,7 +437,7 @@
     }
 
     // Fonction pour gérer le compteur de livres de Urgen
-    async function updateUrgenBookCounter(bookCountToRemove) {
+    async function updateUrgenBookCounter(BookCountToRemove) {
         // Chercher l'effet "Book" sur Urgen
         let urgenBookEffect = null;
         for (const effect of actor.effects) {
@@ -449,10 +452,10 @@
             return { success: true, action: "none" };
         }
 
-        const currentCounter = urgenBookEffect.flags?.statusCounter?.value || 0;
-        const newCounter = Math.max(0, currentCounter - bookCountToRemove);
+        const currentCounter = urgenBookEffect.flags?.statuscounter?.value || 0;
+        const newCounter = Math.max(0, currentCounter - BookCountToRemove);
 
-        console.log(`[DEBUG] Updating Urgen's Book counter: ${currentCounter} - ${bookCountToRemove} = ${newCounter}`);
+        console.log(`[DEBUG] Updating Urgen's Book counter: ${currentCounter} - ${BookCountToRemove} = ${newCounter}`);
 
         if (newCounter <= 0) {
             // Supprimer complètement l'effet Book
@@ -467,7 +470,7 @@
         } else {
             // Mettre à jour le counter
             const updateData = {
-                "flags.statusCounter.value": newCounter
+                "flags.statuscounter.value": newCounter
             };
 
             const result = await updateEffectWithGMDelegation(actor, urgenBookEffect.id, updateData);
@@ -501,14 +504,15 @@
 
                 // Organiser les résultats par type d'effet
                 if (effectInfo.effectType === "Livre Monstrueux") {
-                    const bookCount = effectInfo.bookCount || 1;
-                    totalBookCountToRemove += bookCount;
+                    const BookCount = effectInfo.BookCount.value || 1;
+                    totalBookCountToRemove += BookCount;
 
                     removedEffects.books.push({
                         name: effectInfo.name,
                         counter: effectInfo.counter,
-                        bookCount: bookCount
+                        BookCount: BookCount
                     });
+                    console.log(`[DEBUG] Queued ${BookCount} book(s) for Urgen counter update`);
                 } else if (effectInfo.effectType === "Book") {
                     // Si on supprime directement l'effet Book de Urgen, ne pas le compter
                     removedEffects.books.push({
@@ -557,7 +561,9 @@
 
         for (const effectInfo of effectsToRemove) {
             const config = effectInfo.config;
-            if (config.removeAnimation) {
+            // Only queue animations when a removeAnimation is configured and the
+            // effect config explicitly allows triggering it via shouldTriggerAnimation.
+            if (config.removeAnimation && config.shouldTriggerAnimation) {
                 // Vérifier si cet effet a bien été supprimé
                 const wasRemoved = removedEffects.books.some(b => b.name === effectInfo.name);
 
@@ -600,7 +606,7 @@
             if (bookEffects.length > 0) {
                 const config = EFFECT_CONFIG["Livre Monstrueux"];
                 const bookList = bookEffects.map(b =>
-                    `${b.name} (Force: ${b.counter}, Livres: ${b.bookCount})`
+                    `${b.name} (Force: ${b.counter}, Livres: ${b.BookCount})`
                 ).join(', ');
 
                 chatContent += `
