@@ -521,7 +521,7 @@
                         if (targetActor) {
                             // Tokens are already filtered for visibility, so just use the name
                             targets.push({
-                                name: targetActor.name,
+                                name: token.name,
                                 token: token,
                                 actor: targetActor,
                                 position: { x: checkX, y: checkY }

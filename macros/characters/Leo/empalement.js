@@ -360,7 +360,7 @@
                     // Only add targets that are visible to the current user
                     if (isOwner || isVisible || isGM) {
                         targets.push({
-                            name: targetActor.name,
+                            name: token.name,
                             token: token,
                             actor: targetActor
                         });

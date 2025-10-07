@@ -398,7 +398,7 @@
             const isGM = game.user.isGM;
 
             // Return appropriate name based on visibility (tokens are already filtered for visibility)
-            return { name: targetActor.name, token: targetToken, actor: targetActor };
+            return { name: targetToken.name, token: targetToken, actor: targetActor };
         } else {
             // No grid: use circular tolerance detection (original behavior)
             const tolerance = gridSize;
@@ -432,7 +432,7 @@
             const isGM = game.user.isGM;
 
             // Return appropriate name based on visibility (tokens are already filtered for visibility)
-            return { name: targetActor.name, token: targetToken, actor: targetActor };
+            return { name: targetToken.name, token: targetToken, actor: targetActor };
         }
     }
 

@@ -368,7 +368,7 @@
             const targetActor = targetToken.actor;
             if (!targetActor) return null;
 
-            return { name: targetActor.name, token: targetToken, actor: targetActor };
+            return { name: targetToken.name, token: targetToken, actor: targetActor };
         } else {
             // No grid: use circular tolerance detection
             const tolerance = gridSize;
@@ -399,7 +399,7 @@
             const targetActor = targetToken.actor;
             if (!targetActor) return null;
 
-            return { name: targetActor.name, token: targetToken, actor: targetActor };
+            return { name: targetToken.name, token: targetToken, actor: targetActor };
         }
     }
 

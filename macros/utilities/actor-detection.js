@@ -81,8 +81,8 @@ function getActorAtLocation(targetX, targetY, tolerance = null) {
         }
 
         // Tokens are already filtered for visibility
-        console.log(`[DEBUG] Retour de l'acteur visible: "${targetActor.name}"`);
-        return { name: targetActor.name, token: targetToken, actor: targetActor };
+        console.log(`[DEBUG] Retour de l'acteur visible: "${targetToken.name}"`);
+        return { name: targetToken.name, token: targetToken, actor: targetActor };
     } else {
         // No grid: use circular tolerance detection (original behavior)
         const tokensAtLocation = canvas.tokens.placeables.filter(token => {
@@ -127,8 +127,8 @@ function getActorAtLocation(targetX, targetY, tolerance = null) {
         }
 
         // Tokens are already filtered for visibility
-        console.log(`[DEBUG] Retour de l'acteur visible: "${targetActor.name}"`);
-        return { name: targetActor.name, token: targetToken, actor: targetActor };
+        console.log(`[DEBUG] Retour de l'acteur visible: "${targetToken.name}"`);
+        return { name: targetToken.name, token: targetToken, actor: targetActor };
     }
 }
 
