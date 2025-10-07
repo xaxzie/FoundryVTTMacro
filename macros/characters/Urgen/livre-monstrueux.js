@@ -709,7 +709,7 @@
         `;
     }
 
-    const enhancedFlavor = createChatFlavor();
+    let enhancedFlavor = createChatFlavor();
 
     // Add book attachment info if applicable
     if (attachBook) {
