@@ -61,10 +61,48 @@
                 };
             }
         },
+        "Livre Défensif": {
+            displayName: "Livre Défensif",
+            icon: "icons/sundries/books/book-blue-shield.webp",
+            description: "Livre défensif attaché",
+            sectionTitle: "🛡️ Livres Défensifs",
+            sectionIcon: "🛡️",
+            cssClass: "defensive-book-effect",
+            borderColor: "#2196f3",
+            bgColor: "#e3f2fd",
+            // Détection des flags - les livres défensifs utilisent statuscounter
+            detectFlags: [
+                { path: "flags.statuscounter.active", matchValue: true },
+                { path: "name", matchValue: "Livre Défensif" }
+            ],
+            // Animation de suppression
+            removeAnimation: {
+                file: "jb2a.shield.03.outro_explode.blue",
+                scale: 0.6,
+                duration: 1500,
+                fadeOut: 500,
+                tint: "#2196f3"
+            },
+            // Whether to play the removeAnimation when the effect is detached
+            shouldTriggerAnimation: false,
+            // Description dynamique basée sur les stacks
+            getDynamicDescription: (effect) => {
+                const counter = effect.flags?.statuscounter?.value || 1;
+                const bookCount = effect.flags?.BookCount?.value || 1;
+                return `Livre défensif attaché (Protection: ${counter}, Livres: ${bookCount})`;
+            },
+            // Données supplémentaires pour l'affichage
+            getExtraData: (effect) => {
+                return {
+                    counter: effect.flags?.statuscounter?.value || 1,
+                    BookCount: effect.flags?.BookCount || { value: 1 }
+                };
+            }
+        },
         "Book": {
             displayName: "Book",
             icon: "icons/sundries/books/book-stack-blue.webp",
-            description: "Livres magiques créés et attachés aux ennemis",
+            description: "Livres magiques créés et attachés aux ennemis et alliés",
             sectionTitle: "📘 Compteur de Livres",
             sectionIcon: "📘",
             cssClass: "book-counter-effect",
@@ -510,9 +548,21 @@
                     removedEffects.books.push({
                         name: effectInfo.name,
                         counter: effectInfo.counter,
-                        BookCount: BookCount
+                        BookCount: BookCount,
+                        type: "Monstrueux"
                     });
-                    console.log(`[DEBUG] Queued ${BookCount} book(s) for Urgen counter update`);
+                    console.log(`[DEBUG] Queued ${BookCount} monstrous book(s) for Urgen counter update`);
+                } else if (effectInfo.effectType === "Livre Défensif") {
+                    const BookCount = effectInfo.BookCount.value || 1;
+                    totalBookCountToRemove += BookCount;
+
+                    removedEffects.books.push({
+                        name: effectInfo.name,
+                        counter: effectInfo.counter,
+                        BookCount: BookCount,
+                        type: "Défensif"
+                    });
+                    console.log(`[DEBUG] Queued ${BookCount} defensive book(s) for Urgen counter update`);
                 } else if (effectInfo.effectType === "Book") {
                     // Si on supprime directement l'effet Book de Urgen, ne pas le compter
                     removedEffects.books.push({
@@ -598,14 +648,15 @@
 
         // Section pour les livres détachés
         if (removedEffects.books.length > 0) {
-            // Séparer les livres normaux des effets Book de Urgen
-            const bookEffects = removedEffects.books.filter(b => !b.isUrgenBook);
+            // Séparer les livres par type et effets Book de Urgen
+            const monstrousBooks = removedEffects.books.filter(b => !b.isUrgenBook && b.type === "Monstrueux");
+            const defensiveBooks = removedEffects.books.filter(b => !b.isUrgenBook && b.type === "Défensif");
             const urgenBookEffects = removedEffects.books.filter(b => b.isUrgenBook);
 
-            // Afficher les livres détachés
-            if (bookEffects.length > 0) {
+            // Afficher les livres monstrueux détachés
+            if (monstrousBooks.length > 0) {
                 const config = EFFECT_CONFIG["Livre Monstrueux"];
-                const bookList = bookEffects.map(b =>
+                const bookList = monstrousBooks.map(b =>
                     `${b.name} (Force: ${b.counter}, Livres: ${b.BookCount})`
                 ).join(', ');
 
@@ -614,6 +665,22 @@
                         <div style="font-size: 1.1em; color: #1565c0; margin-bottom: 6px;"><strong>${config.sectionTitle} Détachés</strong></div>
                         <div style="font-size: 1.0em; font-weight: bold;">${bookList}</div>
                         <div style="font-size: 0.8em; color: #666; margin-top: 4px;">Les livres magiques retournent à leur créateur</div>
+                    </div>
+                `;
+            }
+
+            // Afficher les livres défensifs détachés
+            if (defensiveBooks.length > 0) {
+                const config = EFFECT_CONFIG["Livre Défensif"];
+                const bookList = defensiveBooks.map(b =>
+                    `${b.name} (Protection: ${b.counter}, Livres: ${b.BookCount})`
+                ).join(', ');
+
+                chatContent += `
+                    <div style="text-align: center; margin: 8px 0; padding: 10px; background: ${config.bgColor}; border-radius: 4px;">
+                        <div style="font-size: 1.1em; color: #1565c0; margin-bottom: 6px;"><strong>${config.sectionTitle} Détachés</strong></div>
+                        <div style="font-size: 1.0em; font-weight: bold;">${bookList}</div>
+                        <div style="font-size: 0.8em; color: #666; margin-top: 4px;">La protection magique se dissipe</div>
                     </div>
                 `;
             }
