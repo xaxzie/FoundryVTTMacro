@@ -27,19 +27,16 @@
 
     // Custom Active Effects with Flags for Robby
     const CUSTOM_EFFECTS = {
-        // TODO: Add Robby's specific effects here
-        // Example format:
-        // "Blood Rage": {
-        //     name: "Blood Rage",
-        //     icon: "icons/magic/death/blood-drip-droplet-red.webp",
-        //     flags: [
-        //         { key: "damage", value: 3 },
-        //         { key: "esprit", value: 1 }
-        //     ],
-        //     description: "Bonus de +3 aux dégâts, +1 Esprit",
-        //     category: "custom",
-        //     increasable: false
-        // }
+        "Excalibur": {
+            name: "Excalibur",
+            icon: "icons/weapons/swords/sword-broad-silver-magic.webp",
+            flags: [],
+            description: "Épée légendaire invoquée (Coût: 3 mana)",
+            category: "custom",
+            increasable: false,
+            manaCost: 3
+        }
+        // TODO: Add more Robby's specific effects here if needed
     };
 
     // === DYNAMIC STATUS EFFECTS FROM CONFIG ===
