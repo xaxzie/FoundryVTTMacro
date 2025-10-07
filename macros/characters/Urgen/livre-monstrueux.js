@@ -31,10 +31,10 @@
         maxBooksPerTarget: 2,
         maintenanceCost: 1, // Coût par tour pour livre attaché (non focalisable)
         animations: {
-            cast: "jb2a.magic_signs.circle.02.enchantment.loop.blue",
-            projectile: "jb2a.book.open.02.brown",
-            impact: "jb2a.impact.010.blue",
-            attachment: "jb2a.markers.rune.blue.03",
+            cast: "jb2a.condition.boon.01.007.green",
+            projectile: "jb2a.throwable.launch.cannon_ball.01.black",
+            impact: "jb2a_patreon.bite.200px.purple",
+            attachment: "jb2a_patreon.markers.fear.orange.03",
             sound: null
         },
         targeting: {
@@ -459,7 +459,7 @@
             .file(SPELL_CONFIG.animations.cast)
             .attachTo(caster)
             .scale(0.5)
-            .duration(1500)
+            .belowTokens(true)
             .fadeIn(500)
             .fadeOut(500);
 
@@ -469,7 +469,6 @@
             .attachTo(caster)
             .stretchTo(target)
             .scale(0.7)
-            .duration(1000)
             .waitUntilFinished(-500);
 
         // Impact sur la cible
@@ -477,7 +476,6 @@
             .file(SPELL_CONFIG.animations.impact)
             .atLocation({ x: target.x, y: target.y })
             .scale(0.8)
-            .duration(800)
             .fadeIn(200)
             .fadeOut(400);
 
@@ -487,7 +485,7 @@
                 .file(SPELL_CONFIG.animations.attachment)
                 .attachTo(targetActor.token)
                 .scale(0.6)
-                .duration(2000)
+                .duration(3000)
                 .fadeIn(500)
                 .fadeOut(500)
                 .delay(500);
