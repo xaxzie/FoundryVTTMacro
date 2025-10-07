@@ -67,22 +67,21 @@
      * @param {string} flagKey - The flag key to look for (e.g., "damage", "dexterite")
      * @returns {number} Total bonus from all matching active effects
      */
-    function getActiveEffectBonus(actor, flagKey) {
+   function getActiveEffectBonus(actor, flagKey) {
         if (!actor?.effects) return 0;
 
         let totalBonus = 0;
 
         for (const effect of actor.effects.contents) {
-            const flagValue = effect.flags?.world?.[flagKey];
+            const flagValue = effect.flags?.[flagKey]?.value;
             if (typeof flagValue === 'number') {
                 totalBonus += flagValue;
+                console.log(`[DEBUG] Active effect "${effect.name}" adds ${flagValue} to ${flagKey} (total: ${totalBonus})`);
             }
         }
 
-        console.log(`[DEBUG] Total ${flagKey} bonus from active effects: ${totalBonus}`);
         return totalBonus;
     }
-
     /**
      * Obtient et calcule la valeur finale de la caractéristique avec injuries et effets
      */

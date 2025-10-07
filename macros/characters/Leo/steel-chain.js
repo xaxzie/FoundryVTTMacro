@@ -84,10 +84,10 @@
                 continue;
             }
 
-            const flagValue = effect.flags?.world?.[flagKey]?.value;
+           const flagValue = effect.flags?.[flagKey]?.value;
             if (typeof flagValue === 'number') {
-                total += flagValue;
-                console.log(`[DEBUG] Active effect "${effect.name}" adds ${flagValue} to ${flagKey} (total: ${total})`);
+                totalBonus += flagValue;
+                console.log(`[DEBUG] Active effect "${effect.name}" adds ${flagValue} to ${flagKey} (total: ${totalBonus})`);
             }
         }
         return total;

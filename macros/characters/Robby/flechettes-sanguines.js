@@ -35,8 +35,8 @@
         isFocusable: true,
         speedReduction: 2,
         animations: {
-            projectile: "jb2a.eldritch_blast.purple",
-            impact: "jb2a.impact.010.red",
+            projectile: "jb2a_patreon.magic_missile.dark_red",
+            impact: "jb2a_patreon.impact.001.dark_red",
             sound: null
         },
         targeting: {
@@ -79,19 +79,19 @@
      * @param {string} flagKey - The flag key to look for (e.g., "damage", "dexterite")
      * @returns {number} Total bonus from all matching active effects
      */
-    function getActiveEffectBonus(actor, flagKey) {
+  function getActiveEffectBonus(actor, flagKey) {
         if (!actor?.effects) return 0;
 
         let totalBonus = 0;
 
         for (const effect of actor.effects.contents) {
-            const flagValue = effect.flags?.world?.[flagKey];
+            const flagValue = effect.flags?.[flagKey]?.value;
             if (typeof flagValue === 'number') {
                 totalBonus += flagValue;
+                console.log(`[DEBUG] Active effect "${effect.name}" adds ${flagValue} to ${flagKey} (total: ${totalBonus})`);
             }
         }
 
-        console.log(`[DEBUG] Total ${flagKey} bonus from active effects: ${totalBonus}`);
         return totalBonus;
     }
 
@@ -180,7 +180,7 @@
                                 <p style="margin: 8px 0; font-size: 0.9em;"><strong>Cible:</strong> Allié</p>
                                 <p style="margin: 8px 0; font-size: 0.9em;"><strong>Effet:</strong> Résistance (+${Math.floor(spiritInfo.final / 2)} bonus)</p>
                                 <p style="margin: 8px 0; font-size: 0.9em;"><strong>Utilisations:</strong> 3 maximum</p>
-                                <p style="margin: 8px 0; font-size: 0.9em;"><strong>Durée:</strong> ${Math.floor(spiritInfo.final / 2)} tours maximum</p>
+                                <p style="margin: 8px 0; font-size: 0.9em;"><strong>Durée:</strong> ${Math.floor(spiritInfo.final)} tours maximum</p>
                                 <p style="margin: 8px 0; font-size: 0.8em; color: #666;"><em>Application automatique (pas de jet d'attaque)</em></p>
                                 <div style="text-align: center; margin-top: 10px;">
                                     <button type="button" id="defensiveMode" style="background: #228b22; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Sélectionner</button>
@@ -265,7 +265,7 @@
             `;
         } else {
             const resistanceValue = Math.floor(spiritInfo.final / 2);
-            const maxDuration = Math.floor(spiritInfo.final / 2);
+            const maxDuration = Math.floor(spiritInfo.final);
             modeSpecificContent = `
                 <div style="margin: 15px 0; padding: 10px; background: #f0fff0; border-radius: 4px;">
                     <h4 style="margin-top: 0; color: #228b22;">🛡️ Mode Défensif</h4>
@@ -723,7 +723,7 @@
 
         try {
             const resistanceValue = Math.floor(spiritInfo.final / 2);
-            const maxDuration = Math.floor(spiritInfo.final / 2);
+            const maxDuration = Math.floor(spiritInfo.final);
 
             // Create resistance effect
             const resistanceEffect = {
@@ -758,7 +758,7 @@
         function createDefensiveChatMessage() {
             const actualManaCostDisplay = actualManaCost === 0 ? 'GRATUIT' : `${actualManaCost} mana`;
             const resistanceValue = Math.floor(spiritInfo.final / 2);
-            const maxDuration = Math.floor(spiritInfo.final / 2);
+            const maxDuration = Math.floor(spiritInfo.final);
 
             return `
                 <div style="background: linear-gradient(135deg, #f0fff0, #e8f5e8); padding: 12px; border-radius: 8px; border: 2px solid #228b22; margin: 8px 0;">
@@ -792,7 +792,7 @@
         const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
         const manaCostInfo = actualManaCost === 0 ? ' GRATUIT' : ` - ${actualManaCost} mana`;
         const resistanceValue = Math.floor(spiritInfo.final / 2);
-        const maxDuration = Math.floor(spiritInfo.final / 2);
+        const maxDuration = Math.floor(spiritInfo.final);
 
         ui.notifications.info(`🩸 ${SPELL_CONFIG.name} (Défensif) lancé !${stanceInfo} Cible: ${targetName}. Résistance: +${resistanceValue} (3 utilisations, ${maxDuration} tours max)${manaCostInfo}`);
     }
