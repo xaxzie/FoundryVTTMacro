@@ -34,6 +34,26 @@ Urgen est un personnage spécialisé dans la magie des livres. Il peut créer de
 - **Coût Maintenance** : 1 mana/tour (non focalisable)
 - **Stacking** : Si déjà présent, augmente le statusCounter de Esprit/2
 
+### 🎭 Gestionnaire d'Effets de Urgen
+**Fichier** : `HandleUrgenEffects.js`
+
+**Description** : Interface complète de gestion des effets actifs sur Urgen, incluant les effets personnalisés, postures, blessures et effets cumulables.
+
+**Fonctionnalités** :
+- **Postures de Combat** : Focus, Offensif, Défensif (mutuellement exclusives)
+- **Système de Blessures** : Gestion des injuries avec counters cumulables
+- **Effets Cumulables** : Nouveaux effets avec système de statusCounter (ex: Livre "Book")
+- **Effets Externes** : Détection et gestion des effets non configurés
+- **Interface Unifiée** : Tous les effets gérés depuis une seule interface
+
+**Effets Cumulables** :
+- **Book** : Compteur de livres magiques créés par Urgen
+- **Système statusCounter** : Valeurs incrementables/decrementables
+- **Gestion Visual** : Interface similaire au système de blessures
+- **Persistance** : Sauvegarde automatique des valeurs
+
+**Usage** : Sélectionner le token de Urgen et lancer la macro pour gérer tous ses effets
+
 ### 🗑️ Terminer Effets de Urgen
 **Fichier** : `endUrgenEffect.js`
 
@@ -44,6 +64,7 @@ Urgen est un personnage spécialisé dans la magie des livres. Il peut créer de
 - **Interface de Sélection** : Choisir quels livres détacher (sélectionnés ou tous)
 - **Animation de Détachement** : Effet visuel lors de la suppression
 - **Gestion GM** : Utilise le système de délégation GM pour les tokens non possédés
+- **Mise à Jour Compteur** : Met automatiquement à jour l'effet "Book" sur Urgen
 - **Extensible** : Configuration centralisée pour ajouter facilement de nouveaux types de livres
 
 **Usage** : Sélectionner le token de Urgen et lancer la macro pour voir tous les livres attachés
