@@ -29,7 +29,7 @@
     const CUSTOM_EFFECTS = {
         "Excalibur": {
             name: "Excalibur",
-            icon: "icons/weapons/swords/sword-broad-silver-magic.webp",
+            icon: "icons/weapons/daggers/knife-kitchen-red.webp",
             flags: [],
             description: "Épée légendaire invoquée (Coût: 3 mana)",
             category: "custom",
