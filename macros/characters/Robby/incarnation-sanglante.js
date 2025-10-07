@@ -234,18 +234,16 @@
      */
     async function selectTarget() {
         try {
-            const crosshairs = await new window.portalLib.Crosshairs()
+            const portal = new Portal()
+                .origin(caster)
                 .range(SPELL_CONFIG.targeting.range)
-                .icon(SPELL_CONFIG.targeting.texture)
-                .borderColor(SPELL_CONFIG.targeting.color)
-                .fillColor(SPELL_CONFIG.targeting.color)
-                .size(1)
-                .drawOutline()
-                .drawIcon()
-                .show();
+                .color(SPELL_CONFIG.targeting.color)
+                .texture(SPELL_CONFIG.targeting.texture);
 
-            return crosshairs.cancelled ? null : { x: crosshairs.x, y: crosshairs.y };
+            const target = await portal.pick();
+            return target;
         } catch (error) {
+            ui.notifications.error("Erreur lors du ciblage. Assurez-vous que le module Portal est installé et activé.");
             console.error("[DEBUG] Portal targeting error:", error);
             return null;
         }
@@ -292,11 +290,11 @@
                     targetGridY >= tokenGridY &&
                     targetGridY < tokenGridY + tokenHeight) {
 
-                    console.log(`[DEBUG] Found actor in grid: ${token.actor.name} at grid (${tokenGridX}, ${tokenGridY}) with size ${tokenWidth}x${tokenHeight}`);
+                    console.log(`[DEBUG] Found actor in grid: ${token.name} at grid (${tokenGridX}, ${tokenGridY}) with size ${tokenWidth}x${tokenHeight}`);
                     return {
                         actor: token.actor,
                         token: token,
-                        name: token.actor.name,
+                        name: token.name,
                         gridX: tokenGridX,
                         gridY: tokenGridY
                     };
@@ -318,11 +316,11 @@
                 );
 
                 if (distance <= tolerance + Math.max(token.w, token.h) / 2) {
-                    console.log(`[DEBUG] Found actor without grid: ${token.actor.name} at distance ${distance.toFixed(2)} pixels`);
+                    console.log(`[DEBUG] Found actor without grid: ${token.name} at distance ${distance.toFixed(2)} pixels`);
                     return {
                         actor: token.actor,
                         token: token,
-                        name: token.actor.name,
+                        name: token.name,
                         pixelDistance: distance
                     };
                 }
