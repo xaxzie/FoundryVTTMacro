@@ -460,8 +460,6 @@
             .attachTo(caster)
             .scale(0.5)
             .belowTokens(true)
-            .fadeIn(500)
-            .fadeOut(500);
 
         // Projectile du livre vers la cible
         sequence.effect()
@@ -476,8 +474,6 @@
             .file(SPELL_CONFIG.animations.impact)
             .atLocation({ x: target.x, y: target.y })
             .scale(0.8)
-            .fadeIn(200)
-            .fadeOut(400);
 
         // Si livre attaché, animation d'accrochage
         if (attachBook && targetActor) {
@@ -486,8 +482,6 @@
                 .attachTo(targetActor.token)
                 .scale(0.6)
                 .duration(3000)
-                .fadeIn(500)
-                .fadeOut(500)
                 .delay(500);
         }
 
@@ -500,14 +494,39 @@
 
     await playSpellAnimation();
 
-    // ===== ATTACK RESOLUTION =====
+    // ===== COMBINED ATTACK AND DAMAGE RESOLUTION =====
     const characteristicBonus = getActiveEffectBonus(actor, SPELL_CONFIG.characteristic);
     const totalAttackDice = characteristicInfo.final + characteristicBonus + attackBonus;
     const levelBonus = 2 * SPELL_CONFIG.spellLevel;
 
-    // Construction de la formule de roll combinée
-    const attackFormula = `${totalAttackDice}d7 + ${levelBonus}`;
-    const attackRoll = new Roll(attackFormula);
+    // Build combined roll formula: attack roll + damage roll
+    let combinedRollParts = [`${totalAttackDice}d7 + ${levelBonus}`];
+
+    // Add damage roll to the combined formula (only if not maximized)
+    if (currentStance !== 'offensif') {
+        const effectDamageBonus = getActiveEffectBonus(actor, "damage");
+        const totalCharacteristic = characteristicInfo.final + characteristicBonus;
+        const totalDamageBonus = damageBonus + effectDamageBonus;
+        const statBonus = totalCharacteristic + totalDamageBonus;
+        combinedRollParts.push(`${SPELL_CONFIG.damageFormula} + ${statBonus}`);
+    }
+
+    const combinedRoll = new Roll(`{${combinedRollParts.join(', ')}}`);
+    await combinedRoll.evaluate({ async: true });
+
+    // Extract results from the combined roll
+    const attackResult = combinedRoll.terms[0].results[0];
+    let finalDamageResult = damageResult;
+
+    if (currentStance !== 'offensif') {
+        // Extract damage result from dice roll
+        const damageRollResult = combinedRoll.terms[0].results[1];
+        finalDamageResult = {
+            total: damageRollResult.result,
+            formula: damageRollResult.expression,
+            result: damageRollResult.result
+        };
+    }
 
     // Prepare result variables for final message
     let bookAttachmentResult = { success: false, message: "" };
@@ -537,7 +556,7 @@
 
         if (existingEffect) {
             // Vérifier la limite de livres
-            const currentCounter = existingEffect.flags?.statusCounter?.value || 0;
+            const currentCounter = existingEffect.flags?.statuscounter?.value || 0;
             const newCounter = currentCounter + counterValue;
 
             // Calculer combien de livres cela représente (approximativement)
@@ -550,10 +569,10 @@
             }
 
             // Mettre à jour le counter existant avec GM delegation
-            const currentBookCount = existingEffect.flags?.BookCount || 0;
+            const currentBookCount = existingEffect.flags?.BookCount.value || 0;
             const updateData = {
-                "flags.statusCounter.value": newCounter,
-                "flags.BookCount": currentBookCount + 1
+                "flags.statuscounter.value": newCounter,
+                "flags.BookCount.value": currentBookCount + 1
             };
 
             const updateResult = await updateEffectWithGMDelegation(targetActor, existingEffect.id, updateData);
@@ -575,11 +594,13 @@
                 disabled: false,
                 duration: { seconds: 84600 },
                 flags: {
-                    statusCounter: {
+                    statuscounter: {
                         active: true,
                         value: counterValue
                     },
-                    BookCount: 1
+                    BookCount: {
+                        value: 1
+                    },
                 },
                 changes: []
             };
@@ -611,11 +632,11 @@
 
             if (urgenBookEffect) {
                 // Incrementer le counter existant
-                const currentUrgenCounter = urgenBookEffect.flags?.statusCounter?.value || 0;
+                const currentUrgenCounter = urgenBookEffect.flags?.statuscounter?.value || 0;
                 const newUrgenCounter = currentUrgenCounter + 1;
 
                 const urgenUpdateData = {
-                    "flags.statusCounter.value": newUrgenCounter
+                    "flags.statuscounter.value": newUrgenCounter
                 };
 
                 const urgenUpdateResult = await updateEffectWithGMDelegation(actor, urgenBookEffect.id, urgenUpdateData);
@@ -633,7 +654,7 @@
                     disabled: false,
                     duration: { seconds: 84600 },
                     flags: {
-                        statusCounter: {
+                        statuscounter: {
                             active: true,
                             value: 1
                         }
@@ -681,11 +702,11 @@
             <div style="background: rgba(76,175,80,0.3); padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #4caf50;">`;
 
     if (damageResult.isMaximized) {
-        enhancedFlavor += `<p style="margin: 5px 0;"><strong>💥 Dégâts (Stance Offensive - Maximisés):</strong> ${damageResult.total}</p>
-                          <p style="margin: 5px 0; font-style: italic;">Formule: ${damageResult.formula}</p>`;
+        enhancedFlavor += `<p style="margin: 5px 0;"><strong>💥 Dégâts (Stance Offensive - Maximisés):</strong> ${finalDamageResult.total}</p>
+                          <p style="margin: 5px 0; font-style: italic;">Formule: ${finalDamageResult.formula}</p>`;
     } else {
-        enhancedFlavor += `<p style="margin: 5px 0;"><strong>💥 Dégâts (si touche):</strong> ${damageResult.total}</p>
-                          <p style="margin: 5px 0; font-style: italic;">Formule: ${damageResult.formula}</p>`;
+        enhancedFlavor += `<p style="margin: 5px 0;"><strong>💥 Dégâts (si touche):</strong> ${finalDamageResult.total}</p>
+                          <p style="margin: 5px 0; font-style: italic;">Formule: ${finalDamageResult.formula || finalDamageResult.expression}</p>`;
     }
 
     enhancedFlavor += `</div>`;
@@ -711,12 +732,19 @@
     enhancedFlavor += `</div>`;
 
     // Send the unified dice roll message
-    await attackRoll.toMessage({
+    await combinedRoll.toMessage({
         speaker: ChatMessage.getSpeaker({ token: caster }),
         flavor: enhancedFlavor,
         rollMode: game.settings.get("core", "rollMode")
     });
 
-    console.log(`[DEBUG] Livre Monstrueux cast complete - Caster: ${actor.name}, Target: ${targetName}, Damage: ${damageResult.total}, Book Attached: ${attachBook}`);
+    // ===== FINAL NOTIFICATION =====
+    const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
+    const manaCostInfo = actualManaCost === 0 ? ' GRATUIT (Focus)' : ` - ${actualManaCost} mana`;
+    const bookInfo = attachBook ? ` Livre ${bookAttachmentResult.success ? 'attaché' : 'non attaché'}.` : '';
+
+    ui.notifications.info(`${SPELL_CONFIG.name} lancé !${stanceInfo} Cible: ${targetName}. Attaque: ${attackResult.result}, Dégâts: ${finalDamageResult.total}${manaCostInfo}.${bookInfo}`);
+
+    console.log(`[DEBUG] Livre Monstrueux cast complete - Caster: ${actor.name}, Target: ${targetName}, Damage: ${finalDamageResult.total}, Book Attached: ${attachBook}`);
 
 })();
