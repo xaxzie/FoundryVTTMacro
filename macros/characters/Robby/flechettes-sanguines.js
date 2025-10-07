@@ -35,8 +35,8 @@
         isFocusable: true,
         speedReduction: 2,
         animations: {
-            projectile: "jb2a.eldritch_blast.purple",
-            impact: "jb2a.impact.010.red",
+            projectile: "jb2a_patreon.magic_missile.dark_red",
+            impact: "jb2a_patreon.impact.001.dark_red",
             sound: null
         },
         targeting: {
@@ -367,7 +367,7 @@
                     .stretchTo(targetActor.token)
                     .tint(selectedMode === 'aggressive' ? "#8b0000" : "#228b22")
                     .scale(0.6)
-                    .waitUntilFinished(-200);
+                    .waitUntilFinished(-500);
             }
 
             // Impact effect at target
@@ -680,7 +680,7 @@
                 icon: "icons/svg/upgrade.svg",
                 description: `Résistance par Fléchettes Sanguines. L'effet a 3 utilisations et dure maximum ${maxDuration} tours.`,
                 duration: {
-                    rounds: maxDuration
+                    seconds: 86400
                 },
                 flags: {
                     statuscounter: {

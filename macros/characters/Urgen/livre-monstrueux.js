@@ -722,8 +722,7 @@
                 <p style="margin: 5px 0;"><strong>📖 Accrochage:</strong> ${bookAttachmentResult.message}</p>`;
 
         if (bookAttachmentResult.success) {
-            enhancedFlavor += `<p style="margin: 5px 0; font-size: 0.9em;">💰 Coût: ${SPELL_CONFIG.maintenanceCost} mana/tour (non focalisable)</p>
-                              <p style="margin: 5px 0; font-size: 0.9em;">� Cumul: Livres illimités par cible</p>`;
+            enhancedFlavor += `<p style="margin: 5px 0; font-size: 0.9em;">💰 Coût: ${SPELL_CONFIG.maintenanceCost} mana/tour (non focalisable)</p>`;
         }
 
         enhancedFlavor += `</div>`;
