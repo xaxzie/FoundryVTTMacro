@@ -313,13 +313,13 @@
                     );
 
                     targets.push({
-                        name: targetActor.name,
+                        name: token.name,
                         token: token,
                         actor: targetActor,
                         distance: distance
                     });
 
-                    console.log(`[DEBUG] Target found: ${targetActor.name} at distance ${distance.toFixed(2)}`);
+                    console.log(`[DEBUG] Target found: ${token.name} at distance ${distance.toFixed(2)}`);
                 }
             }
         }
@@ -467,10 +467,12 @@
         `;
 
         const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
+        const targetNames = areaTargets.length > 0 ? areaTargets.map(t => t.name).join(', ') : 'Aucune cible';
         const damageDisplay = `
             <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
                 <div style="font-size: 1.1em; color: #424242; margin-bottom: 6px;"><strong>🌪️ ${SPELL_CONFIG.name}${stanceNote}</strong></div>
                 <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Zone:</strong> Rayon ${SPELL_CONFIG.areaRadius} cases (${areaTargets.length} cible${areaTargets.length > 1 ? 's' : ''})</div>
+                <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cibles:</strong> ${targetNames}</div>
                 <div style="font-size: 1.4em; color: #1565c0; font-weight: bold;">💥 DÉGÂTS: ${finalDamageResult.total}</div>
                 <div style="font-size: 1.2em; color: #ff9800; font-weight: bold;">🛡️ ESQUIVE: ${finalDamageResult.halfDamage} (moitié)</div>
                 <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${SPELL_CONFIG.damageFormula} + ${SPELL_CONFIG.characteristicDisplay} + bonus)</div>
