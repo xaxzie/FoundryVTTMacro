@@ -146,44 +146,26 @@
 
         return new Promise((resolve) => {
             new Dialog({
-                title: `🎯 Configuration - ${SPELL_CONFIG.name}`,
+                title: `📖 ${SPELL_CONFIG.name}`,
                 content: `
-                    <div style="background: linear-gradient(135deg, #bdbdbd, #757575); padding: 20px; border-radius: 12px; color: #f5f5f5; font-family: 'Roboto', sans-serif;">
-                        <h2 style="text-align: center; margin-top: 0; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">📖 ${SPELL_CONFIG.name}</h2>
-                            <div style="background: rgba(0,0,0,0.25); padding: 15px; border-radius: 8px; margin: 15px 0; color: #f3f3f3;">
-                                <h3 style="margin-top: 0; color: #e0e0e0;">🎭 État du Lanceur</h3>
-                            <p><strong>Lanceur:</strong> ${actor.name}</p>
-                            <p><strong>Stance:</strong> ${stanceName}</p>
-                            <p><strong>Blessures:</strong> ${injuryDisplay}</p>
-                            <p><strong>Coût Mana:</strong> ${SPELL_CONFIG.manaCost} (toujours gratuit)</p>
+                    <div style="padding: 15px; background: #f9f9f9; border-radius: 8px;">
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0; color: #333;">📖 ${SPELL_CONFIG.name}</h3>
+                            <p style="margin: 5px 0; color: #666;"><strong>Lanceur:</strong> ${actor.name}</p>
+                            <p style="margin: 5px 0; color: #666;"><strong>Coût:</strong> GRATUIT (toujours) | <strong>Position:</strong> ${stanceName}</p>
+                            <p style="margin: 5px 0; color: #666;"><strong>Dégâts estimés:</strong> 1d2 + ${Math.floor(characteristicInfo.final / 2)} (moyenne: ${1.5 + Math.floor(characteristicInfo.final / 2)})</p>
                         </div>
 
-                        <div style="background: rgba(0,0,0,0.22); padding: 15px; border-radius: 8px; margin: 15px 0; color: #f3f3f3;">
-                            <h3 style="margin-top: 0; color: #e0e0e0;">⚔️ Statistiques d'Attaque</h3>
-                            <p><strong>${SPELL_CONFIG.characteristicDisplay}:</strong> ${characteristicInfo.base} ${characteristicInfo.injuries > 0 ? `→ ${characteristicInfo.final}` : ''}</p>
-                            <p><strong>Bonus d'Effets Actifs (${SPELL_CONFIG.characteristicDisplay}):</strong> +${characteristicBonus}</p>
-                            <p><strong>Bonus d'Effets Actifs (Dégâts):</strong> +${damageBonus}</p>
-                            <p><strong>Niveau de Sort:</strong> ${SPELL_CONFIG.spellLevel} (+${SPELL_CONFIG.spellLevel} à l'attaque)</p>
-                        </div>
-
-                        <div style="background: rgba(0,0,0,0.22); padding: 15px; border-radius: 8px; margin: 15px 0; color: #f3f3f3;">
-                            <h3 style="margin-top: 0; color: #e0e0e0;">🎯 Bonus Manuels</h3>
-                            <p><label><strong>Bonus d'Attaque Supplémentaire:</strong></label></p>
-                            <input type="number" id="attackBonus" value="0" min="-10" max="20"
-                                   style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: none;"/>
-                            <p><label><strong>Bonus de Dégâts Supplémentaire:</strong></label></p>
-                            <input type="number" id="damageBonus" value="0" min="-10" max="20"
-                                   style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: none;"/>
-                        </div>
-
-                        <div style="background: rgba(158,158,158,0.12); padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #9e9e9e;">
-                            <h3 style="margin-top: 0; color: #cfcfcf;">✨ Sort Simple</h3>
-                            <p style="font-size: 0.9em; margin-top: 10px; color: #ececec;">
-                                📌 <strong>Niveau:</strong> 0.5 (Sort mineur)<br>
-                                💰 <strong>Coût:</strong> Toujours gratuit<br>
-                                🎯 <strong>Dégâts:</strong> 1d2 + Dextérité÷2 (${Math.floor(characteristicInfo.final / 2)})<br>
-                                ⚡ <strong>Type:</strong> Attaque directe, pas d'effet persistant
-                            </p>
+                        <div style="margin: 15px 0; padding: 10px; background: white; border-radius: 4px;">
+                            <h4 style="margin-top: 0; color: #555;">⚔️ Configuration</h4>
+                            <div style="margin: 10px 0;">
+                                <label for="attackBonus" style="display: block; margin-bottom: 5px; color: #333;">Bonus d'attaque:</label>
+                                <input type="number" id="attackBonus" value="0" min="-10" max="10" style="width: 80px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
+                            <div style="margin: 10px 0;">
+                                <label for="damageBonus" style="display: block; margin-bottom: 5px; color: #333;">Bonus de dégâts:</label>
+                                <input type="number" id="damageBonus" value="0" min="-10" max="10" style="width: 80px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                            </div>
                         </div>
                     </div>
                 `,
@@ -395,7 +377,7 @@
     // ===== COMBINED ATTACK AND DAMAGE RESOLUTION =====
     const characteristicBonus = getActiveEffectBonus(actor, SPELL_CONFIG.characteristic);
     const totalAttackDice = characteristicInfo.final + characteristicBonus + attackBonus;
-    const levelBonus = SPELL_CONFIG.spellLevel*2;
+    const levelBonus = SPELL_CONFIG.spellLevel * 2;
 
     // Build combined roll formula: attack roll + damage roll
     let combinedRollParts = [`${totalAttackDice}d7 + ${levelBonus}`];
@@ -439,42 +421,42 @@
             currentStance === 'offensif' ? 'Offensif' :
                 currentStance === 'defensif' ? 'Défensif' : 'Aucune') : 'Aucune';
 
-    let enhancedFlavor = `
-        <div style="background: linear-gradient(135deg, #bdbdbd, #757575); padding: 15px; border-radius: 10px; color: #f5f5f5; border: 2px solid #9e9e9e;">
-            <h3 style="margin-top: 0; text-align: center; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.7);">📖 ${SPELL_CONFIG.name}</h3>
+    // Build enhanced flavor for the final dice roll message
+    function createChatFlavor() {
+        const actualManaCostDisplay = SPELL_CONFIG.manaCost === 0 ? 'GRATUIT' : `${SPELL_CONFIG.manaCost} mana`;
 
-            <div style="background: rgba(0,0,0,0.22); padding: 10px; border-radius: 5px; margin: 10px 0; color: #f3f3f3;">
-                <p style="margin: 5px 0;"><strong>🧙 Lanceur:</strong> ${actor.name}</p>
-                <p style="margin: 5px 0;"><strong>🎯 Cible:</strong> ${targetName}</p>
-                <p style="margin: 5px 0;"><strong>🎭 Stance:</strong> ${stanceName} : ${SPELL_CONFIG.manaCost} mana</p>
+        const attackDisplay = `
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff8e1; border-radius: 4px;">
+                <div style="font-size: 1.4em; color: #f57f17; font-weight: bold;">🎯 ATTAQUE: ${attackResult.result}</div>
             </div>
+        `;
 
-            <div style="background: rgba(0,0,0,0.22); padding: 10px; border-radius: 5px; margin: 10px 0; color: #f3f3f3;">
-                <p style="margin: 5px 0;"><strong>⚔️ Attaque (${SPELL_CONFIG.characteristicDisplay}):</strong> ${totalAttackDice}d7 + ${levelBonus}</p>`;
+        const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
+        const damageDisplay = `
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                <div style="font-size: 1.1em; color: #424242; margin-bottom: 6px;"><strong>📖 ${SPELL_CONFIG.name}${stanceNote}</strong></div>
+                <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cible:</strong> ${targetName}</div>
+                <div style="font-size: 1.4em; color: #1565c0; font-weight: bold;">💥 DÉGÂTS: ${finalDamageResult.total}</div>
+                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${SPELL_CONFIG.damageFormula} + Dextérité÷2 + bonus)</div>
+            </div>
+        `;
 
-    if (targetActor) {
-        enhancedFlavor += `<p style="margin: 5px 0; font-style: italic;">🛡️ Défense requise : Agilité du défenseur</p>`;
+        return `
+            <div style="background: linear-gradient(135deg, #f5f5f5, #fff8e1); padding: 12px; border-radius: 8px; border: 2px solid #87ceeb; margin: 8px 0;">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; color: #424242;">📖 ${SPELL_CONFIG.name}</h3>
+                    <div style="margin-top: 3px; font-size: 0.9em;">
+                        <strong>Lanceur:</strong> ${actor.name} | <strong>Coût:</strong> ${actualManaCostDisplay}
+                        ${currentStance ? ` | <strong>Position:</strong> ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)}` : ''}
+                    </div>
+                </div>
+                ${attackDisplay}
+                ${damageDisplay}
+            </div>
+        `;
     }
 
-    enhancedFlavor += `</div>
-
-        <div style="background: rgba(90,90,90,0.25); padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #757575; color: #f3f3f3;">`;
-
-    if (damageResult.isMaximized) {
-        enhancedFlavor += `<p style="margin: 5px 0;"><strong>💥 Dégâts (Stance Offensive - Maximisés):</strong> ${finalDamageResult.total}</p>
-                          <p style="margin: 5px 0; font-style: italic;">Formule: ${finalDamageResult.formula}</p>`;
-    } else {
-        enhancedFlavor += `<p style="margin: 5px 0;"><strong>💥 Dégâts (si touche):</strong> ${finalDamageResult.total}</p>
-                          <p style="margin: 5px 0; font-style: italic;">Formule: ${finalDamageResult.formula}</p>`;
-    }
-
-    enhancedFlavor += `</div>
-
-        <div style="background: rgba(158,158,158,0.14); padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #9e9e9e;">
-                <p style="margin: 5px 0;"><strong>✨ Sort Simple:</strong> Niveau 0.5 - Toujours gratuit</p>
-                <p style="margin: 5px 0; font-size: 0.9em;">🎯 Attaque de précision avec dextérité</p>
-            </div>
-        </div>`;
+    const enhancedFlavor = createChatFlavor();
 
     // Send the unified dice roll message
     await combinedRoll.toMessage({

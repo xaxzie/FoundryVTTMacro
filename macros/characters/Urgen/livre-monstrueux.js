@@ -218,47 +218,36 @@
 
         return new Promise((resolve) => {
             new Dialog({
-                title: `🎯 Configuration - ${SPELL_CONFIG.name}`,
+                title: `📚 ${SPELL_CONFIG.name}`,
                 content: `
-                    <div style="background: linear-gradient(135deg, #1a237e, #3949ab); padding: 20px; border-radius: 12px; color: white; font-family: 'Roboto', sans-serif;">
-                        <h2 style="text-align: center; margin-top: 0; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">📚 ${SPELL_CONFIG.name}</h2>
-
-                        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <h3 style="margin-top: 0; color: #bbdefb;">🎭 État du Lanceur</h3>
-                            <p><strong>Lanceur:</strong> ${actor.name}</p>
-                            <p><strong>Stance:</strong> ${stanceName}</p>
-                            <p><strong>Blessures:</strong> ${injuryDisplay}</p>
-                            <p><strong>Coût Mana:</strong> ${actualManaCost} (${SPELL_CONFIG.isFocusable ? 'focalisable' : 'non focalisable'})</p>
+                    <div style="padding: 15px; background: #f9f9f9; border-radius: 8px;">
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0; color: #333;">📚 ${SPELL_CONFIG.name}</h3>
+                            <p style="margin: 5px 0; color: #666;"><strong>Lanceur:</strong> ${actor.name}</p>
+                            <p style="margin: 5px 0; color: #666;"><strong>Coût:</strong> ${actualManaCost} mana (${currentStance || 'Aucune'} ${SPELL_CONFIG.isFocusable ? '- focalisable' : ''})</p>
                         </div>
 
-                        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <h3 style="margin-top: 0; color: #bbdefb;">⚔️ Statistiques d'Attaque</h3>
-                            <p><strong>${SPELL_CONFIG.characteristicDisplay}:</strong> ${characteristicInfo.base} ${characteristicInfo.injuries > 0 ? `→ ${characteristicInfo.final}` : ''}</p>
-                            <p><strong>Bonus d'Effets Actifs (${SPELL_CONFIG.characteristicDisplay}):</strong> +${characteristicBonus}</p>
-                            <p><strong>Bonus d'Effets Actifs (Dégâts):</strong> +${damageBonus}</p>
-                            <p><strong>Niveau de Sort:</strong> ${SPELL_CONFIG.spellLevel} (+${2 * SPELL_CONFIG.spellLevel} à l'attaque)</p>
+                        <div style="margin: 15px 0; padding: 10px; background: white; border-radius: 4px;">
+                            <h4 style="margin-top: 0; color: #555;">⚔️ Configuration</h4>
+                            <div style="margin: 10px 0;">
+                                <label><strong>Bonus d'Attaque:</strong></label>
+                                <input type="number" id="attackBonus" value="0" min="-10" max="20"
+                                       style="width: 60px; padding: 4px; margin-left: 10px; border: 1px solid #ccc; border-radius: 3px;"/>
+                            </div>
+                            <div style="margin: 10px 0;">
+                                <label><strong>Bonus de Dégâts:</strong></label>
+                                <input type="number" id="damageBonus" value="0" min="-10" max="20"
+                                       style="width: 60px; padding: 4px; margin-left: 10px; border: 1px solid #ccc; border-radius: 3px;"/>
+                            </div>
                         </div>
 
-                        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <h3 style="margin-top: 0; color: #bbdefb;">🎯 Bonus Manuels</h3>
-                            <p><label><strong>Bonus d'Attaque Supplémentaire:</strong></label></p>
-                            <input type="number" id="attackBonus" value="0" min="-10" max="20"
-                                   style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: none;"/>
-                            <p><label><strong>Bonus de Dégâts Supplémentaire:</strong></label></p>
-                            <input type="number" id="damageBonus" value="0" min="-10" max="20"
-                                   style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: none;"/>
-                        </div>
-
-                        <div style="background: rgba(255,193,7,0.2); padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #ffc107;">
-                            <h3 style="margin-top: 0; color: #fff700;">📖 Option d'Accrochage du Livre</h3>
+                        <div style="margin: 15px 0; padding: 10px; background: #fff8e1; border-radius: 4px; border: 1px solid #ffc107;">
                             <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" id="attachBook" style="margin-right: 10px; transform: scale(1.2);"/>
-                                <span><strong>Accrocher le livre à la cible</strong></span>
+                                <input type="checkbox" id="attachBook" style="margin-right: 8px;"/>
+                                <span><strong>📖 Accrocher le livre à la cible</strong></span>
                             </label>
-                            <p style="font-size: 0.9em; margin-top: 10px; color: #ffe082;">
-                                ⚠️ <strong>Coût:</strong> ${SPELL_CONFIG.maintenanceCost} mana/tour (non focalisable)<br>
-                                📌 <strong>Effet:</strong> Ajoute "Livre Monstrueux" (Counter: Esprit÷2 = ${Math.floor(characteristicInfo.final / 2)})<br>
-                                🔢 <strong>Cumul:</strong> Livres illimités par cible (cumul possible)
+                            <p style="font-size: 0.9em; margin: 8px 0 0 0; color: #666;">
+                                Coût: ${SPELL_CONFIG.maintenanceCost} mana/tour (non focalisable)
                             </p>
                         </div>
                     </div>
@@ -684,41 +673,43 @@
     }
 
     // Build enhanced flavor for the final dice roll message
-    const stanceName = currentStance ?
-        (currentStance === 'focus' ? 'Focus' :
-            currentStance === 'offensif' ? 'Offensif' :
-                currentStance === 'defensif' ? 'Défensif' : 'Aucune') : 'Aucune';
 
-    let enhancedFlavor = `
-        <div style="background: linear-gradient(135deg, #1a237e, #3949ab); padding: 15px; border-radius: 10px; color: white; border: 2px solid #3f51b5;">
-            <h3 style="margin-top: 0; text-align: center; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.7);">📚 ${SPELL_CONFIG.name}</h3>
+    function createChatFlavor() {
+        const actualManaCostDisplay = actualManaCost === 0 ? 'GRATUIT (Focus)' : `${actualManaCost} mana`;
 
-            <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin: 10px 0;">
-                <p style="margin: 5px 0;"><strong>🧙 Lanceur:</strong> ${actor.name}</p>
-                <p style="margin: 5px 0;"><strong>🎯 Cible:</strong> ${targetName}</p>
-                <p style="margin: 5px 0;"><strong>🎭 Stance:</strong> ${stanceName} : ${actualManaCost} mana</p>
+        const attackDisplay = `
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff8e1; border-radius: 4px;">
+                <div style="font-size: 1.4em; color: #f57f17; font-weight: bold;">🎯 ATTAQUE: ${attackResult.result}</div>
             </div>
+        `;
 
-            <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin: 10px 0;">
-                <p style="margin: 5px 0;"><strong>⚔️ Attaque (${SPELL_CONFIG.characteristicDisplay}):</strong> ${totalAttackDice}d7 + ${levelBonus}</p>`;
+        const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
+        const damageDisplay = `
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                <div style="font-size: 1.1em; color: #424242; margin-bottom: 6px;"><strong>📚 ${SPELL_CONFIG.name}${stanceNote}</strong></div>
+                <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cible:</strong> ${targetName}</div>
+                <div style="font-size: 1.4em; color: #1565c0; font-weight: bold;">💥 DÉGÂTS: ${finalDamageResult.total}</div>
+                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${SPELL_CONFIG.damageFormula} + ${SPELL_CONFIG.characteristicDisplay} + bonus)</div>
+                ${attachBook ? `<div style="font-size: 0.8em; color: #666;">📖 Livre ${bookAttachmentResult.success ? 'attaché' : 'non attaché'}</div>` : ''}
+            </div>
+        `;
 
-    if (targetActor) {
-        enhancedFlavor += `<p style="margin: 5px 0; font-style: italic;">🛡️ Défense requise : Agilité du défenseur</p>`;
+        return `
+            <div style="background: linear-gradient(135deg, #f5f5f5, #fff8e1); padding: 12px; border-radius: 8px; border: 2px solid #3f51b5; margin: 8px 0;">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; color: #424242;">📚 ${SPELL_CONFIG.name}</h3>
+                    <div style="margin-top: 3px; font-size: 0.9em;">
+                        <strong>Lanceur:</strong> ${actor.name} | <strong>Coût:</strong> ${actualManaCostDisplay}
+                        ${currentStance ? ` | <strong>Position:</strong> ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)}` : ''}
+                    </div>
+                </div>
+                ${attackDisplay}
+                ${damageDisplay}
+            </div>
+        `;
     }
 
-    enhancedFlavor += `</div>
-
-            <div style="background: rgba(76,175,80,0.3); padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #4caf50;">`;
-
-    if (damageResult.isMaximized) {
-        enhancedFlavor += `<p style="margin: 5px 0;"><strong>💥 Dégâts (Stance Offensive - Maximisés):</strong> ${finalDamageResult.total}</p>
-                          <p style="margin: 5px 0; font-style: italic;">Formule: ${finalDamageResult.formula}</p>`;
-    } else {
-        enhancedFlavor += `<p style="margin: 5px 0;"><strong>💥 Dégâts (si touche):</strong> ${finalDamageResult.total}</p>
-                          <p style="margin: 5px 0; font-style: italic;">Formule: ${finalDamageResult.formula}</p>`;
-    }
-
-    enhancedFlavor += `</div>`;
+    const enhancedFlavor = createChatFlavor();
 
     // Add book attachment info if applicable
     if (attachBook) {

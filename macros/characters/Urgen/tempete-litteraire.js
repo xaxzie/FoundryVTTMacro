@@ -154,57 +154,38 @@
         const characteristicBonus = getActiveEffectBonus(actor, SPELL_CONFIG.characteristic);
         const damageBonus = getActiveEffectBonus(actor, "damage");
 
-        const stanceName = currentStance ?
-            (currentStance === 'focus' ? 'Focus' :
-                currentStance === 'offensif' ? 'Offensif' :
-                    currentStance === 'defensif' ? 'Défensif' : 'Aucune') : 'Aucune';
 
-        const injuryDisplay = characteristicInfo.injuries > 0 ?
-            `<span style="color: #d32f2f;">-${characteristicInfo.injuries} (blessures)</span>` :
-            '<span style="color: #2e7d32;">Aucune</span>';
-
-        const manaCostDisplay = currentStance === 'focus' ? `${actualManaCost} mana (Demi-focalisable)` : `${actualManaCost} mana`;
 
         return new Promise((resolve) => {
             new Dialog({
-                title: `🎯 Configuration - ${SPELL_CONFIG.name}`,
+                title: `�️ ${SPELL_CONFIG.name}`,
                 content: `
-                    <div style="background: linear-gradient(135deg, #9932cc, #8a2be2); padding: 20px; border-radius: 12px; color: white; font-family: 'Roboto', sans-serif;">
-                        <h2 style="text-align: center; margin-top: 0; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">📚 ${SPELL_CONFIG.name}</h2>
-
-                        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <h3 style="margin-top: 0; color: #e1bee7;">🎭 État du Lanceur</h3>
-                            <p><strong>Lanceur:</strong> ${actor.name}</p>
-                            <p><strong>Stance:</strong> ${stanceName}</p>
-                            <p><strong>Blessures:</strong> ${injuryDisplay}</p>
-                            <p><strong>Coût Mana:</strong> ${manaCostDisplay}</p>
+                    <div style="padding: 15px; background: #f9f9f9; border-radius: 8px;">
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0; color: #333;">🌪️ ${SPELL_CONFIG.name}</h3>
+                            <p style="margin: 5px 0; color: #666;"><strong>Lanceur:</strong> ${actor.name}</p>
+                            <p style="margin: 5px 0; color: #666;"><strong>Coût:</strong> ${actualManaCost} mana (${currentStance || 'Aucune'} ${SPELL_CONFIG.isFocusable ? '- demi-focalisable' : ''})</p>
+                            <p style="margin: 5px 0; color: #666;"><strong>Zone:</strong> Rayon ${SPELL_CONFIG.areaRadius} cases</p>
                         </div>
 
-                        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <h3 style="margin-top: 0; color: #e1bee7;">⚔️ Statistiques d'Attaque</h3>
-                            <p><strong>${SPELL_CONFIG.characteristicDisplay}:</strong> ${characteristicInfo.base} ${characteristicInfo.injuries > 0 ? `→ ${characteristicInfo.final}` : ''}</p>
-                            <p><strong>Bonus d'Effets Actifs (${SPELL_CONFIG.characteristicDisplay}):</strong> +${characteristicBonus}</p>
-                            <p><strong>Bonus d'Effets Actifs (Dégâts):</strong> +${damageBonus}</p>
-                            <p><strong>Niveau de Sort:</strong> ${SPELL_CONFIG.spellLevel} (+${2 * SPELL_CONFIG.spellLevel} à l'attaque)</p>
+                        <div style="margin: 15px 0; padding: 10px; background: white; border-radius: 4px;">
+                            <h4 style="margin-top: 0; color: #555;">⚔️ Configuration</h4>
+                            <div style="margin: 10px 0;">
+                                <label><strong>Bonus d'Attaque:</strong></label>
+                                <input type="number" id="attackBonus" value="0" min="-10" max="20"
+                                       style="width: 60px; padding: 4px; margin-left: 10px; border: 1px solid #ccc; border-radius: 3px;"/>
+                            </div>
+                            <div style="margin: 10px 0;">
+                                <label><strong>Bonus de Dégâts:</strong></label>
+                                <input type="number" id="damageBonus" value="0" min="-10" max="20"
+                                       style="width: 60px; padding: 4px; margin-left: 10px; border: 1px solid #ccc; border-radius: 3px;"/>
+                            </div>
                         </div>
 
-                        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <h3 style="margin-top: 0; color: #e1bee7;">🎯 Bonus Manuels</h3>
-                            <p><label><strong>Bonus d'Attaque Supplémentaire:</strong></label></p>
-                            <input type="number" id="attackBonus" value="0" min="-10" max="20"
-                                   style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: none;"/>
-                            <p><label><strong>Bonus de Dégâts Supplémentaire:</strong></label></p>
-                            <input type="number" id="damageBonus" value="0" min="-10" max="20"
-                                   style="width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: none;"/>
-                        </div>
-
-                        <div style="background: rgba(255,193,7,0.2); padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #ffc107;">
-                            <h3 style="margin-top: 0; color: #fff700;">📖 Tempête Littéraire</h3>
-                            <p style="font-size: 0.9em; margin-top: 10px; color: #ffe082;">
-                                📌 <strong>Zone:</strong> Cercle de ${SPELL_CONFIG.areaRadius} cases de rayon<br>
-                                💥 <strong>Dégâts:</strong> ${SPELL_CONFIG.damageFormula} + ${SPELL_CONFIG.characteristicDisplay} (${characteristicInfo.final})<br>
-                                🛡️ <strong>Esquive:</strong> Ne réduit les dégâts que de moitié<br>
-                                ⚡ <strong>Type:</strong> Zone d'effet magique
+                        <div style="margin: 15px 0; padding: 10px; background: #fff3e0; border-radius: 4px; border: 1px solid #ff9800;">
+                            <p style="font-size: 0.9em; margin: 0; color: #e65100;">
+                                <strong>⚠️ Zone d'effet:</strong> ${SPELL_CONFIG.damageFormula} + Esprit (${characteristicInfo.final})<br>
+                                L'esquive ne réduit les dégâts que de moitié
                             </p>
                         </div>
                     </div>
@@ -476,54 +457,42 @@
     }
 
     // Build enhanced flavor for the final dice roll message
-    const stanceName = currentStance ?
-        (currentStance === 'focus' ? 'Focus' :
-            currentStance === 'offensif' ? 'Offensif' :
-                currentStance === 'defensif' ? 'Défensif' : 'Aucune') : 'Aucune';
+    function createChatFlavor() {
+        const actualManaCostDisplay = actualManaCost === 0 ? 'GRATUIT (Focus)' : `${actualManaCost} mana`;
 
-    const targetSummary = areaTargets.length > 0 ?
-        `<div style="font-size: 0.9em; margin: 4px 0;"><strong>Cibles dans la zone (${areaTargets.length}):</strong> ${areaTargets.map(t => t.name).join(', ')}</div>` :
-        `<div style="font-size: 0.9em; margin: 4px 0; color: #666;"><em>Aucune cible dans la zone</em></div>`;
-
-    let enhancedFlavor = `
-        <div style="background: linear-gradient(135deg, #9932cc, #8a2be2); padding: 15px; border-radius: 10px; color: white; border: 2px solid #9932cc;">
-            <h3 style="margin-top: 0; text-align: center; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.7);">📚 ${SPELL_CONFIG.name}</h3>
-
-            <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin: 10px 0;">
-                <p style="margin: 5px 0;"><strong>🧙 Lanceur:</strong> ${actor.name}</p>
-                <p style="margin: 5px 0;"><strong>🎯 Zone:</strong> Cercle de ${SPELL_CONFIG.areaRadius} cases de rayon</p>
-                <p style="margin: 5px 0;"><strong>🎭 Stance:</strong> ${stanceName} : ${actualManaCost} mana</p>
-                ${targetSummary}
+        const attackDisplay = `
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff8e1; border-radius: 4px;">
+                <div style="font-size: 1.4em; color: #f57f17; font-weight: bold;">🎯 ATTAQUE: ${attackResult.result}</div>
             </div>
+        `;
 
-            <div style="background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px; margin: 10px 0;">
-                <p style="margin: 5px 0;"><strong>⚔️ Attaque (${SPELL_CONFIG.characteristicDisplay}):</strong> ${totalAttackDice}d7 + ${levelBonus}</p>`;
+        const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
+        const damageDisplay = `
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                <div style="font-size: 1.1em; color: #424242; margin-bottom: 6px;"><strong>🌪️ ${SPELL_CONFIG.name}${stanceNote}</strong></div>
+                <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Zone:</strong> Rayon ${SPELL_CONFIG.areaRadius} cases (${areaTargets.length} cible${areaTargets.length > 1 ? 's' : ''})</div>
+                <div style="font-size: 1.4em; color: #1565c0; font-weight: bold;">💥 DÉGÂTS: ${finalDamageResult.total}</div>
+                <div style="font-size: 1.2em; color: #ff9800; font-weight: bold;">🛡️ ESQUIVE: ${finalDamageResult.halfDamage} (moitié)</div>
+                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${SPELL_CONFIG.damageFormula} + ${SPELL_CONFIG.characteristicDisplay} + bonus)</div>
+            </div>
+        `;
 
-    if (areaTargets.length > 0) {
-        enhancedFlavor += `<p style="margin: 5px 0; font-style: italic;">🛡️ Défense requise : Agilité des défenseurs</p>`;
+        return `
+            <div style="background: linear-gradient(135deg, #f5f5f5, #fff3e0); padding: 12px; border-radius: 8px; border: 2px solid #9932cc; margin: 8px 0;">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; color: #424242;">🌪️ ${SPELL_CONFIG.name}</h3>
+                    <div style="margin-top: 3px; font-size: 0.9em;">
+                        <strong>Lanceur:</strong> ${actor.name} | <strong>Coût:</strong> ${actualManaCostDisplay}
+                        ${currentStance ? ` | <strong>Position:</strong> ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)}` : ''}
+                    </div>
+                </div>
+                ${attackDisplay}
+                ${damageDisplay}
+            </div>
+        `;
     }
 
-    enhancedFlavor += `</div>
-
-            <div style="background: rgba(76,175,80,0.3); padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #4caf50;">`;
-
-    if (damageResult.isMaximized) {
-        enhancedFlavor += `<p style="margin: 5px 0;"><strong>💥 Dégâts (Stance Offensive - Maximisés):</strong> ${finalDamageResult.total}</p>
-                          <p style="margin: 5px 0; font-style: italic;">Formule: ${finalDamageResult.formula}</p>`;
-    } else {
-        enhancedFlavor += `<p style="margin: 5px 0;"><strong>💥 Dégâts (si touche):</strong> ${finalDamageResult.total}</p>
-                          <p style="margin: 5px 0; font-style: italic;">Formule: ${finalDamageResult.formula}</p>`;
-    }
-
-    enhancedFlavor += `<p style="margin: 5px 0; color: #fff700;"><strong>🛡️ Esquive partielle:</strong> ${finalDamageResult.halfDamage} dégâts (moitié)</p>`;
-
-    enhancedFlavor += `</div>
-
-            <div style="background: rgba(255,193,7,0.2); padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #ffc107;">
-                <p style="margin: 5px 0;"><strong>📖 Tempête Littéraire:</strong> Niveau ${SPELL_CONFIG.spellLevel} - Zone d'effet</p>
-                <p style="margin: 5px 0; font-size: 0.9em; color: #fff700;">⚠️ L'esquive ne permet d'éviter que la moitié des dégâts</p>
-            </div>
-        </div>`;
+    const enhancedFlavor = createChatFlavor();
 
     // Send the unified dice roll message
     await combinedRoll.toMessage({

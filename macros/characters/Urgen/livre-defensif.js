@@ -233,46 +233,34 @@
 
         return new Promise((resolve) => {
             new Dialog({
-                title: `🛡️ Configuration - ${SPELL_CONFIG.name}`,
+                title: `🛡️ ${SPELL_CONFIG.name}`,
                 content: `
-                    <div style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); padding: 20px; border-radius: 12px; color: #0d47a1; font-family: 'Roboto', sans-serif;">
-                        <h2 style="text-align: center; margin-top: 0; color: #0d47a1; text-shadow: 1px 1px 2px rgba(255,255,255,0.5);">🛡️ ${SPELL_CONFIG.name}</h2>
-
-                        <div style="background: rgba(255,255,255,0.3); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <h3 style="margin-top: 0; color: #1565c0;">🎭 État du Lanceur</h3>
-                            <p><strong>Lanceur:</strong> ${actor.name}</p>
-                            <p><strong>Stance:</strong> ${stanceName}</p>
-                            <p><strong>Blessures:</strong> ${injuryDisplay}</p>
-                            <p><strong>Esprit:</strong> ${characteristicInfo.final}${characteristicInfo.injuries > 0 || characteristicInfo.effectBonus !== 0 ? ` <em>(${characteristicInfo.base}${characteristicInfo.injuries > 0 ? ` - ${characteristicInfo.injuries} blessures` : ''}${characteristicInfo.effectBonus !== 0 ? ` + ${characteristicInfo.effectBonus} effets` : ''})</em>` : ''}</p>
+                    <div style="padding: 15px; background: #f9f9f9; border-radius: 8px;">
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <h3 style="margin: 0; color: #333;">🛡️ ${SPELL_CONFIG.name}</h3>
+                            <p style="margin: 5px 0; color: #666;"><strong>Lanceur:</strong> ${actor.name}</p>
+                            <p style="margin: 5px 0; color: #666;"><strong>Coût par livre:</strong> ${actualCostPerBook} mana (${currentStance || 'Aucune'} ${SPELL_CONFIG.isFocusable ? '- focalisable' : ''})</p>
+                            <p style="margin: 5px 0; color: #666;"><strong>Protection par livre:</strong> ${characteristicInfo.final} (Esprit)</p>
                         </div>
 
-                        <div style="background: rgba(255,255,255,0.3); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <h3 style="margin-top: 0; color: #1565c0;">📚 Nombre de Livres à Invoquer</h3>
-                            <p><strong>Coût par livre:</strong> ${actualCostPerBook} mana ${SPELL_CONFIG.isFocusable ? '(focalisable)' : '(non focalisable)'}</p>
-
-                            <div style="margin: 15px 0;">
-                                <label style="display: block; margin-bottom: 10px; cursor: pointer;">
-                                    <input type="radio" name="bookCount" value="1" checked style="margin-right: 10px;">
-                                    <strong>1 Livre</strong> - ${actualCostPerBook} mana total
-                                    <div style="font-size: 0.9em; color: #424242; margin-left: 25px;">Force défensive par livre: ${characteristicInfo.final}</div>
+                        <div style="margin: 15px 0; padding: 10px; background: white; border-radius: 4px;">
+                            <h4 style="margin-top: 0; color: #555;">📚 Nombre de Livres</h4>
+                            <div style="margin: 10px 0;">
+                                <label style="display: block; margin-bottom: 8px; cursor: pointer;">
+                                    <input type="radio" name="bookCount" value="1" checked style="margin-right: 8px;">
+                                    <strong>1 Livre</strong> (${actualCostPerBook} mana)
                                 </label>
-
                                 <label style="display: block; cursor: pointer;">
-                                    <input type="radio" name="bookCount" value="2" style="margin-right: 10px;">
-                                    <strong>2 Livres</strong> - ${actualCostPerBook * 2} mana total
-                                    <div style="font-size: 0.9em; color: #424242; margin-left: 25px;">Force défensive par livre: ${characteristicInfo.final} chacun</div>
-                                    <div style="font-size: 0.8em; color: #666; margin-left: 25px;">Si même cible: force totale ${characteristicInfo.final * 2}</div>
+                                    <input type="radio" name="bookCount" value="2" style="margin-right: 8px;">
+                                    <strong>2 Livres</strong> (${actualCostPerBook * 2} mana)
                                 </label>
                             </div>
                         </div>
 
-                        <div style="background: rgba(76,175,80,0.2); padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #4caf50;">
-                            <h3 style="margin-top: 0; color: #2e7d32;">🛡️ Effet Défensif</h3>
-                            <p style="margin: 5px 0; font-size: 0.9em;">
-                                ✨ <strong>Protection:</strong> Force = Esprit × nombre de livres sur la cible<br>
-                                📌 <strong>Cumul:</strong> Plusieurs livres possibles sur la même cible<br>
-                                🎯 <strong>Cibles:</strong> Alliés ou soi-même<br>
-                                📚 <strong>Compteur Urgen:</strong> Suit le nombre total de livres créés
+                        <div style="margin: 15px 0; padding: 10px; background: #e8f5e8; border-radius: 4px; border: 1px solid #4caf50;">
+                            <p style="font-size: 0.9em; margin: 0; color: #2e7d32;">
+                                <strong>ℹ️ Effet:</strong> Protection = Esprit × livres sur la cible<br>
+                                Cibles multiples possibles, cumul autorisé
                             </p>
                         </div>
                     </div>
@@ -465,7 +453,7 @@
             const isSelfTarget = targetActor && targetActor.actor.id === actor.id;
 
             // Projectile vers chaque position (sauf si c'est Urgen lui-même)
-            if (!isSelfTarget ) {
+            if (!isSelfTarget) {
                 sequence.effect()
                     .file(SPELL_CONFIG.animations.projectile)
                     .attachTo(caster)
@@ -488,7 +476,7 @@
 
         // Animation d'attachement sur chaque cible avec un livre
         for (const targetInfo of validTargets) {
-             sequence.effect()
+            sequence.effect()
                 .file(SPELL_CONFIG.animations.attachment)
                 .attachTo(targetInfo.token)
                 .scale(0.5)
@@ -685,81 +673,52 @@
     }
 
     // ===== CREATE ENHANCED CHAT MESSAGE =====
-    const stanceName = currentStance ?
-        (currentStance === 'focus' ? 'Focus' :
-            currentStance === 'offensif' ? 'Offensif' :
-                currentStance === 'defensif' ? 'Défensif' : 'Aucune') : 'Aucune';
+    function createChatFlavor() {
+        const actualManaCostDisplay = totalManaCost === 0 ? 'GRATUIT (Focus)' : `${totalManaCost} mana`;
 
-    let enhancedFlavor = `
-        <div style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); padding: 15px; border-radius: 10px; color: #0d47a1; border: 2px solid #2196f3;">
-            <h3 style="margin-top: 0; text-align: center; color: #0d47a1; text-shadow: 1px 1px 2px rgba(255,255,255,0.7);">🛡️ ${SPELL_CONFIG.name}</h3>
+        // Résultats d'attachement
+        const successfulAttachments = attachmentResults.filter(r => r.success);
 
-            <div style="background: rgba(255,255,255,0.3); padding: 10px; border-radius: 5px; margin: 10px 0;">
-                <p style="margin: 5px 0;"><strong>🧙 Lanceur:</strong> ${actor.name}</p>
-                <p style="margin: 5px 0;"><strong>📚 Livres invoqués:</strong> ${bookCount}</p>
-                <p style="margin: 5px 0;"><strong>🎭 Stance:</strong> ${stanceName} - ${totalManaCost} mana</p>
-                <p style="margin: 5px 0;"><strong>🛡️ Force par livre:</strong> ${characteristicInfo.final} (basé sur Esprit)</p>
+        const protectionDisplay = `
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                <div style="font-size: 1.1em; color: #424242; margin-bottom: 6px;"><strong>🛡️ ${SPELL_CONFIG.name}</strong></div>
+                <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Livres invoqués:</strong> ${bookCount}</div>
+                <div style="font-size: 1.4em; color: #1565c0; font-weight: bold;">💪 PROTECTION: ${characteristicInfo.final} par livre</div>
+                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(Basé sur Esprit: ${characteristicInfo.final})</div>
             </div>
-    `;
-
-    // Résultats d'attachement
-    const successfulAttachments = attachmentResults.filter(r => r.success);
-    const failedAttachments = attachmentResults.filter(r => !r.success);
-
-    if (successfulAttachments.length > 0) {
-        enhancedFlavor += `
-            <div style="background: rgba(76,175,80,0.3); padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #4caf50;">
-                <p style="margin: 5px 0;"><strong>✅ Livres Défensifs Attachés:</strong></p>
         `;
 
-        for (const result of successfulAttachments) {
-            enhancedFlavor += `
-                <p style="margin: 5px 0; font-size: 0.9em;">
-                    🎯 <strong>${result.target}:</strong> +${result.booksAdded} livre${result.booksAdded > 1 ? 's' : ''}
-                    (Protection: ${result.newCounter})
-                </p>
+        let targetsDisplay = '';
+        if (successfulAttachments.length > 0) {
+            const targetList = successfulAttachments.map(r =>
+                `${r.target} (+${r.booksAdded} livre${r.booksAdded > 1 ? 's' : ''}: ${r.newCounter} protection)`
+            ).join(', ');
+            targetsDisplay = `
+                <div style="text-align: center; margin: 8px 0; padding: 10px; background: #e8f5e8; border-radius: 4px;">
+                    <div style="font-size: 1.4em; color: #2e7d32; font-weight: bold;">✅ CIBLES PROTÉGÉES</div>
+                    <div style="font-size: 0.9em; color: #2e7d32; margin-top: 4px;">${targetList}</div>
+                </div>
             `;
         }
 
-        enhancedFlavor += `</div>`;
-    }
-
-    if (failedAttachments.length > 0) {
-        enhancedFlavor += `
-            <div style="background: rgba(244,67,54,0.3); padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #f44336;">
-                <p style="margin: 5px 0;"><strong>❌ Échecs d'Attachement:</strong></p>
-        `;
-
-        for (const result of failedAttachments) {
-            enhancedFlavor += `
-                <p style="margin: 5px 0; font-size: 0.9em;">
-                    🎯 <strong>${result.target}:</strong> ${result.message}
-                </p>
-            `;
-        }
-
-        enhancedFlavor += `</div>`;
-    }
-
-    // Mise à jour du compteur Urgen
-    if (urgenBookUpdateResult.success) {
-        const bgColor = "rgba(33,150,243,0.3)";
-        const borderColor = "#2196f3";
-
-        enhancedFlavor += `
-            <div style="background: ${bgColor}; padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid ${borderColor};">
-                <p style="margin: 5px 0;"><strong>📘 Compteur Urgen:</strong> ${urgenBookUpdateResult.message}</p>
-            </div>
-        `;
-    } else {
-        enhancedFlavor += `
-            <div style="background: rgba(244,67,54,0.3); padding: 10px; border-radius: 5px; margin: 10px 0; border: 1px solid #f44336;">
-                <p style="margin: 5px 0;"><strong>⚠️ Compteur Urgen:</strong> ${urgenBookUpdateResult.message}</p>
+        return `
+            <div style="background: linear-gradient(135deg, #f5f5f5, #e8f5e8); padding: 12px; border-radius: 8px; border: 2px solid #2196f3; margin: 8px 0;">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; color: #424242;">🛡️ ${SPELL_CONFIG.name}</h3>
+                    <div style="margin-top: 3px; font-size: 0.9em;">
+                        <strong>Lanceur:</strong> ${actor.name} | <strong>Coût:</strong> ${actualManaCostDisplay}
+                        ${currentStance ? ` | <strong>Position:</strong> ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)}` : ''}
+                    </div>
+                </div>
+                ${protectionDisplay}
+                ${targetsDisplay}
             </div>
         `;
     }
 
-    enhancedFlavor += `</div>`;
+    const enhancedFlavor = createChatFlavor();
+
+
 
     // Send chat message
     await ChatMessage.create({
