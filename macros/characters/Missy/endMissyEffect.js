@@ -22,39 +22,42 @@
 (async () => {
     // ===== CONFIGURATION DES EFFETS =====
     const EFFECT_CONFIG = {
-        // TODO: Add Missy's specific effects here when spells are created
-        // Example for future effects:
-        // "CheveuEntrave": {
-        //     displayName: "Cheveu Entrave",
-        //     icon: "icons/magic/symbols/runes-star-magenta.webp",
-        //     description: "Entravé par les cheveux de Missy",
-        //     sectionTitle: "🪢 Entraves Capillaires",
-        //     sectionIcon: "🪢",
-        //     cssClass: "hair-effect",
-        //     borderColor: "#9c27b0",
-        //     bgColor: "#f3e5f5",
-        //     // Détection des flags
-        //     detectFlags: [
-        //         { path: "flags.world.spellCaster", matchValue: "CASTER_ID" },
-        //         { path: "flags.world.spellName", matchValue: "Matraque Capillaire" }
-        //     ],
-        //     // Données supplémentaires pour l'affichage
-        //     getExtraData: (effect) => ({
-        //         duration: effect.duration?.seconds || 0
-        //     }),
-        //     getDynamicDescription: (effect) => {
-        //         const duration = effect.duration?.seconds || 0;
-        //         return `Entravé par les cheveux (${Math.floor(duration/60)} min restantes)`;
-        //     },
-        //     // Animation de suppression
-        //     removeAnimation: {
-        //         file: "jb2a.cure_wounds.400px.purple",
-        //         scale: 0.6,
-        //         duration: 1500,
-        //         fadeOut: 500,
-        //         tint: "#9c27b0"
-        //     }
-        // }
+        "EtreinteChevelue": {
+            displayName: "Etreinte Chevelue",
+            icon: "icons/magic/symbols/runes-star-magenta.webp",
+            description: "Enlacé par les cheveux magiques de Missy",
+            sectionTitle: "💇‍♀️ Etreintes Capillaires",
+            sectionIcon: "💇‍♀️",
+            cssClass: "embrace-effect",
+            borderColor: "#9c27b0",
+            bgColor: "#f3e5f5",
+            // Détection des flags
+            detectFlags: [
+                { path: "flags.world.embraceCaster", matchValue: "CASTER_ID" },
+                { path: "flags.world.spellName", matchValue: "Etreinte Chevelue" }
+            ],
+            // Données supplémentaires pour l'affichage
+            getExtraData: (effect) => ({
+                malus: effect.flags?.statuscounter?.value || 2
+            }),
+            getDynamicDescription: (effect) => {
+                const malus = effect.flags?.statuscounter?.value || 2;
+                return `Malus de -${malus} sur toutes les caractéristiques (7 chars)`;
+            },
+            // Animation de suppression
+            removeAnimation: {
+                file: "jb2a.cure_wounds.400px.purple",
+                scale: 0.6,
+                duration: 1500,
+                fadeOut: 500,
+                tint: "#9c27b0"
+            },
+            // Nettoyage spécial pour l'animation persistante
+            cleanup: {
+                sequencerName: "flags.world.embraceSequenceName"
+            }
+        }
+        // TODO: Add more Missy's specific effects here when other spells are created
     };
 
     /*
@@ -338,7 +341,13 @@
             }
 
             // Track removal by effect type
-            if (effectType.includes("cheveu") || effectType.includes("hair") || effectType.includes("capillaire")) {
+            if (effectType === "EtreinteChevelue") {
+                removedEffects.hairEffects.push({
+                    target: token.name,
+                    effect: config.displayName,
+                    type: effectType
+                });
+            } else if (effectType.includes("cheveu") || effectType.includes("hair") || effectType.includes("capillaire")) {
                 removedEffects.hairEffects.push({
                     target: token.name,
                     effect: config.displayName,
