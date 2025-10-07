@@ -27,8 +27,8 @@
 
     // Custom Active Effects with Flags for Robby
     const CUSTOM_EFFECTS = {
-        "Excalibur": {
-            name: "Excalibur",
+        "Excsanglibur": {
+            name: "Excsanglibur",
             icon: "icons/weapons/daggers/knife-kitchen-red.webp",
             flags: [],
             description: "Épée légendaire invoquée (Coût: 3 mana)",
