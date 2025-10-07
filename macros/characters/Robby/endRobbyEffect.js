@@ -22,30 +22,69 @@
 (async () => {
     // ===== CONFIGURATION DES EFFETS =====
     const EFFECT_CONFIG = {
-        // TODO: Add Robby's specific effects here when spells are created
-        // Example for future blood magic effects:
-        // "Hémorragie": {
-        //     displayName: "Hémorragie",
-        //     icon: "icons/magic/death/blood-drip-droplet-red.webp",
-        //     description: "Saignement continu causé par la magie du sang",
-        //     sectionTitle: "🩸 Hémorragies",
-        //     sectionIcon: "🩸",
-        //     cssClass: "blood-effect",
-        //     borderColor: "#d32f2f",
-        //     bgColor: "#ffebee",
-        //     // Détection des flags
-        //     detectFlags: [
-        //         { path: "flags.world.bloodCaster", matchValue: "CASTER_ID" }
-        //     ],
-        //     // Animation de suppression
-        //     removeAnimation: {
-        //         file: "jb2a.cure_wounds.400px.red",
-        //         scale: 0.6,
-        //         duration: 1500,
-        //         fadeOut: 500,
-        //         tint: "#ffffff"
-        //     }
-        // }
+        "RalentissementSanguin": {
+            displayName: "Ralentissement Sanguin",
+            icon: "icons/svg/downgrade.svg",
+            description: "Ralentissement causé par les Fléchettes Sanguines",
+            sectionTitle: "🐌 Ralentissements",
+            sectionIcon: "🐌",
+            cssClass: "slowdown-effect",
+            borderColor: "#7b1fa2",
+            bgColor: "#f3e5f5",
+            // Détection des flags
+            detectFlags: [
+                { path: "flags.world.spellCaster", matchValue: "CASTER_ID" },
+                { path: "flags.world.spellName", matchValue: "Fléchettes Sanguines" }
+            ],
+            // Données supplémentaires pour l'affichage
+            getExtraData: (effect) => ({
+                slowdown: effect.flags?.statuscounter?.value || 0
+            }),
+            getDynamicDescription: (effect) => {
+                const slowdown = effect.flags?.statuscounter?.value || 0;
+                return `Ralentissement de ${slowdown} cases de vitesse`;
+            },
+            // Animation de suppression
+            removeAnimation: {
+                file: "jb2a.cure_wounds.400px.blue",
+                scale: 0.6,
+                duration: 1500,
+                fadeOut: 500,
+                tint: "#ffffff"
+            }
+        },
+        "ResistanceSanguine": {
+            displayName: "Résistance Sanguine",
+            icon: "icons/svg/upgrade.svg",
+            description: "Résistance accordée par les Fléchettes Sanguines",
+            sectionTitle: "🛡️ Résistances",
+            sectionIcon: "🛡️",
+            cssClass: "resistance-effect",
+            borderColor: "#228b22",
+            bgColor: "#f0fff0",
+            // Détection des flags
+            detectFlags: [
+                { path: "flags.world.spellCaster", matchValue: "CASTER_ID" },
+                { path: "flags.world.spellName", matchValue: "Fléchettes Sanguines" }
+            ],
+            // Données supplémentaires pour l'affichage
+            getExtraData: (effect) => ({
+                resistance: effect.flags?.statuscounter?.value || 0
+            }),
+            getDynamicDescription: (effect) => {
+                const resistance = effect.flags?.statuscounter?.value || 0;
+                return `Bonus de résistance de +${resistance}`;
+            },
+            // Animation de suppression
+            removeAnimation: {
+                file: "jb2a.cure_wounds.400px.green",
+                scale: 0.6,
+                duration: 1500,
+                fadeOut: 500,
+                tint: "#ffffff"
+            }
+        }
+        // TODO: Add more Robby's specific effects here when other spells are created
     };
 
     /*
@@ -114,7 +153,20 @@
             for (const effect of token.actor.effects.contents) {
                 // Vérifier chaque type d'effet configuré
                 for (const [effectType, config] of Object.entries(EFFECT_CONFIG)) {
+                    let isMatch = false;
+
+                    // Vérification par nom exact
                     if (effect.name === config.displayName) {
+                        isMatch = true;
+                    }
+                    // Vérification pour les ralentissements (noms variables)
+                    else if (effectType === "RalentissementSanguin" &&
+                        (effect.name === "Ralentissement" ||
+                            effect.name.toLowerCase().includes("ralentissement"))) {
+                        isMatch = true;
+                    }
+
+                    if (isMatch) {
                         // Vérifier les flags pour confirmer que c'est bien un effet de Robby
                         if (checkEffectFlags(effect, config, actor.id)) {
                             const extraData = config.getExtraData ? config.getExtraData(effect) : {};

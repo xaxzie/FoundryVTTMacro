@@ -35,8 +35,8 @@
         isFocusable: true,
         speedReduction: 2,
         animations: {
-            projectile: "jb2a_patreon.magic_missile.dark_red",
-            impact: "jb2a_patreon.impact.001.dark_red",
+            projectile: "jb2a.eldritch_blast.purple",
+            impact: "jb2a.impact.010.red",
             sound: null
         },
         targeting: {
@@ -79,7 +79,7 @@
      * @param {string} flagKey - The flag key to look for (e.g., "damage", "dexterite")
      * @returns {number} Total bonus from all matching active effects
      */
-  function getActiveEffectBonus(actor, flagKey) {
+    function getActiveEffectBonus(actor, flagKey) {
         if (!actor?.effects) return 0;
 
         let totalBonus = 0;
@@ -170,6 +170,16 @@
                                 <p style="margin: 8px 0; font-size: 0.9em;"><strong>Effet:</strong> ${SPELL_CONFIG.damageFormula} + ${SPELL_CONFIG.characteristicDisplay} dégâts</p>
                                 <p style="margin: 8px 0; font-size: 0.9em;"><strong>Ralentissement:</strong> -${SPELL_CONFIG.speedReduction} cases de vitesse</p>
                                 <p style="margin: 8px 0; font-size: 0.8em; color: #666;"><em>La cible peut résister chaque tour (Volonté vs Esprit)</em></p>
+
+                                <div style="margin: 10px 0; padding: 8px; background: #fff; border-radius: 4px;">
+                                    <div style="display: flex; gap: 10px; align-items: center;">
+                                        <label style="font-size: 0.8em;">Bonus attaque:</label>
+                                        <input type="number" id="aggressiveAttackBonus" value="0" min="-5" max="5" style="width: 50px; padding: 2px;">
+                                        <label style="font-size: 0.8em;">Bonus dégâts:</label>
+                                        <input type="number" id="aggressiveDamageBonus" value="0" min="-5" max="5" style="width: 50px; padding: 2px;">
+                                    </div>
+                                </div>
+
                                 <div style="text-align: center; margin-top: 10px;">
                                     <button type="button" id="aggressiveMode" style="background: #8b0000; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Sélectionner</button>
                                 </div>
@@ -180,7 +190,7 @@
                                 <p style="margin: 8px 0; font-size: 0.9em;"><strong>Cible:</strong> Allié</p>
                                 <p style="margin: 8px 0; font-size: 0.9em;"><strong>Effet:</strong> Résistance (+${Math.floor(spiritInfo.final / 2)} bonus)</p>
                                 <p style="margin: 8px 0; font-size: 0.9em;"><strong>Utilisations:</strong> 3 maximum</p>
-                                <p style="margin: 8px 0; font-size: 0.9em;"><strong>Durée:</strong> ${Math.floor(spiritInfo.final)} tours maximum</p>
+                                <p style="margin: 8px 0; font-size: 0.9em;"><strong>Durée:</strong> ${Math.floor(spiritInfo.final / 2)} tours maximum</p>
                                 <p style="margin: 8px 0; font-size: 0.8em; color: #666;"><em>Application automatique (pas de jet d'attaque)</em></p>
                                 <div style="text-align: center; margin-top: 10px;">
                                     <button type="button" id="defensiveMode" style="background: #228b22; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Sélectionner</button>
@@ -206,10 +216,14 @@
                 close: () => resolve(null),
                 render: (html) => {
                     html.find("#aggressiveMode").click(() => {
-                        resolve("aggressive");
+                        const attackBonus = parseInt(html.find("#aggressiveAttackBonus").val()) || 0;
+                        const damageBonus = parseInt(html.find("#aggressiveDamageBonus").val()) || 0;
+                        html.closest('.app').find('.header-button.close').click();
+                        resolve({ mode: "aggressive", attackBonus, damageBonus });
                     });
                     html.find("#defensiveMode").click(() => {
-                        resolve("defensive");
+                        html.closest('.app').find('.header-button.close').click();
+                        resolve({ mode: "defensive", attackBonus: 0, damageBonus: 0 });
                     });
                 }
             }, {
@@ -220,121 +234,13 @@
         });
     }
 
-    const selectedMode = await selectSpellMode();
-    if (!selectedMode) {
+    const modeSelection = await selectSpellMode();
+    if (!modeSelection) {
         ui.notifications.info("❌ Sort annulé.");
         return;
     }
 
-    // ===== SPELL CONFIGURATION DIALOG =====
-    async function showSpellConfigDialog(mode) {
-        const characteristicBonus = getActiveEffectBonus(actor, SPELL_CONFIG.characteristic);
-        const damageBonus = getActiveEffectBonus(actor, "damage");
-
-        const stanceName = currentStance ?
-            (currentStance === 'focus' ? 'Focus' :
-                currentStance === 'offensif' ? 'Offensif' :
-                    currentStance === 'defensif' ? 'Défensif' : 'Aucune') : 'Aucune';
-
-        const injuryDisplay = characteristicInfo.injuries > 0 ?
-            `<span style="color: #d32f2f;">-${characteristicInfo.injuries} (blessures)</span>` :
-            '<span style="color: #2e7d32;">Aucune</span>';
-
-        const modeIcon = mode === 'aggressive' ? '⚔️' : '🛡️';
-        const modeText = mode === 'aggressive' ? 'Agressif' : 'Défensif';
-        const targetType = mode === 'aggressive' ? 'Ennemi' : 'Allié';
-
-        let modeSpecificContent = '';
-        if (mode === 'aggressive') {
-            modeSpecificContent = `
-                <div style="margin: 15px 0; padding: 10px; background: #ffebee; border-radius: 4px;">
-                    <h4 style="margin-top: 0; color: #8b0000;">⚔️ Mode Agressif</h4>
-                    <div style="margin: 10px 0;">
-                        <label for="attackBonus" style="display: block; margin-bottom: 5px; color: #333;">Bonus d'attaque:</label>
-                        <input type="number" id="attackBonus" value="0" min="-10" max="10" style="width: 80px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <div style="margin: 10px 0;">
-                        <label for="damageBonus" style="display: block; margin-bottom: 5px; color: #333;">Bonus de dégâts:</label>
-                        <input type="number" id="damageBonus" value="0" min="-10" max="10" style="width: 80px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
-                    </div>
-                    <p style="margin: 5px 0; color: #333; font-size: 0.9em;">• Jet d'attaque requis</p>
-                    <p style="margin: 5px 0; color: #333; font-size: 0.9em;">• Dégâts: ${SPELL_CONFIG.damageFormula} + ${characteristicInfo.final + characteristicBonus + damageBonus}</p>
-                    <p style="margin: 5px 0; color: #333; font-size: 0.9em;">• Ralentissement: -${SPELL_CONFIG.speedReduction} cases</p>
-                    <p style="margin: 5px 0; color: #666; font-size: 0.8em;">• Résistance possible chaque tour</p>
-                </div>
-            `;
-        } else {
-            const resistanceValue = Math.floor(spiritInfo.final / 2);
-            const maxDuration = Math.floor(spiritInfo.final);
-            modeSpecificContent = `
-                <div style="margin: 15px 0; padding: 10px; background: #f0fff0; border-radius: 4px;">
-                    <h4 style="margin-top: 0; color: #228b22;">🛡️ Mode Défensif</h4>
-                    <p style="margin: 5px 0; color: #333; font-size: 0.9em;">• Application automatique (pas de jet d'attaque)</p>
-                    <p style="margin: 5px 0; color: #333; font-size: 0.9em;">• Effet Résistance: +${resistanceValue} bonus</p>
-                    <p style="margin: 5px 0; color: #333; font-size: 0.9em;">• Utilisations: 3 maximum</p>
-                    <p style="margin: 5px 0; color: #333; font-size: 0.9em;">• Durée: ${maxDuration} tours maximum</p>
-                </div>
-            `;
-        }
-
-        return new Promise((resolve) => {
-            new Dialog({
-                title: `🩸 ${SPELL_CONFIG.name} - ${modeIcon} ${modeText}`,
-                content: `
-                    <div style="padding: 15px; background: #f9f9f9; border-radius: 8px;">
-                        <div style="text-align: center; margin-bottom: 15px;">
-                            <h3 style="margin: 0; color: #333;">${modeIcon} ${SPELL_CONFIG.name}</h3>
-                            <p style="margin: 5px 0; color: #666;"><strong>Mode:</strong> ${modeText} (${targetType})</p>
-                            <p style="margin: 5px 0; color: #666;"><strong>Coût:</strong> ${actualManaCost} mana (${stanceName} ${SPELL_CONFIG.isFocusable ? '- focalisable' : ''})</p>
-                        </div>
-
-                        ${modeSpecificContent}
-
-                        <div style="margin: 15px 0; padding: 10px; background: #fff3e0; border-radius: 4px;">
-                            <h4 style="margin-top: 0; color: #555;">📊 Statistiques</h4>
-                            <p style="margin: 5px 0; color: #333;"><strong>${SPELL_CONFIG.characteristicDisplay}:</strong> ${characteristicInfo.final} ${characteristicBonus !== 0 ? `(+${characteristicBonus} effets)` : ''}</p>
-                            <p style="margin: 5px 0; color: #333;"><strong>${SPELL_CONFIG.resistanceCharacteristicDisplay}:</strong> ${spiritInfo.final}</p>
-                            <p style="margin: 5px 0; color: #333;"><strong>Blessures:</strong> ${injuryDisplay}</p>
-                        </div>
-                    </div>
-                `,
-                buttons: {
-                    cast: {
-                        icon: `<i class="fas fa-${mode === 'aggressive' ? 'crosshairs' : 'shield-alt'}"></i>`,
-                        label: `Lancer ${modeText}`,
-                        callback: (html) => {
-                            if (mode === 'aggressive') {
-                                const attackBonus = parseInt(html.find("#attackBonus").val()) || 0;
-                                const damageBonus = parseInt(html.find("#damageBonus").val()) || 0;
-                                resolve({ attackBonus, damageBonus });
-                            } else {
-                                resolve({ attackBonus: 0, damageBonus: 0 });
-                            }
-                        }
-                    },
-                    cancel: {
-                        icon: '<i class="fas fa-times"></i>',
-                        label: "Annuler",
-                        callback: () => resolve(null)
-                    }
-                },
-                default: "cast",
-                close: () => resolve(null)
-            }, {
-                width: 500,
-                height: 650,
-                resizable: true
-            }).render(true);
-        });
-    }
-
-    const spellConfig = await showSpellConfigDialog(selectedMode);
-    if (!spellConfig) {
-        ui.notifications.info("❌ Sort annulé.");
-        return;
-    }
-
-    const { attackBonus, damageBonus } = spellConfig;
+    const { mode: selectedMode, attackBonus, damageBonus } = modeSelection;
 
     // ===== TARGETING SYSTEM =====
     /**
@@ -606,31 +512,76 @@
             }
         }
 
-        try {
-            // Create slowdown effect with resistance information
-            const slowdownEffect = {
-                name: "Ralentissement Sanguin",
-                icon: "icons/svg/downgrade.svg",
-                description: `Ralentissement par Fléchettes Sanguines (-${SPELL_CONFIG.speedReduction} cases de vitesse). La cible peut essayer de résister chaque tour avec un jet de Volonté contre l'Esprit du lanceur (${spiritInfo.final}), gagnant +1 dé bonus à chaque tentative.`,
-                duration: { seconds: 86400 },
-                flags: {
-                    statuscounter: {
-                        value: SPELL_CONFIG.speedReduction
-                    },
-                    world: {
-                        spellCaster: caster.id,
-                        spellName: SPELL_CONFIG.name,
-                        casterSpirit: spiritInfo.final,
-                        resistanceAttempts: 0,
-                        createdAt: Date.now()
-                    }
+        async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
+            if (!targetActor || !effectId || !updateData) return;
+            if (targetActor.isOwner) {
+                const effect = targetActor.effects.get(effectId);
+                if (effect) await effect.update(updateData);
+            } else {
+                if (!game.modules.get("socketlib")?.active) {
+                    ui.notifications.error("Socketlib module is required for GM delegation.");
+                    return;
                 }
-            };
 
-            await applyEffectWithGMDelegation(targetActor.actor, slowdownEffect);
-            console.log(`[DEBUG] Applied slowdown effect to ${targetName}: -${SPELL_CONFIG.speedReduction} speed`);
+                if (!globalThis.gmSocket) {
+                    ui.notifications.error("GM Socket not available. Make sure a GM is connected.");
+                    return;
+                }
+
+                console.log("[DEBUG] Requesting GM to update effect", effectId, "on", targetActor.name, updateData);
+
+                try {
+                    const result = await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetActor.id, effectId, updateData);
+                    console.log("[DEBUG] GM delegation result:", result);
+                } catch (err) {
+                    console.error("[DEBUG] GM delegation failed:", err);
+                    ui.notifications.error("Failed to update effect via GM delegation");
+                }
+            }
+        }
+
+        try {
+            // Check if target already has a slowdown effect
+            const existingSlowdown = targetActor.actor.effects.find(e =>
+                e.name === "Ralentissement Sanguin" ||
+                e.name === "Ralentissement" ||
+                e.name.toLowerCase().includes("ralentissement")
+            );
+
+            if (existingSlowdown) {
+                // Update existing slowdown effect
+                const currentSlowdown = existingSlowdown.flags?.statuscounter?.value || 0;
+                const newSlowdown = currentSlowdown + SPELL_CONFIG.speedReduction;
+                const updateData = {
+                    "flags.statuscounter.value": newSlowdown,
+                    "description": `Ralentissement par Fléchettes Sanguines (-${newSlowdown} cases de vitesse). La cible peut essayer de résister chaque tour avec un jet de Volonté contre l'Esprit du lanceur (${spiritInfo.final}), gagnant +1 dé bonus à chaque tentative.`
+                };
+                await updateEffectWithGMDelegation(targetActor.actor, existingSlowdown.id, updateData);
+                console.log(`[DEBUG] Updated existing slowdown effect on ${targetName}: ${currentSlowdown} + ${SPELL_CONFIG.speedReduction} = ${newSlowdown} speed reduction`);
+            } else {
+                // Create new slowdown effect
+                const slowdownEffect = {
+                    name: "Ralentissement Sanguin",
+                    icon: "icons/svg/downgrade.svg",
+                    description: `Ralentissement par Fléchettes Sanguines (-${SPELL_CONFIG.speedReduction} cases de vitesse). La cible peut essayer de résister chaque tour avec un jet de Volonté contre l'Esprit du lanceur (${spiritInfo.final}), gagnant +1 dé bonus à chaque tentative.`,
+                    duration: { seconds: 86400 },
+                    flags: {
+                        statuscounter: {
+                            value: SPELL_CONFIG.speedReduction
+                        },
+                        world: {
+                            spellCaster: caster.id,
+                            spellName: SPELL_CONFIG.name,
+                            casterSpirit: spiritInfo.final
+                        }
+                    }
+                };
+
+                await applyEffectWithGMDelegation(targetActor.actor, slowdownEffect);
+                console.log(`[DEBUG] Applied new slowdown effect to ${targetName}: -${SPELL_CONFIG.speedReduction} speed`);
+            }
         } catch (error) {
-            console.error(`[ERROR] Failed to apply slowdown effect to ${targetName}:`, error);
+            console.error(`[ERROR] Failed to apply/update slowdown effect to ${targetName}:`, error);
         }
 
         // ===== CREATE CHAT MESSAGE FOR AGGRESSIVE MODE =====
@@ -723,7 +674,7 @@
 
         try {
             const resistanceValue = Math.floor(spiritInfo.final / 2);
-            const maxDuration = Math.floor(spiritInfo.final);
+            const maxDuration = Math.floor(spiritInfo.final / 2);
 
             // Create resistance effect
             const resistanceEffect = {
@@ -739,11 +690,7 @@
                     },
                     world: {
                         spellCaster: caster.id,
-                        spellName: SPELL_CONFIG.name,
-                        maxUses: 3,
-                        currentUses: 3,
-                        maxDuration: maxDuration,
-                        createdAt: Date.now()
+                        spellName: SPELL_CONFIG.name
                     }
                 }
             };
@@ -758,7 +705,7 @@
         function createDefensiveChatMessage() {
             const actualManaCostDisplay = actualManaCost === 0 ? 'GRATUIT' : `${actualManaCost} mana`;
             const resistanceValue = Math.floor(spiritInfo.final / 2);
-            const maxDuration = Math.floor(spiritInfo.final);
+            const maxDuration = Math.floor(spiritInfo.final / 2);
 
             return `
                 <div style="background: linear-gradient(135deg, #f0fff0, #e8f5e8); padding: 12px; border-radius: 8px; border: 2px solid #228b22; margin: 8px 0;">
@@ -792,7 +739,7 @@
         const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
         const manaCostInfo = actualManaCost === 0 ? ' GRATUIT' : ` - ${actualManaCost} mana`;
         const resistanceValue = Math.floor(spiritInfo.final / 2);
-        const maxDuration = Math.floor(spiritInfo.final);
+        const maxDuration = Math.floor(spiritInfo.final / 2);
 
         ui.notifications.info(`🩸 ${SPELL_CONFIG.name} (Défensif) lancé !${stanceInfo} Cible: ${targetName}. Résistance: +${resistanceValue} (3 utilisations, ${maxDuration} tours max)${manaCostInfo}`);
     }
