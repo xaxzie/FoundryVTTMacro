@@ -8,7 +8,31 @@
  * - Coût : 2 mana par livre (focalisable)
  * - Niveau de sort : 1
  * - Options : 1 ou 2 livres maximum
- * - Effet : Ajoute "Livre Défensif" avec statusCounter = Esprit × nombre de livres sur cette cible
+ * - Effet : Ajoute "Livre Défensif" avec statusCounter = Esprit × nombre de         // Pour chaque position de livre
+        for (let i = 0; i < targets.length; i++) {
+            const target = targets[i];
+            const targetActor = getActorAtLocation(target.x, target.y);
+
+            // Skip projectile animation if target is the caster (Urgen targeting himself)
+            const isSelfTarget = targetActor && targetActor.actor.id === actor.id;
+
+            if (!isSelfTarget) {
+                // Projectile vers chaque position (only if not self-targeting)
+                sequence.effect()
+                    .file(SPELL_CONFIG.animations.projectile)
+                    .attachTo(caster)
+                    .stretchTo(target)
+                    .scale(0.4)
+                    .delay(500 + i * 200);
+            }
+
+            // Impact à chaque position
+            sequence.effect()
+                .file(SPELL_CONFIG.animations.impact)
+                .atLocation(target)
+                .scale(0.4)
+                .delay(isSelfTarget ? 500 + i * 200 : 800 + i * 200); // Adjust delay for self-target
+        }ble
  * - Cumul : Plusieurs livres possibles sur la même cible
  * - Compteur Urgen : Ajoute/augmente l'effet "Book" sur Urgen avec le nombre total de livres créés
  *
@@ -432,21 +456,25 @@
         // Pour chaque position de livre
         for (let i = 0; i < targets.length; i++) {
             const target = targets[i];
+            const targetActor = targetActors[i];
+            const isSelfTarget = targetActor && targetActor.actor.id === actor.id;
 
-            // Projectile vers chaque position
-            sequence.effect()
-                .file(SPELL_CONFIG.animations.projectile)
-                .attachTo(caster)
-                .stretchTo(target)
-                .scale(0.4)
-                .delay(500 + i * 200);
+            // Projectile vers chaque position (sauf si c'est Urgen lui-même)
+            if (!isSelfTarget) {
+                sequence.effect()
+                    .file(SPELL_CONFIG.animations.projectile)
+                    .attachTo(caster)
+                    .stretchTo(target)
+                    .scale(1)
+                    .delay(500 + i * 200);
+            }
 
             // Impact à chaque position
             sequence.effect()
                 .file(SPELL_CONFIG.animations.impact)
                 .atLocation(target)
                 .scale(0.4)
-                .delay(800 + i * 200);
+                .delay(isSelfTarget ? 500 + i * 200 : 800 + i * 200); // Délai plus court si self-target
         }
 
         // Animation d'attachement sur chaque cible avec un livre

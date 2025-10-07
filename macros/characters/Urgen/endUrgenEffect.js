@@ -208,12 +208,19 @@
         // Parcourir tous les tokens sur la scène
         for (const token of canvas.tokens.placeables) {
             if (!token.actor) continue;
-            if (token.id === caster.id) continue; // Skip Urgen himself
+            
+            // Check if this is Urgen himself
+            const isUrgenToken = token.id === caster.id;
 
             // Chercher les effets appliqués par Urgen
             for (const effect of token.actor.effects.contents) {
                 // Vérifier chaque type d'effet configuré
                 for (const [effectName, config] of Object.entries(EFFECT_CONFIG)) {
+                    // Skip "Book" effect if this is Urgen's own token (Book is internal tracking, not removable)
+                    if (isUrgenToken && effectName === "Book") {
+                        continue;
+                    }
+                    
                     if (checkEffectFlags(effect, config, caster.id)) {
                         // Construire les informations de base
                         let effectInfo = {
