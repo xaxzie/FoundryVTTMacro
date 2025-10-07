@@ -70,18 +70,21 @@
     }
 
     /**
-     * Obtient les bonus des effets actifs pour une clé de flag spécifique
+     * Gets active effect bonuses for a specific flag key
+     * @param {Actor} actor - The actor to check for active effects
+     * @param {string} flagKey - The flag key to look for (e.g., "damage", "physique")
+     * @returns {number} Total bonus from all matching active effects
      */
     function getActiveEffectBonus(actor, flagKey) {
+        if (!actor?.effects) return 0;
+
         let totalBonus = 0;
 
-        for (const effect of actor.effects) {
-            if (effect.disabled) continue;
-
-            const flags = effect.flags?.world || {};
-            if (flags[flagKey] && typeof flags[flagKey] === 'number') {
-                totalBonus += flags[flagKey];
-                console.log(`[DEBUG] Active effect "${effect.name}" provides ${flagKey} bonus: ${flags[flagKey]}`);
+        for (const effect of actor.effects.contents) {
+            const flagValue = effect.flags?.[flagKey]?.value;
+            if (typeof flagValue === 'number') {
+                totalBonus += flagValue;
+                console.log(`[DEBUG] Active effect "${effect.name}" provides ${flagKey} bonus: ${flagValue}`);
             }
         }
 
@@ -93,29 +96,40 @@
      * Obtient et calcule la valeur finale de la caractéristique avec injuries et effets
      */
     function getCharacteristicValue(actor, characteristic) {
-        const baseValue = actor.system.abilities?.[characteristic]?.value ||
-            actor.system.characteristics?.[characteristic]?.value || 2;
-
-        // Détection des stacks d'injury
-        let injuryStacks = 0;
-        for (const effect of actor.effects) {
-            if (effect.disabled) continue;
-            if (effect.name?.toLowerCase().includes('injury') ||
-                effect.name?.toLowerCase().includes('blessure')) {
-                const stacks = effect.flags?.core?.statusId ? 1 :
-                    (effect.flags?.statusCounter?.value || 1);
-                injuryStacks += stacks;
-            }
+        // Get base characteristic from character sheet
+        const charAttribute = actor.system.attributes?.[characteristic];
+        if (!charAttribute) {
+            throw new Error(`Caractéristique ${characteristic} non trouvée ! Veuillez d'abord exécuter l'utilitaire de Configuration des Statistiques de Personnage.`);
         }
+        const baseValue = charAttribute.value || 3;
 
-        const injuryPenalty = Math.min(injuryStacks, baseValue - 1);
-        const finalValue = Math.max(baseValue - injuryPenalty, 1);
+        // Detect injury stacks and reduce characteristic accordingly
+        const injuryEffect = actor?.effects?.contents?.find(e =>
+            e.name?.toLowerCase() === 'blessures'
+        );
+        const injuryStacks = injuryEffect?.flags?.statuscounter?.value || 0;
 
-        console.log(`[DEBUG] ${characteristic}: base=${baseValue}, injuries=${injuryStacks}, final=${finalValue}`);
+        // Get active effect bonuses for the characteristic
+        const effectBonus = getActiveEffectBonus(actor, characteristic);
+
+        console.log(`[DEBUG] Base ${characteristic}: ${baseValue}, Injury stacks: ${injuryStacks}, Effect bonus: ${effectBonus}`);
+
+        // Calculate final value: base - injuries + effects, minimum of 1
+        const injuryAdjusted = Math.max(1, baseValue - injuryStacks);
+        const finalValue = Math.max(1, injuryAdjusted + effectBonus);
+
+        if (injuryStacks > 0) {
+            console.log(`[DEBUG] ${characteristic} reduced from ${baseValue} to ${injuryAdjusted} due to ${injuryStacks} injuries`);
+        }
+        if (effectBonus !== 0) {
+            console.log(`[DEBUG] ${characteristic} adjusted by ${effectBonus} from active effects (final: ${finalValue})`);
+        }
 
         return {
             base: baseValue,
             injuries: injuryStacks,
+            effectBonus: effectBonus,
+            injuryAdjusted: injuryAdjusted,
             final: finalValue
         };
     }
@@ -124,8 +138,7 @@
      * Calcule le coût en mana basé sur la stance
      */
     function calculateManaCost(baseCost, stance, isFocusable) {
-        if (stance === 'focus' && isFocusable) return 0;
-        return baseCost;
+        return stance === 'focus' && isFocusable ? 0 : baseCost;
     }
 
     /**
@@ -285,31 +298,22 @@
     const { attackBonus, damageBonus, attachBook } = spellConfig;
 
     // ===== TARGETING SYSTEM =====
+    /**
+     * Selects a target using the Portal module
+     * @returns {Object|null} Target coordinates or null if cancelled
+     */
     async function selectTarget() {
-        if (typeof portal === "undefined") {
-            ui.notifications.error("❌ Le module Portal est requis pour ce sort !");
-            return null;
-        }
-
         try {
-            const crosshairs = await portal.crosshairs.show({
-                size: 1,
-                icon: SPELL_CONFIG.targeting.texture,
-                label: "Sélectionner la cible",
-                tag: "livre-monstrueux-target",
-                drawIcon: true,
-                drawOutline: true,
-                interval: 2,
-                range: SPELL_CONFIG.targeting.range,
-                color: SPELL_CONFIG.targeting.color
-            });
+            const portal = new Portal()
+                .origin(caster)
+                .range(SPELL_CONFIG.targeting.range)
+                .color(SPELL_CONFIG.targeting.color)
+                .texture(SPELL_CONFIG.targeting.texture);
 
-            if (crosshairs.cancelled) return null;
-            return { x: crosshairs.x, y: crosshairs.y };
-
+            const target = await portal.pick();
+            return target;
         } catch (error) {
-            console.error("Erreur lors de la sélection de cible:", error);
-            ui.notifications.error("❌ Erreur lors de la sélection de cible");
+            ui.notifications.error("Erreur lors du ciblage. Assurez-vous que le module Portal est installé et activé.");
             return null;
         }
     }
@@ -321,37 +325,87 @@
     }
 
     // ===== ACTOR DETECTION =====
+    /**
+     * Finds an actor at a specific location using grid-aware detection and visibility filtering
+     * @param {number} targetX - Target X coordinate
+     * @param {number} targetY - Target Y coordinate
+     * @returns {Object|null} Actor info object or null if none found
+     */
     function getActorAtLocation(targetX, targetY) {
-        const tolerance = canvas.grid.size / 2;
+        console.log(`[DEBUG] Recherche d'acteur à la position: x=${targetX}, y=${targetY}`);
+        const gridSize = canvas.grid.size;
 
-        // Filtrer les tokens visibles uniquement
-        const visibleTokens = canvas.tokens.placeables.filter(token => {
-            return token.isVisible || token.isOwner || game.user.isGM;
-        });
+        // Check if we have a grid
+        if (canvas.grid.type !== 0) {
+            // Grid-based detection: convert target coordinates to grid coordinates
+            const targetGridX = Math.floor(targetX / gridSize);
+            const targetGridY = Math.floor(targetY / gridSize);
 
-        for (const token of visibleTokens) {
-            const tokenBounds = {
-                left: token.x,
-                right: token.x + (token.document.width * canvas.grid.size),
-                top: token.y,
-                bottom: token.y + (token.document.height * canvas.grid.size)
-            };
+            console.log(`[DEBUG] Grid detection - Target grid coords: (${targetGridX}, ${targetGridY})`);
 
-            if (targetX >= tokenBounds.left - tolerance &&
-                targetX <= tokenBounds.right + tolerance &&
-                targetY >= tokenBounds.top - tolerance &&
-                targetY <= tokenBounds.bottom + tolerance) {
+            const tokensAtLocation = canvas.tokens.placeables.filter(token => {
+                // Visibility filtering
+                if (!(token.isVisible || token.isOwner || game.user.isGM)) {
+                    return false;
+                }
 
-                return {
-                    token: token,
-                    actor: token.actor,
-                    name: token.actor?.name || token.name,
-                    id: token.id
-                };
+                // Convert token position to grid coordinates
+                const tokenGridX = Math.floor(token.x / gridSize);
+                const tokenGridY = Math.floor(token.y / gridSize);
+                const tokenWidth = token.document.width;
+                const tokenHeight = token.document.height;
+
+                // Check if target grid position is within token's grid area
+                return targetGridX >= tokenGridX &&
+                    targetGridX < tokenGridX + tokenWidth &&
+                    targetGridY >= tokenGridY &&
+                    targetGridY < tokenGridY + tokenHeight;
+            });
+
+            if (tokensAtLocation.length === 0) {
+                console.log(`[DEBUG] No tokens found at grid position (${targetGridX}, ${targetGridY})`);
+                return null;
             }
-        }
 
-        return null;
+            const targetToken = tokensAtLocation[0];
+            const targetActor = targetToken.actor;
+            if (!targetActor) return null;
+
+            // Return appropriate name based on visibility (tokens are already filtered for visibility)
+            return { name: targetActor.name, token: targetToken, actor: targetActor };
+        } else {
+            // No grid: use circular tolerance detection (original behavior with visibility filtering)
+            const tolerance = gridSize;
+            console.log(`[DEBUG] Circular detection - Tolerance: ${tolerance}`);
+
+            const tokensAtLocation = canvas.tokens.placeables.filter(token => {
+                // Visibility filtering
+                if (!(token.isVisible || token.isOwner || game.user.isGM)) {
+                    return false;
+                }
+
+                const tokenCenterX = token.x + (token.document.width * gridSize) / 2;
+                const tokenCenterY = token.y + (token.document.height * gridSize) / 2;
+                const distance = Math.sqrt(
+                    Math.pow(targetX - tokenCenterX, 2) +
+                    Math.pow(targetY - tokenCenterY, 2)
+                );
+
+                return distance <= tolerance;
+            });
+
+            if (tokensAtLocation.length === 0) {
+                console.log(`[DEBUG] No tokens found within tolerance ${tolerance} of position (${targetX}, ${targetY})`);
+                return null;
+            }
+
+            const targetToken = tokensAtLocation[0];
+            const targetActor = targetToken.actor;
+            if (!targetActor) return null;
+
+            // Return appropriate name based on visibility (tokens are already filtered for visibility)
+            return { name: targetActor.name, token: targetToken, actor: targetActor };
+        }
     }
 
     const targetActor = getActorAtLocation(target.x, target.y);
