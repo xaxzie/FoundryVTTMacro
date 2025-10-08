@@ -24,7 +24,7 @@
         isFocusable: true,
         animations: {
             // Pan/hammer strike animation - adjust to your installed JB2A paths
-            pan: "jb2a.melee_generic.blunt.one_handed.01.orange",
+            pan: "jb2a.melee_generic.slash.01.orange.2",
             sound: null
         }
     };

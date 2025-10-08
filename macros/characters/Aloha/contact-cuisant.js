@@ -32,9 +32,9 @@
         physiqueDivisor: 2, // Physique/2 pour dégâts initiaux
 
         animations: {
-            cast: "jb2a.fire_bolt.orange",
-            grappleHeat: "jb2a.melee_generic.creature_attack.01.orange",
-            heating: "jb2a.burning_hands.01.orange",
+            cast: "jb2a_patreon.fire_ring.500px.red",
+            grappleHeat: "jb2a.melee_generic.creature_attack.fist.001.red.0",
+            heating: "animated-spell-effects-cartoon.level 01.burning hands.red",
             sound: null
         },
 
@@ -47,7 +47,7 @@
         // Configuration de l'effet persistant sur la cible
         grappledEffect: {
             name: "Etreinte Chauffée",
-            icon: "icons/magic/fire/flame-burning-creature-orange.webp",
+            icon: "icons/magic/fire/barrier-wall-explosion-orange.webp",
             description: "Attrapé par les mains brûlantes d'Aloha"
         },
 
@@ -124,16 +124,39 @@
     if (!willpowerInfo) return;
 
     // ===== CHECK EXISTING CONTACT CUISANT EFFECT =====
-    const existingContactEffect = actor.effects.find(e => e.name === SPELL_CONFIG.selfEffect.name);
-    const isHeatingMode = existingContactEffect !== null;
+    const existingContactEffect = actor.effects?.contents?.find(e => e.name === SPELL_CONFIG.selfEffect.name);
 
     let currentHeatCount = 0;
     let targetTokenId = null;
+    let isHeatingMode = false;
 
-    if (isHeatingMode) {
+    if (existingContactEffect) {
         currentHeatCount = existingContactEffect.flags?.statuscounter?.value || 0;
         targetTokenId = existingContactEffect.flags?.world?.grappledTarget;
-        console.log(`[DEBUG] Heating mode detected. Heat count: ${currentHeatCount}, Target: ${targetTokenId}`);
+
+        // Validate that the target still exists and has the grappled effect
+        if (targetTokenId) {
+            const targetToken = canvas.tokens.get(targetTokenId);
+            if (targetToken && targetToken.actor) {
+                const targetGrappledEffect = targetToken.actor.effects?.contents?.find(e => e.name === SPELL_CONFIG.grappledEffect.name);
+                if (targetGrappledEffect) {
+                    isHeatingMode = true;
+                    console.log(`[DEBUG] Heating mode detected. Heat count: ${currentHeatCount}, Target: ${targetTokenId}`);
+                } else {
+                    console.log(`[DEBUG] Target found but no longer has grappled effect. Cleaning up self effect.`);
+                    // Clean up the self effect since target is no longer grappled
+                    await existingContactEffect.delete();
+                }
+            } else {
+                console.log(`[DEBUG] Target token no longer exists. Cleaning up self effect.`);
+                // Clean up the self effect since target no longer exists
+                await existingContactEffect.delete();
+            }
+        } else {
+            console.log(`[DEBUG] No target token ID found in self effect. Cleaning up.`);
+            // Clean up malformed self effect
+            await existingContactEffect.delete();
+        }
     }
 
     // ===== DIALOG DE CONFIGURATION =====
@@ -183,7 +206,7 @@
                     }
                 }, {
                     width: 500,
-                    height: 400,
+                    height: 500,
                     resizable: true
                 }).render(true);
             });
@@ -299,22 +322,21 @@
             console.warn('Sequencer play failed', err);
         }
 
-        // Calcul des dégâts de chauffage
+        // Calcul des dégâts de chauffage et jet de volonté
         const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
         const totalDamageBonus = characteristicInfo.final + (heatingDamageBonus || 0) + effectDamageBonus;
+        const currentDifficulty = SPELL_CONFIG.willpowerSave.baseDifficulty + (currentHeatCount * SPELL_CONFIG.willpowerSave.difficultyIncrease);
 
-        const heatingDamage = new Roll(`1d6 + @totalBonus`, { totalBonus: totalDamageBonus });
-        await heatingDamage.evaluate({ async: true });
+        // Create combined roll for heating damage and willpower save
+        const heatingCombinedRoll = new Roll(`{1d6 + ${totalDamageBonus}, ${willpowerInfo.final}d7}`);
+        await heatingCombinedRoll.evaluate({ async: true });
 
-        const targetDamage = heatingDamage.total;
+        // Extract results from the combined roll
+        const targetDamage = heatingCombinedRoll.terms[0].results[0].result;
+        const willpowerResult = heatingCombinedRoll.terms[0].results[1].result;
         const alohaDamage = Math.floor(targetDamage / 2);
 
-        // Jet de Volonté
-        const currentDifficulty = SPELL_CONFIG.willpowerSave.baseDifficulty + (currentHeatCount * SPELL_CONFIG.willpowerSave.difficultyIncrease);
-        const willpowerRoll = new Roll(`${willpowerInfo.final}d7`);
-        await willpowerRoll.evaluate({ async: true });
-
-        const willpowerSuccess = willpowerRoll.total >= currentDifficulty;
+        const willpowerSuccess = willpowerResult >= currentDifficulty;
         const actualAlohaDamage = willpowerSuccess ? 0 : alohaDamage;
 
         // Mettre à jour le compteur d'utilisation
@@ -332,7 +354,7 @@
                         grappledTarget: targetTokenId,
                         spellName: SPELL_CONFIG.name
                     },
-                    statuscounter: { value: newHeatCount }
+                    statuscounter: { value: newHeatCount, visible : true }
                 }
             };
 
@@ -364,7 +386,7 @@
 
                     <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f3e5f5; border-radius: 4px;">
                         <div style="font-size: 1.1em; color: ${willpowerColor}; margin-bottom: 6px;"><strong>🎲 Jet de Volonté: ${willpowerDisplay}</strong></div>
-                        <div style="font-size: 0.9em; margin-bottom: 4px;">Jet: ${willpowerRoll.total} vs Difficulté: ${currentDifficulty}</div>
+                        <div style="font-size: 0.9em; margin-bottom: 4px;">Jet: ${willpowerResult} vs Difficulté: ${currentDifficulty}</div>
                         <div style="font-size: 1.2em; color: ${willpowerSuccess ? '#2e7d32' : '#d32f2f'}; font-weight: bold;">
                             💥 DÉGÂTS ALOHA: ${actualAlohaDamage}
                         </div>
@@ -383,10 +405,7 @@
         }
 
         // Envoyer les jets combinés au chat
-        const combinedRoll = new Roll(`{${heatingDamage.formula}, ${willpowerRoll.formula}}`);
-        await combinedRoll.evaluate({ async: true });
-
-        await combinedRoll.toMessage({
+        await heatingCombinedRoll.toMessage({
             speaker: ChatMessage.getSpeaker({ token: caster }),
             flavor: createHeatingFlavor(),
             rollMode: game.settings.get("core", "rollMode")
@@ -454,7 +473,7 @@
                         const tokenSquareX = tokenGridX + dx;
                         const tokenSquareY = tokenGridY + dy;
 
-                        if (tokenSquareX === targetGridX && targetSquareY === targetGridY) {
+                        if (tokenSquareX === targetGridX && tokenSquareY === targetGridY) {
                             return true;
                         }
                     }
@@ -508,7 +527,7 @@
 
     // Check if target already has a heated grapple
     if (targetActor?.actor) {
-        const existingGrapple = targetActor.actor.effects.find(e => e.name === SPELL_CONFIG.grappledEffect.name);
+        const existingGrapple = targetActor.actor.effects?.contents?.find(e => e.name === SPELL_CONFIG.grappledEffect.name);
         if (existingGrapple) {
             ui.notifications.warn(`${targetName} est déjà attrapé par des mains chaudes !`);
             return;
@@ -524,7 +543,7 @@
             seq.effect()
                 .file(SPELL_CONFIG.animations.cast)
                 .atLocation(caster)
-                .scale(0.7)
+                .scale(0.2)
                 .tint("#ff5722");
         }
 
@@ -547,16 +566,18 @@
     const totalAttackDice = characteristicInfo.final + attackBonus;
     const levelBonus = 2 * SPELL_CONFIG.spellLevel;
 
-    const attackRoll = new Roll(`${totalAttackDice}d7 + ${levelBonus}`);
-    await attackRoll.evaluate({ async: true });
-
     // ===== DAMAGE CALCULATION =====
     const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
     const physiqueBonus = Math.floor(characteristicInfo.final / SPELL_CONFIG.physiqueDivisor);
     const totalDamageBonus = physiqueBonus + (damageBonus || 0) + effectDamageBonus;
 
-    const damageRoll = new Roll(`1d6 + @totalBonus`, { totalBonus: totalDamageBonus });
-    await damageRoll.evaluate({ async: true });
+    // Create combined roll for Foundry and use its results
+    const combinedRoll = new Roll(`{${totalAttackDice}d7 + ${levelBonus}, 1d6 + ${totalDamageBonus}}`);
+    await combinedRoll.evaluate({ async: true });
+
+    // Extract results from the combined roll
+    const attackResult = combinedRoll.terms[0].results[0].result;
+    const damageResult = combinedRoll.terms[0].results[1].result;
 
     // ===== DETERMINE SUCCESS AND MANA COST =====
     // Assume success if attack hits (you may want to add additional logic here)
@@ -641,14 +662,14 @@
 
         const attackDisplay = `
             <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff8e1; border-radius: 4px;">
-                <div style="font-size: 1.4em; color: #f57f17; font-weight: bold;">🎯 ATTAQUE: ${attackRoll.total}</div>
+                <div style="font-size: 1.4em; color: #f57f17; font-weight: bold;">🎯 ATTAQUE: ${attackResult}</div>
             </div>
         `;
 
         const resultDisplay = isSuccess ? `
             <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff3e0; border-radius: 4px;">
                 <div style="font-size: 1.1em; color: #ff5722; margin-bottom: 6px;"><strong>🔥 Contact Cuisant Réussi</strong></div>
-                <div style="font-size: 1.2em; color: #d32f2f; font-weight: bold;">💥 DÉGÂTS: ${damageRoll.total}</div>
+                <div style="font-size: 1.2em; color: #d32f2f; font-weight: bold;">💥 DÉGÂTS: ${damageResult}</div>
                 <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cible:</strong> ${targetName}</div>
                 <div style="font-size: 0.8em; color: #666;">1d6 + Physique/2 (${physiqueBonus}) + bonus</div>
                 <div style="font-size: 0.8em; color: #ff9800; margin-top: 4px;">Etreinte Chauffée appliquée - Relancez pour chauffer !</div>
@@ -679,9 +700,6 @@
     }
 
     // Send combined roll to chat
-    const combinedRoll = new Roll(`{${attackRoll.formula}, ${damageRoll.formula}}`);
-    await combinedRoll.evaluate({ async: true });
-
     await combinedRoll.toMessage({
         speaker: ChatMessage.getSpeaker({ token: caster }),
         flavor: createFlavor(),
@@ -690,8 +708,8 @@
 
     // ===== FINAL NOTIFICATION =====
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
-    const successInfo = isSuccess ? `Étreint ${targetName} ! Dégâts: ${damageRoll.total}. Relancez pour chauffer !` : 'Échec - Aucune cible attrapée';
+    const successInfo = isSuccess ? `Étreint ${targetName} ! Dégâts: ${damageResult}. Relancez pour chauffer !` : 'Échec - Aucune cible attrapée';
 
-    ui.notifications.info(`🔥 ${SPELL_CONFIG.name} lancé !${stanceInfo} Attaque: ${attackRoll.total}. ${successInfo}`);
+    ui.notifications.info(`🔥 ${SPELL_CONFIG.name} lancé !${stanceInfo} Attaque: ${attackResult}. ${successInfo}`);
 
 })();

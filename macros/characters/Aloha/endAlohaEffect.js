@@ -45,14 +45,6 @@
                 const usageCount = effect.flags?.world?.contactCuisantUsageCount || 0;
                 return `Etreinte chauffante d'Aloha ${usageCount > 0 ? `(${usageCount} utilisation(s))` : ''}`;
             },
-            // Animation de suppression
-            removeAnimation: {
-                file: "jb2a.cure_wounds.400px.orange",
-                scale: 0.8,
-                duration: 2000,
-                fadeOut: 800,
-                tint: "#ff5722"
-            },
             // Nettoyage spécial pour l'animation persistante
             cleanup: {
                 sequencerName: "flags.world.contactCuisantSequenceName"
@@ -340,6 +332,33 @@
                 }
             }
 
+            // Special cleanup for "Etreinte Chauffée" - also remove the corresponding "Contact Cuisant" effect from Aloha
+            if (effectType === "EtreinteChaufee") {
+                try {
+                    // Find the corresponding "Contact Cuisant" effect on Aloha
+                    const alohaContactEffect = actor.effects?.contents?.find(e =>
+                        e.name === "Contact Cuisant" &&
+                        e.flags?.world?.grappledTarget === token.id
+                    );
+
+                    if (alohaContactEffect) {
+                        await alohaContactEffect.delete();
+                        console.log(`[DEBUG] Also removed corresponding "Contact Cuisant" effect from ${actor.name}`);
+
+                        // Add to tracking for chat message
+                        if (!removedEffects.casterEffects) {
+                            removedEffects.casterEffects = [];
+                        }
+                        removedEffects.casterEffects.push({
+                            target: actor.name,
+                            effect: "Contact Cuisant"
+                        });
+                    }
+                } catch (cleanupError) {
+                    console.error(`[DEBUG] Failed to cleanup Contact Cuisant effect on ${actor.name}:`, cleanupError);
+                }
+            }
+
             // Track removal by effect type
             if (effectType.includes("brulure") || effectType.includes("burn") || effectType.includes("heat") || effectType.includes("chaleur") || effectType.includes("poele")) {
                 removedEffects.thermalEffects.push({
@@ -428,6 +447,18 @@
             chatContent += `</div>`;
         }
 
+        // Effets de lanceur supprimés (Contact Cuisant sur Aloha)
+        if (removedEffects.casterEffects && removedEffects.casterEffects.length > 0) {
+            chatContent += `
+                <div style="text-align: center; margin: 8px 0; padding: 10px; background: #e8f5e8; border-radius: 4px;">
+                    <div style="font-size: 1.1em; color: #2e7d32; margin-bottom: 6px;"><strong>🍳 Effets de Lanceur Supprimés</strong></div>
+            `;
+            for (const removed of removedEffects.casterEffects) {
+                chatContent += `<div style="font-size: 0.9em; margin: 2px 0;">${removed.target}: ${removed.effect}</div>`;
+            }
+            chatContent += `</div>`;
+        }
+
         // Erreurs s'il y en a
         if (removedEffects.failed.length > 0) {
             chatContent += `
@@ -449,10 +480,13 @@
         });
 
         // Notification de succès
-        let notificationText = "🍳 Effets thermiques supprimés : ";
+        let notificationText = "🍳 Effets supprimés : ";
         const parts = [];
         if (removedEffects.thermalEffects.length > 0) {
             parts.push(`${removedEffects.thermalEffects.length} effet(s) thermique(s)`);
+        }
+        if (removedEffects.casterEffects && removedEffects.casterEffects.length > 0) {
+            parts.push(`${removedEffects.casterEffects.length} effet(s) de lanceur`);
         }
         notificationText += parts.join(', ');
 

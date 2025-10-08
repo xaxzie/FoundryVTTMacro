@@ -23,8 +23,8 @@
         isFocusable: true,
         animations: {
             // Intense heated pan strike - adjust to your installed JB2A paths
-            heatedPan: "jb2a.melee_generic.blunt.one_handed.01.white",
-            heatWave: "jb2a.fire_bolt.orange",
+            heatedPan: "jb2a.melee_generic.slash.01.orange.2",
+            heatWave: "jb2a_patreon.fire_ring.500px.red",
             sound: null
         }
     };
@@ -203,7 +203,7 @@
                         const tokenSquareX = tokenGridX + dx;
                         const tokenSquareY = tokenGridY + dy;
 
-                        if (tokenSquareX === targetGridX && targetSquareY === targetGridY) {
+                        if (tokenSquareX === targetGridX && tokenSquareY === targetGridY) {
                             return true;
                         }
                     }
@@ -265,9 +265,9 @@
                 seq.effect()
                     .file(SPELL.animations.heatWave)
                     .atLocation(caster)
-                    .scale(0.8)
+                    .scale(0.2)
                     .tint("#ffffff")
-                    .duration(1000);
+                    .fadeOut(500);
             }
 
             // Intense heated pan strike from caster to target
@@ -276,8 +276,7 @@
                     .file(SPELL.animations.heatedPan)
                     .attachTo(caster)
                     .stretchTo(targetPoint)
-                    .tint("#ffffff") // White hot tint
-                    .delay(500);
+                    .tint("#ffffff")
             }
 
             await seq.play();
