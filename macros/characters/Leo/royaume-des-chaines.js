@@ -288,6 +288,10 @@
     const { selectedVersion, targetCount, attackBonus } = userConfig;
     const SPELL_CONFIG = SPELL_CONFIGS[selectedVersion];
 
+    // Recalculer les caractéristiques avec la version spécifique sélectionnée
+    const finalCharacteristicInfo = getCharacteristicValue(actor, SPELL_CONFIG.characteristic);
+    if (!finalCharacteristicInfo) return;
+
     // ===== UTILS (stance, effets) =====
     function getCurrentStance(actor) {
         return actor?.effects?.contents?.find(e =>
@@ -325,7 +329,8 @@
         return { base, injuries: injuryStacks, effectBonus, injuryAdjusted, final };
     }
 
-    const characteristicInfo = getCharacteristicValue(actor, SPELL_CONFIG.characteristic);
+    // Calculer les caractéristiques pour le menu (utilise "physique" par défaut)
+    const characteristicInfo = getCharacteristicValue(actor, "physique");
     if (!characteristicInfo) return;
 
 
@@ -592,7 +597,7 @@
     await playAnimation();
 
     // ===== ATTACK RESOLUTION =====
-    const baseAttackDice = characteristicInfo.final + (SPELL_CONFIG.multiTargetPenalty || 0) + attackBonus;
+    const baseAttackDice = finalCharacteristicInfo.final + (SPELL_CONFIG.multiTargetPenalty || 0) + attackBonus;
     const finalAttackDice = Math.max(1, baseAttackDice); // Au minimum 1 dé
     const levelBonus = 2 * SPELL_CONFIG.spellLevel;
 
@@ -761,7 +766,7 @@
                         <strong>Effets:</strong><br>
                         • Effet "Chaîne d'Acier" sur les cibles touchées<br>
                         • Bonus de libération: +2 pour les cibles<br>
-                        • Attaque: ${characteristicInfo.final} - 4 (multicible) ${attackBonus !== 0 ? (attackBonus > 0 ? '+ ' + attackBonus : '- ' + Math.abs(attackBonus)) : ''} = ${finalAttackDice}d7
+                        • Attaque: ${finalCharacteristicInfo.final} - 4 (multicible) ${attackBonus !== 0 ? (attackBonus > 0 ? '+ ' + attackBonus : '- ' + Math.abs(attackBonus)) : ''} = ${finalAttackDice}d7
                     </div>
                     ${results.successfulChains.length > 0 ? `<div style="font-size: 0.8em; color: #4caf50; margin-top: 2px;">✅ Enchaînés: ${results.successfulChains.join(', ')}</div>` : ''}
                     ${results.failedChains.length > 0 ? `<div style="font-size: 0.8em; color: #f44336; margin-top: 2px;">❌ Échecs: ${results.failedChains.join(', ')}</div>` : ''}
@@ -790,14 +795,14 @@
             `;
         }
 
-        const injuryInfo = characteristicInfo.injuries > 0 ?
+        const injuryInfo = finalCharacteristicInfo.injuries > 0 ?
             `<div style="color: #d32f2f; font-size: 0.9em; margin: 5px 0;">
-                <i>⚠️ Ajusté pour blessures: Base ${characteristicInfo.base} - ${characteristicInfo.injuries} = ${characteristicInfo.injuryAdjusted}</i>
+                <i>⚠️ Ajusté pour blessures: Base ${finalCharacteristicInfo.base} - ${finalCharacteristicInfo.injuries} = ${finalCharacteristicInfo.injuryAdjusted}</i>
             </div>` : '';
 
-        const effectInfo = characteristicInfo.effectBonus !== 0 ?
+        const effectInfo = finalCharacteristicInfo.effectBonus !== 0 ?
             `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
-                <div>✨ Bonus de Physique: +${characteristicInfo.effectBonus}</div>
+                <div>✨ Bonus de Physique: +${finalCharacteristicInfo.effectBonus}</div>
             </div>` : '';
 
         const bonusInfo = attackBonus !== 0 ?
