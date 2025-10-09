@@ -316,7 +316,7 @@
                 default: "cast"
             }, {
                 width: 500,
-                height: 600
+                height: 800
             }).render(true);
         });
     }
