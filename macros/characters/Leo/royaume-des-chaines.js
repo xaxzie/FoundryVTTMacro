@@ -71,15 +71,14 @@
                 description: "Maintient le royaume des chaînes - Agilité réduite par la concentration"
             },
 
-            // Les 7 caractéristiques du système (pour l'effet -2)
+            // Les 6 Autres caractéristiques du système (pour l'effet -2)
             otherCharacteristics: [
                 "physique",
                 "dexterite",
-                "perception",
+                "sens",
                 "esprit",
-                "parole",
-                "savoir",
-                "volonte"
+                "volonte",
+                "charisme"
             ]
         },
 
