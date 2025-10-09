@@ -135,6 +135,47 @@
         return;
     }
 
+    // ===== UTILS (stance, effets) =====
+    function getCurrentStance(actor) {
+        return actor?.effects?.contents?.find(e =>
+            ['focus', 'offensif', 'defensif'].includes(e.name?.toLowerCase())
+        )?.name?.toLowerCase() || null;
+    }
+    const currentStance = getCurrentStance(actor);
+
+    // Active effect bonuses
+    function getActiveEffectBonus(actor, flagKey) {
+        if (!actor?.effects) return 0;
+        let totalBonus = 0;
+        for (const effect of actor.effects.contents) {
+            const flagValue = effect.flags?.[flagKey]?.value;
+            if (typeof flagValue === 'number') {
+                totalBonus += flagValue;
+            }
+        }
+        return totalBonus;
+    }
+
+    // ===== CHARACTERISTIC CALC =====
+    function getCharacteristicValue(actor, characteristic) {
+        const attr = actor.system.attributes?.[characteristic];
+        if (!attr) {
+            ui.notifications.error(`Caractéristique ${characteristic} non trouvée !`);
+            return null;
+        }
+        const base = attr.value || 3;
+        const injuryEffect = actor?.effects?.contents?.find(e => e.name?.toLowerCase() === 'blessures');
+        const injuryStacks = injuryEffect?.flags?.statuscounter?.value || 0;
+        const effectBonus = getActiveEffectBonus(actor, characteristic);
+        const injuryAdjusted = Math.max(1, base - injuryStacks);
+        const final = Math.max(1, injuryAdjusted + effectBonus);
+        return { base, injuries: injuryStacks, effectBonus, injuryAdjusted, final };
+    }
+
+    // Calculer les caractéristiques pour le menu (utilise "physique" par défaut)
+    const characteristicInfo = getCharacteristicValue(actor, "physique");
+    if (!characteristicInfo) return;
+
     // ===== MENU UNIFIÉ DE CONFIGURATION =====
     async function showUnifiedDialog() {
         return new Promise(resolve => {
@@ -291,47 +332,6 @@
     // Recalculer les caractéristiques avec la version spécifique sélectionnée
     const finalCharacteristicInfo = getCharacteristicValue(actor, SPELL_CONFIG.characteristic);
     if (!finalCharacteristicInfo) return;
-
-    // ===== UTILS (stance, effets) =====
-    function getCurrentStance(actor) {
-        return actor?.effects?.contents?.find(e =>
-            ['focus', 'offensif', 'defensif'].includes(e.name?.toLowerCase())
-        )?.name?.toLowerCase() || null;
-    }
-    const currentStance = getCurrentStance(actor);
-
-    // Active effect bonuses
-    function getActiveEffectBonus(actor, flagKey) {
-        if (!actor?.effects) return 0;
-        let totalBonus = 0;
-        for (const effect of actor.effects.contents) {
-            const flagValue = effect.flags?.[flagKey]?.value;
-            if (typeof flagValue === 'number') {
-                totalBonus += flagValue;
-            }
-        }
-        return totalBonus;
-    }
-
-    // ===== CHARACTERISTIC CALC =====
-    function getCharacteristicValue(actor, characteristic) {
-        const attr = actor.system.attributes?.[characteristic];
-        if (!attr) {
-            ui.notifications.error(`Caractéristique ${characteristic} non trouvée !`);
-            return null;
-        }
-        const base = attr.value || 3;
-        const injuryEffect = actor?.effects?.contents?.find(e => e.name?.toLowerCase() === 'blessures');
-        const injuryStacks = injuryEffect?.flags?.statuscounter?.value || 0;
-        const effectBonus = getActiveEffectBonus(actor, characteristic);
-        const injuryAdjusted = Math.max(1, base - injuryStacks);
-        const final = Math.max(1, injuryAdjusted + effectBonus);
-        return { base, injuries: injuryStacks, effectBonus, injuryAdjusted, final };
-    }
-
-    // Calculer les caractéristiques pour le menu (utilise "physique" par défaut)
-    const characteristicInfo = getCharacteristicValue(actor, "physique");
-    if (!characteristicInfo) return;
 
 
 
