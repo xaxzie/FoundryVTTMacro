@@ -78,14 +78,13 @@
         },
         "Ailes supérieures": {
             name: "Ailes supérieures",
-            icon: "icons/creatures/abilities/wings-feathered-blue.webp",
-            flags: [],
+            icon: "icons/creatures/abilities/wings-batlike-purple-blue.webp",
+            flags: [
+                { key: "movement", value: 6 }
+            ],
             description: "Moctei peut voler, ses ailes l'aident à dissimuler ses alliés lorsqu'il faut être discret - Coût: 2 mana (focusable) + 1 mana par usage (non focusable) - Sort lvl 2 - Donne +6 cases de déplacement",
             category: "custom",
-            increasable: true,
-            counterName: "Déplacement",
-            defaultValue: 6,
-            maxValue: 6,
+            increasable: false,
             hasAnimation: true,
             manaCost: "2 (focusable) + 1/usage",
             animation: {
@@ -93,6 +92,7 @@
                 scale: 1.0,
                 fadeOut: 2000,
                 persistent: true,
+                scale: 0.4,
                 sequencerName: "MocteiSuperiorWings",
                 tint: "#8A2BE2" // Tinte violette
             }
@@ -274,13 +274,18 @@
                 console.log(`[Moctei] Starting persistent shadow animation for ${token.name}`);
 
                 const seq = new Sequence();
-                seq.effect()
+                const effect = seq.effect()
                     .file(animConfig.effectFile)
                     .attachTo(token)
                     .scale(animConfig.scale || 0.8)
                     .fadeOut(animConfig.fadeOut || 2000)
                     .persist()
                     .name(animConfig.sequencerName);
+
+                // Apply tint if specified
+                if (animConfig.tint) {
+                    effect.tint(animConfig.tint);
+                }
 
                 await seq.play();
                 console.log(`[Moctei] Persistent shadow animation started: ${animConfig.sequencerName}`);
