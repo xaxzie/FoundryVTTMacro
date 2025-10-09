@@ -96,6 +96,18 @@
                 sequencerName: "MocteiSuperiorWings",
                 tint: "#010101" // Tinte noire
             }
+        },
+        "Substitution d'ombre": {
+            name: "Substitution d'ombre",
+            icon: "icons/creatures/unholy/shadow-spirit-purple.webp",
+            flags: [],
+            description: "Compteur d'utilisations pour le sort Substitution d'ombre - Coûts croissants (3→5→8→12 mana, non focusable)",
+            category: "custom",
+            increasable: true,
+            counterName: "Utilisations",
+            defaultValue: 1,
+            maxValue: 4,
+            hasAnimation: false // Pas d'animation depuis le HandleEffect
         }
 
         // TODO: Add more Moctei-specific shadow magic effects here
