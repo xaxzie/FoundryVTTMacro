@@ -60,7 +60,7 @@
         // Flamme Noire - Effet de feu obscur
         "Flamme Noire": {
             displayName: "Flamme Noire",
-            icon: "icons/magic/fire/flame-burning-skull-purple.webp",
+            icon: "icons/magic/fire/flame-burning-eye.webp",
             description: "Brûlé par les flammes noires de Moctei",
             sectionTitle: "🔥 Flammes Noires",
             sectionIcon: "🔥",
@@ -71,11 +71,6 @@
                 { path: "flags.world.darkFlameCaster", matchValue: "CASTER_ID" },
                 { path: "flags.world.spellName", matchValue: "Feu obscur" }
             ],
-            cleanup: {
-                sequencerNames: [
-                    "darkFlameSequenceName" // Flamme noire persistante
-                ]
-            },
             mechanicType: "darkFlame",
             // Données supplémentaires pour l'affichage
             getExtraData: (effect) => ({

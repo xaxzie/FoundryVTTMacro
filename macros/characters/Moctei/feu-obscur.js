@@ -44,9 +44,9 @@
         maxInitialTargets: 2,
 
         animations: {
-            cast: "jb2a.fire_bolt.dark_purple",
-            darkFlame: "jb2a.flames.01.purple.0", // Flamme noire persistante
-            extension: "jb2a.fire_bolt.dark_purple", // Animation d'extension
+            cast: "jb2a.template_circle.aura.01.loop.small.bluepurple",
+            darkFlame: "jb2a.markers.simple.001.complete.001.purple", // Flamme noire persistante
+            extension: "jb2a.markers.simple.001.complete.001.purple", // Animation d'extension
             sound: null
         },
 
@@ -59,14 +59,14 @@
         // Configuration de l'effet persistant sur les cibles
         flameEffect: {
             name: "Flamme Noire",
-            icon: "icons/magic/fire/flame-burning-skull-purple.webp",
+            icon: "icons/magic/fire/flame-burning-skull-orange.webp",
             description: "Brûlé par les flammes noires de Moctei - Dégâts continus"
         },
 
         // Configuration de l'effet sur Moctei pour tracker l'état
         casterEffect: {
             name: "Feu obscur (Contrôle)",
-            icon: "icons/magic/fire/flame-burning-creature-skeleton.webp",
+            icon: "icons/magic/fire/flame-burning-eye.webp",
             description: "Contrôle des flammes noires actives"
         },
 
@@ -502,9 +502,7 @@
                     .file(SPELL_CONFIG.animations.darkFlame)
                     .attachTo(target.token)
                     .scale(0.6)
-                    .persist()
                     .name(`dark-flame-${caster.id}-${target.token.id}`)
-                    .fadeIn(1000)
                     .tint("#1a0033")
                     .opacity(0.8);
             }
@@ -528,7 +526,6 @@
                         .file(SPELL_CONFIG.animations.darkFlame)
                         .attachTo(extTarget.token)
                         .scale(0.6)
-                        .persist()
                         .name(`dark-flame-${caster.id}-${extTarget.token.id}`)
                         .delay(1000)
                         .fadeIn(1000)
