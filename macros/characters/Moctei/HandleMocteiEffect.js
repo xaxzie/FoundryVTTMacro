@@ -53,14 +53,14 @@
             name: "Dagues d'ombre",
             icon: "icons/weapons/daggers/dagger-curved-purple.webp",
             flags: [],
-            description: "Dagues d'ombre invoquées - Attaques gratuites disponibles",
+            description: "Dagues d'ombre invoquées - coute 2 Mana -  Attaques gratuites disponibles",
             category: "custom",
             increasable: false,
             hasFilters: false,
             hasAnimation: true,
             animation: {
                 effectFile: "jb2a_patreon.extras.tmfx.runes.circle.simple.conjuration",
-                scale: 0.8,
+                scale: 0.4,
                 fadeOut: 2000,
                 persistent: false,
                 sequencerName: "MocteiShadowDaggers"
