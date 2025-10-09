@@ -52,7 +52,7 @@
             // Effet principal (Agilité -4) - celui qui sera détecté par endLeoEffect
             agility: {
                 name: "Royaume des Chaînes (Agilité)",
-                icon: "icons/commodities/metal/chains-steel.webp",
+                icon: "icons/tools/fasteners/chain-brass-yellow.webp",
                 description: "Entravé par le royaume des chaînes de Léo - Agilité fortement réduite"
             },
             // Effet secondaire (autres stats -2)
@@ -327,6 +327,7 @@
                 .file(SPELL_CONFIG.animations.cast)
                 .belowTokens()
                 .attachTo(caster)
+                .tint("#bb2222")
                 .scale(1.2);
         }
 
@@ -336,10 +337,11 @@
                 .effect()
                 .file(SPELL_CONFIG.animations.chainKingdom)
                 .attachTo(targetActor.token)
-                .scale(1.5)
+                .scale(0.5)
                 .persist()
                 .name(`chain-kingdom-${caster.id}-${targetActor.token.id}`)
-                .fadeIn(1000);
+                .fadeIn(1000)
+                .fadeOut(1000);
         }
 
         // Chaîne de connexion entre Léo et la cible
@@ -347,11 +349,12 @@
             seq
                 .effect()
                 .file(SPELL_CONFIG.animations.connection)
-                .stretchTo(targetActor.token)
+                .stretchTo(targetActor.token, { attachTo: true })
                 .attachTo(caster)
                 .persist()
                 .name(`chain-connection-${caster.id}-${targetActor.token.id}`)
-                .fadeIn(1000);
+                .fadeIn(1000)
+                .fadeOut(1000);
         }
 
         await seq.play();
