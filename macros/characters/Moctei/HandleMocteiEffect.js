@@ -859,7 +859,8 @@
                     if (currentCustomEffect) {
                         // Update existing
                         await currentCustomEffect.update({
-                            "flags.statuscounter.value": newValue
+                            "flags.statuscounter.value": newValue,
+                            "flags.statuscounter.visible": true
                         });
                         modifiedEffects.push(`${customData.name} (${newValue})`);
                         console.log(`[Moctei] Updated increasable effect: ${customData.name} to ${newValue}`);
@@ -871,7 +872,7 @@
                             origin: actor.uuid,
                             duration: { seconds: 86400 },
                             flags: {
-                                statuscounter: { value: newValue }
+                                statuscounter: { value: newValue, visible: true }
                             }
                         };
 
@@ -933,7 +934,8 @@
                     if (currentInjuryEffect) {
                         // Update existing
                         await currentInjuryEffect.update({
-                            "flags.statuscounter.value": newValue
+                            "flags.statuscounter.value": newValue,
+                            "flags.statuscounter.visible": true
                         });
                         modifiedEffects.push(`${injuryData.name || injuryData.label} (${newValue})`);
                         console.log(`[Moctei] Updated injury: ${injuryData.name || injuryData.label} to ${newValue}`);
@@ -944,7 +946,7 @@
                             origin: actor.uuid,
                             duration: { seconds: 86400 },
                             flags: {
-                                statuscounter: { value: newValue }
+                                statuscounter: { value: newValue, visible: true }
                             },
                             statuses: [injuryData.id] // Add status ID to statuses array
                         };
