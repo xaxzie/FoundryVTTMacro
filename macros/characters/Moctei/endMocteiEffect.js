@@ -186,7 +186,10 @@
                 await removeEffectWithGMDelegation(token.actor, effect.id);
             }
 
-            results.simple.push(token.name);
+            results.simple.push({
+                target: token.name,
+                effect: effectType
+            });
             console.log(`[Moctei] Removed ${effectType} from ${token.name}`);
 
         } catch (error) {
@@ -266,7 +269,10 @@
                 }
             }
 
-            results.shadowEffects.push(token.name);
+            results.shadowEffects.push({
+                target: token.name,
+                effect: effectType
+            });
             console.log(`[Moctei] Removed shadow manipulation from ${token.name}`);
 
         } catch (error) {
@@ -584,10 +590,12 @@
 
             switch (categoryKey) {
                 case 'simple':
-                    categoryTitle = "🌑 Effets d'Ombre Dissipés";
+                    categoryTitle = "🌑 Effets d'Ombre Simples Supprimés";
                     break;
                 case 'shadowEffects':
-                    categoryTitle = "🗡️ Effets de Dagues Supprimés";
+                    categoryTitle = "🌑 Manipulations d'Ombre Terminées";
+                    categoryColor = "#2e0054";
+                    categoryBg = "#f3e5f5";
                     break;
                 default:
                     categoryTitle = `${categoryKey} Supprimés`;

@@ -326,7 +326,7 @@
             seq.effect()
                 .file(SPELL_CONFIG.animations.shadowTendril)
                 .attachTo(caster)
-                .stretchTo(targetActor.token)
+                .stretchTo(targetActor.token, { attachTo: true })
                 .scale(0.8)
                 .persist()
                 .name(`shadow-manipulation-${caster.id}-${targetActor.token.id}`)
