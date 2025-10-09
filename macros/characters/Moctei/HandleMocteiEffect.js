@@ -92,6 +92,7 @@
                 fadeOut: 2000,
                 persistent: true,
                 scale: 0.4,
+                opacity: 0.6,
                 sequencerName: "MocteiSuperiorWings",
                 tint: "#010101" // Tinte noire
             }
@@ -205,11 +206,21 @@
 
         try {
             const seq = new Sequence();
-            seq.effect()
+            const effect = seq.effect()
                 .file(animConfig.effectFile)
                 .attachTo(token)
                 .scale(animConfig.scale || 0.8)
                 .duration(animConfig.duration || 2000);
+
+            // Apply tint if specified
+            if (animConfig.tint) {
+                effect.tint(animConfig.tint);
+            }
+
+            // Apply opacity if specified
+            if (animConfig.opacity !== undefined) {
+                effect.opacity(animConfig.opacity);
+            }
 
             await seq.play();
             console.log(`[Moctei] Transformation animation played`);
@@ -284,6 +295,11 @@
                 // Apply tint if specified
                 if (animConfig.tint) {
                     effect.tint(animConfig.tint);
+                }
+
+                // Apply opacity if specified
+                if (animConfig.opacity !== undefined) {
+                    effect.opacity(animConfig.opacity);
                 }
 
                 await seq.play();
