@@ -208,8 +208,8 @@
         results.totalCleared += results.tokenMagicFilters.count || 0;
 
         // Determine overall success
-        results.overallSuccess = results.activeEffects.success && 
-                                results.sequencerAnimations.success && 
+        results.overallSuccess = results.activeEffects.success &&
+                                results.sequencerAnimations.success &&
                                 results.tokenMagicFilters.success;
 
         return results;
@@ -234,7 +234,7 @@
         const sequencerCount = countSequencerAnimations(target);
         const tmfxCount = countTokenMagicFilters(target);
         const totalCount = effectCount + sequencerCount + tmfxCount;
-        
+
         totalEffects += totalCount;
         targetSummary.push({
             name: target.name,
@@ -257,8 +257,8 @@
                 <div style="margin: 5px 0; padding: 8px; background: white; border-radius: 3px; border-left: 4px solid #2196f3;">
                     <div style="font-weight: bold; margin-bottom: 4px;">${t.name}</div>
                     <div style="font-size: 0.9em; color: #666;">
-                        🎭 ${t.effectCount} effet(s) actif(s) • 
-                        🎬 ${t.sequencerCount} animation(s) • 
+                        🎭 ${t.effectCount} effet(s) actif(s) •
+                        🎬 ${t.sequencerCount} animation(s) •
                         ✨ ${t.tmfxCount} filtre(s) TMFX
                         <br><strong>Total: ${t.totalCount} élément(s)</strong>
                     </div>
@@ -330,11 +330,11 @@
                 tmfxCount: result.tokenMagicFilters.count || 0,
                 totalCount: result.totalCleared
             });
-            
+
             results.totalEffectsRemoved += result.activeEffects.count || 0;
             results.totalAnimationsRemoved += result.sequencerAnimations.count || 0;
             results.totalFiltersRemoved += result.tokenMagicFilters.count || 0;
-            
+
             console.log(`[SUCCESS] Comprehensive cleanup for ${target.name}: ${result.totalCleared} items removed`);
             console.log(`  - Active Effects: ${result.activeEffects.count}`);
             console.log(`  - Sequencer Animations: ${result.sequencerAnimations.count}`);
@@ -358,14 +358,14 @@
                 partialSuccess: result.totalCleared > 0,
                 clearedCount: result.totalCleared
             });
-            
+
             // Still count partial successes
             if (result.totalCleared > 0) {
                 results.totalEffectsRemoved += result.activeEffects.count || 0;
                 results.totalAnimationsRemoved += result.sequencerAnimations.count || 0;
                 results.totalFiltersRemoved += result.tokenMagicFilters.count || 0;
             }
-            
+
             console.error(`[FAILED] Comprehensive cleanup failed for ${target.name}:`, errors.join('; '));
         }
     }
