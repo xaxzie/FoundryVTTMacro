@@ -46,7 +46,7 @@
         animations: {
             cast: "jb2a.template_circle.aura.01.loop.small.bluepurple",
             darkFlame: "jb2a.markers.simple.001.complete.001.purple", // Flamme noire persistante
-            extension: "jb2a.markers.simple.001.complete.001.purple", // Animation d'extension
+            extension: "animated-spell-effects.air.smoke.black_ray", // Animation d'extension
             sound: null
         },
 
@@ -134,11 +134,11 @@
     if (!attackCharacteristicInfo || !damageCharacteristicInfo) return;
 
     // ===== CHECK EXISTING DARK FLAMES =====
-    const existingFlames = actor.effects?.contents?.filter(e =>
+    const existingControlEffectCheck = actor.effects?.contents?.find(e =>
         e.name === SPELL_CONFIG.casterEffect.name
-    ) || [];
+    );
 
-    const flameCount = existingFlames.length;
+    const flameCount = existingControlEffectCheck?.flags?.statuscounter?.value || 0;
 
     // ===== DIALOG DE CONFIGURATION INITIALE =====
     async function showInitialConfigDialog() {
@@ -508,17 +508,22 @@
             }
         }
 
-        // Animations d'extension
+        // Animations d'extension - de la cible initiale vers la cible d'extension
         for (const extTarget of extensionTargets) {
             if (SPELL_CONFIG.animations.extension) {
-                seq.effect()
-                    .file(SPELL_CONFIG.animations.extension)
-                    .attachTo(extTarget.token)
-                    .scale(0.5)
-                    .duration(1500)
-                    .fadeIn(500)
-                    .fadeOut(500)
-                    .tint("#1a0033");
+                // Trouver la cible initiale la plus proche pour cette extension
+                const originTargetData = processedTargets.find(pt => pt.name === extTarget.originTarget);
+                if (originTargetData) {
+                    seq.effect()
+                        .file(SPELL_CONFIG.animations.extension)
+                        .from(originTargetData.token)
+                        .stretchTo(extTarget.token)
+                        .scale(0.8)
+                        .duration(1500)
+                        .fadeIn(500)
+                        .fadeOut(500)
+                        .tint("#1a0033");
+                }
 
                 // Flamme persistante sur cible étendue
                 if (SPELL_CONFIG.animations.darkFlame) {
@@ -555,6 +560,9 @@
     // Dégâts initiaux (avec bonus)
     const initialDamage = baseDamage + (damageBonus || 0) + effectDamageBonus;
 
+    // Calcul du nombre total de flammes (existantes + nouvelles)
+    const finalTotalFlames = flameCount + allTargets.length;
+
     // ===== ADD ACTIVE EFFECTS =====
     const allTargets = [...processedTargets, ...extensionTargets];
 
@@ -587,27 +595,56 @@
         }
     }
 
-    // Effet sur le lanceur (pour tracker les flammes actives)
-    const casterEffectData = {
-        name: SPELL_CONFIG.casterEffect.name,
-        icon: SPELL_CONFIG.casterEffect.icon,
-        description: `${SPELL_CONFIG.casterEffect.description} - ${allTargets.length} flamme(s) active(s)`,
-        duration: { seconds: 86400 },
-        flags: {
-            world: {
-                darkFlameTargets: allTargets.map(t => t.token.id),
-                spellName: SPELL_CONFIG.name,
-                maintenanceCost: SPELL_CONFIG.maintenanceCost
-            },
-            statuscounter: { value: allTargets.length }
-        }
-    };
+    // Gestion de l'effet sur le lanceur (pour tracker les flammes actives)
+    const existingControlEffect = actor.effects.find(e => e.name === SPELL_CONFIG.casterEffect.name);
 
-    try {
-        await actor.createEmbeddedDocuments("ActiveEffect", [casterEffectData]);
-        console.log(`[Moctei] Applied dark flame control effect`);
-    } catch (error) {
-        console.error(`[Moctei] Error applying control effect:`, error);
+    if (existingControlEffect) {
+        // Mettre à jour l'effet existant
+        const currentTargets = existingControlEffect.flags?.world?.darkFlameTargets || [];
+        const newTargets = [...currentTargets, ...allTargets.map(t => t.token.id)];
+        const totalFlameCount = newTargets.length;
+
+        const updateData = {
+            description: `${SPELL_CONFIG.casterEffect.description} - ${totalFlameCount} flamme(s) active(s)`,
+            flags: {
+                ...existingControlEffect.flags,
+                world: {
+                    ...existingControlEffect.flags.world,
+                    darkFlameTargets: newTargets
+                },
+                statuscounter: { value: totalFlameCount, visible: true }
+            }
+        };
+
+        try {
+            await existingControlEffect.update(updateData);
+            console.log(`[Moctei] Updated existing dark flame control effect: ${totalFlameCount} flames`);
+        } catch (error) {
+            console.error(`[Moctei] Error updating control effect:`, error);
+        }
+    } else {
+        // Créer un nouvel effet de contrôle
+        const casterEffectData = {
+            name: SPELL_CONFIG.casterEffect.name,
+            icon: SPELL_CONFIG.casterEffect.icon,
+            description: `${SPELL_CONFIG.casterEffect.description} - ${allTargets.length} flamme(s) active(s)`,
+            duration: { seconds: 86400 },
+            flags: {
+                world: {
+                    darkFlameTargets: allTargets.map(t => t.token.id),
+                    spellName: SPELL_CONFIG.name,
+                    maintenanceCost: SPELL_CONFIG.maintenanceCost
+                },
+                statuscounter: { value: allTargets.length, visible: true }
+            }
+        };
+
+        try {
+            await actor.createEmbeddedDocuments("ActiveEffect", [casterEffectData]);
+            console.log(`[Moctei] Applied new dark flame control effect`);
+        } catch (error) {
+            console.error(`[Moctei] Error applying control effect:`, error);
+        }
     }
 
     // ===== CHAT MESSAGE =====
@@ -668,7 +705,7 @@
         const flameInfo = flameCount > 0 ? `
             <div style="margin: 8px 0; padding: 8px; background: #fce4ec; border-radius: 4px;">
                 <div style="font-size: 0.9em; color: #ad1457;">
-                    🔥 Flammes noires totales actives : ${flameCount + allTargets.length}
+                    🔥 Flammes noires totales actives : ${finalTotalFlames}
                 </div>
             </div>
         ` : '';
@@ -719,9 +756,8 @@
 
     // ===== FINAL NOTIFICATION =====
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
-    const totalFlames = flameCount + allTargets.length;
     const extensionInfo = extensionTargets.length > 0 ? ` + ${extensionTargets.length} extension(s)` : '';
 
-    ui.notifications.info(`🔥 ${SPELL_CONFIG.name} lancé !${stanceInfo} ${processedTargets.length} cible(s) initiale(s)${extensionInfo}. Attaque: ${attackRoll.total}, Dégâts: ${initialDamage}. Flammes actives: ${continuousDamage}/tour ! (${SPELL_CONFIG.maintenanceCost} mana/tour) [${totalFlames} flamme(s) active(s)]`);
+    ui.notifications.info(`🔥 ${SPELL_CONFIG.name} lancé !${stanceInfo} ${processedTargets.length} cible(s) initiale(s)${extensionInfo}. Attaque: ${attackRoll.total}, Dégâts: ${initialDamage}. Flammes actives: ${continuousDamage}/tour ! (${SPELL_CONFIG.maintenanceCost} mana/tour) [${finalTotalFlames} flamme(s) active(s)]`);
 
 })();
