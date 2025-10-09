@@ -513,35 +513,43 @@
 
             // Chercher les effets appliqués par Moctei
             for (const effect of token.actor.effects.contents) {
-                // Vérifier chaque type d'effet configuré
-                for (const [effectType, config] of Object.entries(EFFECT_CONFIG)) {
-                    let isMatch = false;
+                let matchedConfig = null;
+                let matchedEffectType = null;
 
-                    // Vérification par nom exact
-                    if (effect.name === config.displayName || effect.name === effectType) {
-                        isMatch = true;
-                    }
+                // Approche simplifiée : détecter les effets de Moctei par flags de caster
+                const casterId = actor.id;
 
-                    if (isMatch && checkEffectFlags(effect, config, actor.id, token.id)) {
-                        const extraData = config.getExtraData ? config.getExtraData(effect) : {};
-                        const description = config.getDynamicDescription ?
-                            config.getDynamicDescription(effect) : config.description;
+                // Vérifier si c'est une Manipulation des ombres
+                if (effect.flags?.world?.shadowManipulationCaster === casterId) {
+                    matchedConfig = EFFECT_CONFIG["Manipulation des ombres"];
+                    matchedEffectType = "Manipulation des ombres";
+                }
+                // Vérifier si c'est une Flamme Noire (toutes variantes)
+                else if (effect.flags?.world?.darkFlameCaster === casterId) {
+                    matchedConfig = EFFECT_CONFIG["Flamme Noire"];
+                    matchedEffectType = "Flamme Noire";
+                }
 
-                        characterEffects.push({
-                            token: token,
-                            effect: effect,
-                            effectType: effectType,
-                            config: config,
-                            description: description,
-                            extraData: extraData
-                        });
+                // Si on a trouvé une correspondance
+                if (matchedConfig && matchedEffectType) {
+                    const extraData = matchedConfig.getExtraData ? matchedConfig.getExtraData(effect) : {};
+                    const description = matchedConfig.getDynamicDescription ?
+                        matchedConfig.getDynamicDescription(effect) : matchedConfig.description;
 
-                        console.log(`[Moctei] Found ${effectType} on ${token.name}:`, {
-                            effectName: effect.name,
-                            flags: effect.flags,
-                            extraData: extraData
-                        });
-                    }
+                    characterEffects.push({
+                        token: token,
+                        effect: effect,
+                        effectType: matchedEffectType,
+                        config: matchedConfig,
+                        description: description,
+                        extraData: extraData
+                    });
+
+                    console.log(`[Moctei] Found ${matchedEffectType} on ${token.name}:`, {
+                        effectName: effect.name,
+                        flags: effect.flags?.world,
+                        extraData: extraData
+                    });
                 }
             }
         }
