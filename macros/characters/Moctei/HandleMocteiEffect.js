@@ -48,7 +48,7 @@
 
     // Custom Active Effects with Flags - MOCTEI'S SHADOW MAGIC EFFECTS
     const CUSTOM_EFFECTS = {
-        // Example: Dagues d'ombre effect (will be configured when implementing the spell)
+        // Dagues d'ombre effect
         "Dagues d'ombre": {
             name: "Dagues d'ombre",
             icon: "icons/weapons/daggers/dagger-curved-purple.webp",

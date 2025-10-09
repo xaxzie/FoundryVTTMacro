@@ -34,31 +34,38 @@
 
     // ===== CONFIGURATION DES EFFETS =====
     const EFFECT_CONFIG = {
-        // TODO: Add Moctei's specific shadow effects here
-        // Example configuration for future effects:
+        // Manipulation des ombres - Effet principal d'immobilisation
+        "Manipulation des ombres": {
+            displayName: "Manipulation des ombres",
+            icon: "icons/magic/unholy/hand-glow-pink-purple.webp",
+            description: "Immobilisé par les ombres de Moctei",
+            sectionTitle: "🌑 Manipulation des Ombres",
+            sectionIcon: "🌑",
+            cssClass: "shadow-manipulation-effect",
+            borderColor: "#2e0054",
+            bgColor: "#f3e5f5",
+            detectFlags: [
+                { path: "flags.world.shadowManipulationCaster", matchValue: "CASTER_ID" },
+                { path: "flags.world.spellName", matchValue: "Manipulation des ombres" }
+            ],
+            removeAnimation: {
+                file: "jb2a.markers.chain.standard.complete.02.purple",
+                scale: 0.6,
+                duration: 2000,
+                fadeOut: 1000,
+                tint: "#2e0054"
+            },
+            cleanup: {
+                sequencerNames: [
+                    "shadowManipulationSequenceName", // Trait d'ombre
+                    "immobilizationSequenceName"      // Effet d'immobilisation
+                ]
+            },
+            mechanicType: "shadowManipulation"
+        },
 
-        // "Dagues d'Ombre Lancées": {
-        //     displayName: "Dagues d'Ombre Lancées",
-        //     icon: "icons/weapons/daggers/dagger-curved-purple.webp",
-        //     description: "Touché par les dagues d'ombre de Moctei",
-        //     sectionTitle: "🗡️ Dagues d'Ombre",
-        //     sectionIcon: "🗡️",
-        //     cssClass: "shadow-dagger-effect",
-        //     borderColor: "#4a148c",
-        //     bgColor: "#f3e5f5",
-        //     detectFlags: [
-        //         { path: "flags.world.shadowDaggerCaster", matchValue: "CASTER_ID" },
-        //         { path: "flags.world.spellName", matchValue: "Invocation de dagues" }
-        //     ],
-        //     removeAnimation: {
-        //         file: "jb2a.cure_wounds.400px.purple",
-        //         scale: 0.8,
-        //         duration: 2000,
-        //         fadeOut: 800,
-        //         tint: "#4a148c"
-        //     },
-        //     mechanicType: "simple"
-        // }
+        // TODO: Add more Moctei's specific shadow effects here
+        // Future effects like shadow teleportation, darkness manipulation, etc.
     };
 
     // ===== FONCTIONS UTILITAIRES =====
@@ -156,41 +163,126 @@
         const { token, effect, effectType, config } = effectInfo;
 
         try {
-            // Nettoyer les animations
+            // Cleanup des animations Sequencer
             cleanupSequencerAnimations(effect, config);
 
-            // Nettoyer les filtres Token Magic FX si applicable
-            if (config.mechanicType === "transformation") {
-                await cleanupTokenMagicFilters(token, config);
+            // Cleanup des filtres Token Magic FX
+            await cleanupTokenMagicFilters(token, config);
+
+            // Animation de suppression
+            if (config.removeAnimation) {
+                const seq = new Sequence();
+                seq.effect()
+                    .file(config.removeAnimation.file)
+                    .attachTo(token)
+                    .scale(config.removeAnimation.scale || 1.0)
+                    .duration(config.removeAnimation.duration || 2000)
+                    .fadeOut(config.removeAnimation.fadeOut || 1000);
+
+                if (config.removeAnimation.tint) {
+                    seq.tint(config.removeAnimation.tint);
+                }
+
+                await seq.play();
             }
 
-            // Supprimer l'effet
-            const result = await removeEffectWithGMDelegation(token.actor, effect.id);
-
-            if (result?.success) {
-                console.log(`[Moctei] Successfully removed ${effectType} from ${token.name}`);
-
-                // Organiser par type pour les résultats
-                const category = config.mechanicType || 'simple';
-                if (!results[category]) results[category] = [];
-                results[category].push({
-                    target: token.name,
-                    effect: config.displayName,
-                    type: effectType,
-                    extraData: effectInfo.extraData || {}
-                });
-
-                return true;
+            // Suppression de l'effet
+            if (token.actor.isOwner) {
+                await effect.delete();
             } else {
-                throw new Error(result?.error || "Erreur inconnue");
+                await removeEffectWithGMDelegation(token.actor, effect.id);
             }
+
+            results.simple.push(token.name);
+            console.log(`[Moctei] Removed ${effectType} from ${token.name}`);
+
         } catch (error) {
+            console.error(`[Moctei] Error removing ${effectType} from ${token.name}:`, error);
             results.failed.push({
                 target: token.name,
-                effect: config.displayName,
+                effect: effectType,
                 error: error.message
             });
-            return false;
+        }
+    }
+
+    /**
+     * Traite la suppression d'un effet de manipulation des ombres
+     */
+    async function handleShadowManipulationRemoval(effectInfo, results) {
+        const { token, effect, effectType, config } = effectInfo;
+
+        try {
+            // Récupérer les informations du lanceur pour supprimer l'effet de contrôle
+            const casterId = effect.flags?.world?.shadowManipulationCaster;
+            const targetId = effect.flags?.world?.shadowManipulationTarget;
+
+            // Cleanup des animations Sequencer spécifiques
+            if (config.cleanup?.sequencerNames) {
+                for (const sequencerKey of config.cleanup.sequencerNames) {
+                    const sequencerName = effect.flags?.world?.[sequencerKey];
+                    if (sequencerName) {
+                        console.log(`[Moctei] Ending shadow manipulation animation: ${sequencerName}`);
+                        Sequencer.EffectManager.endEffects({ name: sequencerName });
+                    }
+                }
+            }
+
+            // Animation de libération des ombres
+            if (config.removeAnimation) {
+                const seq = new Sequence();
+                seq.effect()
+                    .file(config.removeAnimation.file)
+                    .attachTo(token)
+                    .scale(config.removeAnimation.scale || 1.0)
+                    .duration(config.removeAnimation.duration || 2000)
+                    .fadeOut(config.removeAnimation.fadeOut || 1000)
+                    .tint(config.removeAnimation.tint || "#2e0054");
+
+                await seq.play();
+            }
+
+            // Suppression de l'effet sur la cible
+            if (token.actor.isOwner) {
+                await effect.delete();
+            } else {
+                await removeEffectWithGMDelegation(token.actor, effect.id);
+            }
+
+            // Supprimer l'effet de contrôle correspondant sur le lanceur
+            if (casterId) {
+                const casterToken = canvas.tokens.get(casterId);
+                if (casterToken?.actor) {
+                    const controlEffects = casterToken.actor.effects.contents.filter(e =>
+                        e.name === "Manipulation des ombres (Contrôle)" &&
+                        e.flags?.world?.shadowManipulationTarget === targetId
+                    );
+
+                    for (const controlEffect of controlEffects) {
+                        try {
+                            if (casterToken.actor.isOwner) {
+                                await controlEffect.delete();
+                            } else {
+                                await removeEffectWithGMDelegation(casterToken.actor, controlEffect.id);
+                            }
+                            console.log(`[Moctei] Removed shadow manipulation control effect from ${casterToken.name}`);
+                        } catch (error) {
+                            console.error(`[Moctei] Error removing control effect:`, error);
+                        }
+                    }
+                }
+            }
+
+            results.shadowEffects.push(token.name);
+            console.log(`[Moctei] Removed shadow manipulation from ${token.name}`);
+
+        } catch (error) {
+            console.error(`[Moctei] Error removing shadow manipulation from ${token.name}:`, error);
+            results.failed.push({
+                target: token.name,
+                effect: effectType,
+                error: error.message
+            });
         }
     }
 
@@ -421,18 +513,21 @@
 
     for (const effectInfo of effectsToRemove) {
         try {
-            const config = effectInfo.config;
-            let success = false;
+            const { config } = effectInfo;
 
-            // Pour l'instant, traitement simple - peut être étendu avec d'autres mécaniques
-            success = await handleSimpleEffectRemoval(effectInfo, removedEffects);
-
-            if (success) {
-                console.log(`[Moctei] Successfully processed ${effectInfo.effectType} from ${effectInfo.token.name}`);
+            // Traiter selon le type de mécanique
+            switch (config.mechanicType) {
+                case "shadowManipulation":
+                    await handleShadowManipulationRemoval(effectInfo, removedEffects);
+                    break;
+                case "simple":
+                default:
+                    await handleSimpleEffectRemoval(effectInfo, removedEffects);
+                    break;
             }
 
         } catch (error) {
-            console.error(`Error removing ${effectInfo.effectType} from ${effectInfo.token.name}:`, error);
+            console.error(`[Moctei] Error processing effect removal:`, error);
             removedEffects.failed.push({
                 target: effectInfo.token.name,
                 effect: effectInfo.config.displayName,
