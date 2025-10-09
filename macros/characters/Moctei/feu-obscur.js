@@ -557,11 +557,11 @@
     // Dégâts initiaux (avec bonus)
     const initialDamage = baseDamage + (damageBonus || 0) + effectDamageBonus;
 
-    // Calcul du nombre total de flammes (existantes + nouvelles)
-    const finalTotalFlames = flameCount + allTargets.length;
-
     // ===== ADD ACTIVE EFFECTS =====
     const allTargets = [...processedTargets, ...extensionTargets];
+
+    // Calcul du nombre total de flammes (existantes + nouvelles)
+    const finalTotalFlames = flameCount + allTargets.length;
 
     for (const target of allTargets) {
         // Effet sur la cible
