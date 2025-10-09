@@ -45,8 +45,15 @@
 - **Token Magic FX** - [Documentation](https://github.com/Feu-Secret/Tokenmagic)
 
   - Token-specific visual effects and filters
+  - **Polymorph filter**: Transform token images with 9 different animation styles
   - Perfect for status effects and persistent animations
   - Can enhance existing animations with filters
+  - **Key Features for Character Macros**:
+    - Token transformation with animated transitions
+    - Toggle transformations (original ↔ transformed)
+    - Multiple animation types: Simple, Dreamy, Twist, Water drop, TV Noise, Morphing, Disguise, Wind, Hologram
+    - Customizable timing and effects
+    - Multiple token support with unique filter IDs
 
 - **Gambit FXMaster** - [Documentation](https://github.com/gambit07/fxmaster)
 
@@ -546,6 +553,7 @@ No installation required! All modules are already:
 - **Effect Libraries**: Multiple sources for visual variety
 - **Targeting System**: Crosshair functionality active
 - **Combat Integration**: Turn order management ready
+- **Token Magic FX**: Polymorph filters and token transformations active
 
 ## Module Dependency Tree
 
@@ -555,6 +563,9 @@ All Macros
 ├── JB2A (ASSETS - provides effect files)
 │   ├── Free version: 1.5GB, 2000+ effects
 │   └── Patreon version: 8GB+, 5000+ effects
+├── Token Magic FX (EFFECTS - token filters and transformations)
+│   ├── Polymorph filters with 9 animation types
+│   └── Status effects and persistent visual filters
 └── Advanced/Character Macros
     └── Portal (CORE - targeting and spawning)
         ├── Creature spawning and transformation

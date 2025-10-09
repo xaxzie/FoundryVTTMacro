@@ -223,6 +223,61 @@ const result = await toggleActiveEffect(
 );
 ```
 
+### 🔄 `token-transformation.js`
+
+**Purpose**: Token image transformation using Token Magic FX polymorph filters
+**Required Module**: Token Magic FX
+**Functions**:
+
+- `transformTokens()` - Main transformation function (toggle between original/transformed)
+- `processTokenTransformation(token)` - Process individual token transformation
+- `removeTransformation()` - Remove transformation from selected tokens
+- `checkTransformationStatus()` - Check which tokens are transformed
+- `transformWithCustomSettings(imagePath, transitionType, duration)` - Custom transformation
+- `transformToBattleForm()` - Example: Transform to battle form
+- `transformToStealthForm()` - Example: Transform to stealth form
+
+**Example Usage**:
+
+```javascript
+// Basic toggle transformation (select tokens first)
+await transformTokens();
+
+// Transform with custom image and settings
+await transformWithCustomSettings(
+  "worlds/ft/TOKEN/battle_form.png",
+  6, // Morphing transition
+  1500 // 1.5 second duration
+);
+
+// Check transformation state
+checkTransformationStatus();
+
+// Remove all transformations
+await removeTransformation();
+```
+
+**Transformation Types Available**:
+
+1. Simple transition
+2. Dreamy
+3. Twist
+4. Water drop
+5. TV Noise
+6. Morphing
+7. Take off/Put on disguise
+8. Wind
+9. Hologram
+
+**Configuration Options**:
+
+- `targetImagePath`: Path to transformation image
+- `transitionType`: Animation style (1-9)
+- `loopDuration`: Animation duration in milliseconds
+- `padding`: Extra space around transformed token
+- `magnify`: Scale multiplier for size changes
+- `filterId`: Unique identifier to prevent conflicts
+
 ## 🎯 Usage Guidelines
 
 ### Copy, Don't Import
@@ -364,6 +419,61 @@ All utilities include console logging and error messages. Enable debug mode to s
 ```javascript
 console.log("[DEBUG] Your debug message here");
 ```
+
+### ⚡ `tokenmagic-filters.js`
+
+**Purpose**: Token Magic FX filters for persistent visual effects on tokens
+**Required Module**: Token Magic FX
+**Functions**:
+
+- `applyFiltersToTokens(filterConfigs, tokens)` - Apply filters to selected/specified tokens
+- `removeFiltersFromTokens(tokens)` - Remove all filters from tokens
+- `toggleFiltersOnTokens(filterConfigs, effectName, tokens)` - Toggle filters on/off
+- `applyGodSpeedEffect(tokens)` - Apply God Speed effect (shadow + electric)
+- `applyPowerAuraEffect(tokens)` - Apply power aura effect (glow + blur)
+- `applyElectricSurgeEffect(tokens)` - Apply electric surge effect
+- `applyShadowStealthEffect(tokens)` - Apply shadow stealth effect
+- `createElectricFilter(color, intensity)` - Create custom electric filter
+- `createShadowFilter(color, duration)` - Create custom shadow filter
+- `createGlowFilter(color, strength)` - Create custom glow filter
+
+**Example Usage**:
+
+```javascript
+// Apply God Speed effect to selected tokens
+await applyGodSpeedEffect();
+
+// Apply custom electric filter
+const blueElectric = createElectricFilter(0x0066ff, 6);
+await applyFiltersToTokens([blueElectric]);
+
+// Toggle shadow effect
+const shadowFilter = createShadowFilter(0xff0000, 500);
+await toggleFiltersOnTokens([shadowFilter], "Red Shadow");
+
+// Remove all filters
+await removeFiltersFromTokens();
+```
+
+**Available Filter Types**:
+
+- `shadow` - Drop shadow with animated blur
+- `electric` - Lightning/electricity effect with moving animation
+- `glow` - Pulsing glow effect with strength oscillation
+- `blur` - Animated blur effect
+- `adjustment` - Color adjustments (brightness, contrast, etc.)
+- `oldfilm` - Vintage film effect
+- `godray` - Light shaft effects
+- `wave` - Wave distortion
+- `shockwave` - Shockwave effects
+
+**Animation Types**:
+
+- `move` - Continuous movement
+- `syncCosOscillation` - Synchronized cosine waves
+- `cosOscillation` - Cosine waves
+- `halfCosOscillation` - Half cosine (for toggles)
+- `chaoticOscillation` - Random/chaotic movement
 
 ## 📚 Related Documentation
 

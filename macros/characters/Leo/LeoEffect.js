@@ -77,7 +77,80 @@
             ],
             description: "Agilité -3",
             category: "custom",
-            increasable: false
+            increasable: false,
+            // Token transformation configuration
+            hasTransformation: true,
+            transformation: {
+                targetImagePath: "worlds/ft/TOKEN/Edgy_leo_token.png",
+                transitionType: 4, // Water drop
+                loopDuration: 1000,
+                padding: 70,
+                magnify: 1,
+                filterId: "leoArcherTransformation"
+            },
+            // Animation configuration
+            hasAnimation: true,
+            animation: {
+                effectFile: "animated-spell-effects.air.shockwave.circle.02",
+                scale: 0.5,
+                duration: 2000
+            }
+        },
+        "Second Origin God Speed": {
+            name: "Second Origin God Speed",
+            icon: "icons/magic/unholy/strike-body-explode-disintegrate.webp",
+            flags: [],
+            description: "Activation du pouvoir Second Origin - Effet visuel et filtres persistants",
+            category: "custom",
+            increasable: false,
+            // Token filters configuration (no image transformation)
+            hasFilters: true,
+            filters: {
+                filterId: "leoGodSpeedFilters",
+                filterConfigs: [
+                    {
+                        filterType: "shadow",
+                        blur: 1,
+                        quality: 5,
+                        distance: 0.2,
+                        alpha: 1.0,
+                        padding: 100,
+                        color: 0xff0000,
+                        animated: {
+                            blur: {
+                                active: true,
+                                loopDuration: 500,
+                                animType: "syncCosOscillation",
+                                val1: 2,
+                                val2: 4
+                            }
+                        }
+                    },
+                    {
+                        filterType: "electric",
+                        color: 0xff0000,
+                        time: 0,
+                        blend: 2,
+                        intensity: 8,
+                        animated: {
+                            time: {
+                                active: true,
+                                speed: 0.0015,
+                                animType: "move"
+                            }
+                        }
+                    }
+                ]
+            },
+            // Animation configuration (persistent)
+            hasAnimation: true,
+            animation: {
+                effectFile: "jb2a_patreon.static_electricity.02.dark_red",
+                scale: 2,
+                fadeOut: 3000,
+                persistent: true,
+                sequencerName: "LeoGodSpeed"
+            }
         }
     };
 
@@ -128,7 +201,236 @@
 
     const configStatusEffects = getConfigStatusEffects();
     const POSTURES = configStatusEffects.postures;
-    const INJURY_EFFECTS = configStatusEffects.injuries;    // === CURRENT STATE DETECTION ===
+    const INJURY_EFFECTS = configStatusEffects.injuries;
+
+    // === TOKEN TRANSFORMATION FUNCTIONS ===
+    // Based on token-transformation.js utility
+
+    /**
+     * Apply or revert token transformation using Token Magic FX
+     * @param {Token} token - The token to transform
+     * @param {Object} transformConfig - Transformation configuration
+     * @param {boolean} shouldTransform - True to transform, false to revert
+     */
+    async function applyTokenTransformation(token, transformConfig, shouldTransform) {
+        if (!token || typeof TokenMagic === "undefined") {
+            console.warn("[DEBUG] LeoEffect: Token Magic FX not available for transformation");
+            return;
+        }
+
+        try {
+            let filterParams;
+            const { targetImagePath, transitionType, loopDuration, padding, magnify, filterId } = transformConfig;
+
+            if (shouldTransform) {
+                // Check if filter already exists
+                if (token.TMFXhasFilterId(filterId)) {
+                    console.log(`[DEBUG] LeoEffect: Token ${token.name} already has transformation ${filterId}`);
+                    return;
+                }
+
+                // Create transformation filter
+                filterParams = [{
+                    filterType: "polymorph",
+                    filterId: filterId,
+                    type: transitionType,
+                    padding: padding,
+                    magnify: magnify,
+                    imagePath: targetImagePath,
+                    animated: {
+                        progress: {
+                            active: true,
+                            animType: "halfCosOscillation",
+                            val1: 0,
+                            val2: 100,
+                            loops: 1,
+                            loopDuration: loopDuration
+                        }
+                    }
+                }];
+
+                console.log(`[DEBUG] LeoEffect: Applying transformation to ${token.name}`);
+            } else {
+                // Check if filter exists to revert
+                if (!token.TMFXhasFilterId(filterId)) {
+                    console.log(`[DEBUG] LeoEffect: No transformation ${filterId} found on ${token.name} to revert`);
+                    return;
+                }
+
+                // First trigger revert animation, then delete the filter
+                filterParams = [{
+                    filterType: "polymorph",
+                    filterId: filterId,
+                    type: transitionType,
+                    animated: {
+                        progress: {
+                            active: true,
+                            loops: 1
+                        }
+                    }
+                }];
+
+                // Apply the revert animation
+                await token.TMFXaddUpdateFilters(filterParams);
+
+                // Wait for animation to complete, then delete the filter completely
+                setTimeout(async () => {
+                    try {
+                        if (token.TMFXhasFilterId(filterId)) {
+                            await token.TMFXdeleteFilters(filterId);
+                            console.log(`[DEBUG] LeoEffect: Deleted transformation filter ${filterId} from ${token.name}`);
+                        }
+                    } catch (error) {
+                        console.error(`[DEBUG] LeoEffect: Error deleting filter ${filterId}:`, error);
+                    }
+                }, loopDuration + 100); // Wait for animation duration + small buffer
+
+                console.log(`[DEBUG] LeoEffect: Reverting transformation on ${token.name}`);
+                return; // Exit early since we're handling the deletion asynchronously
+            }
+
+            await token.TMFXaddUpdateFilters(filterParams);
+
+        } catch (error) {
+            console.error("[DEBUG] LeoEffect: Error in token transformation:", error);
+        }
+    }
+
+    /**
+     * Play transformation animation using Sequencer
+     * @param {Token} token - The token to animate
+     * @param {Object} animConfig - Animation configuration
+     * @param {boolean} isActivating - True if activating effect, false if deactivating
+     */
+    async function playTransformationAnimation(token, animConfig, isActivating) {
+        if (!token || typeof Sequence === "undefined") {
+            console.warn("[DEBUG] LeoEffect: Sequencer not available for animation");
+            return;
+        }
+
+        try {
+            const { effectFile, scale } = animConfig;
+
+            new Sequence()
+                .effect()
+                .file(effectFile)
+                .atLocation(token)
+                .scale(scale)
+                .fadeOut(500)
+                .belowTokens()
+                .play();
+
+            console.log(`[DEBUG] LeoEffect: Played transformation animation for ${token.name}`);
+
+        } catch (error) {
+            console.error("[DEBUG] LeoEffect: Error in transformation animation:", error);
+        }
+    }
+
+    /**
+     * Apply or remove Token Magic FX filters
+     * @param {Token} token - The token to apply filters to
+     * @param {Object} filterConfig - Filter configuration
+     * @param {boolean} shouldApply - True to apply filters, false to remove
+     */
+    async function applyTokenFilters(token, filterConfig, shouldApply) {
+        if (!token || typeof TokenMagic === "undefined") {
+            console.warn("[DEBUG] LeoEffect: Token Magic FX not available for filters");
+            return;
+        }
+
+        try {
+            const { filterId, filterConfigs } = filterConfig;
+
+            if (shouldApply) {
+                // Check if filters are already applied
+                const hasFilters = token.document.flags?.tokenmagic;
+                if (hasFilters) {
+                    console.log(`[DEBUG] LeoEffect: Token ${token.name} already has filters`);
+                    return;
+                }
+
+                // Select the token and apply filters
+                canvas.tokens.releaseAll();
+                token.control({ releaseOthers: false });
+
+                await TokenMagic.addFiltersOnSelected(filterConfigs);
+                console.log(`[DEBUG] LeoEffect: Applied ${filterConfigs.length} filter(s) to ${token.name}`);
+
+            } else {
+                // Remove filters
+                const hasFilters = token.document.flags?.tokenmagic;
+                if (!hasFilters) {
+                    console.log(`[DEBUG] LeoEffect: No filters found on ${token.name} to remove`);
+                    return;
+                }
+
+                // Select the token and remove filters
+                canvas.tokens.releaseAll();
+                token.control({ releaseOthers: false });
+
+                await TokenMagic.deleteFiltersOnSelected();
+                console.log(`[DEBUG] LeoEffect: Removed filters from ${token.name}`);
+            }
+
+        } catch (error) {
+            console.error("[DEBUG] LeoEffect: Error in token filters:", error);
+        }
+    }
+
+    /**
+     * Play persistent animation using Sequencer
+     * @param {Token} token - The token to animate
+     * @param {Object} animConfig - Animation configuration
+     * @param {boolean} isActivating - True if activating effect, false if deactivating
+     */
+    async function playPersistentAnimation(token, animConfig, isActivating) {
+        if (!token || typeof Sequence === "undefined") {
+            console.warn("[DEBUG] LeoEffect: Sequencer not available for persistent animation");
+            return;
+        }
+
+        try {
+            const { effectFile, scale, fadeOut, persistent, sequencerName } = animConfig;
+
+            if (isActivating) {
+                // Check if effect already exists
+                const existingEffects = Sequencer.EffectManager.getEffects({ name: sequencerName, object: token });
+                if (existingEffects.length > 0) {
+                    console.log(`[DEBUG] LeoEffect: Persistent effect ${sequencerName} already active on ${token.name}`);
+                    return;
+                }
+
+                // Create persistent effect
+                new Sequence()
+                    .effect()
+                    .file(effectFile)
+                    .fadeOut(fadeOut)
+                    .scaleToObject(scale)
+                    .atLocation(token)
+                    .attachTo(token)
+                    .persist()
+                    .name(sequencerName)
+                    .play();
+
+                console.log(`[DEBUG] LeoEffect: Started persistent animation ${sequencerName} for ${token.name}`);
+
+            } else {
+                // End persistent effect
+                const existingEffects = Sequencer.EffectManager.getEffects({ name: sequencerName, object: token });
+                if (existingEffects.length === 0) {
+                    console.log(`[DEBUG] LeoEffect: No persistent effect ${sequencerName} found on ${token.name} to remove`);
+                    return;
+                }
+
+                Sequencer.EffectManager.endEffects({ name: sequencerName, object: token });
+                console.log(`[DEBUG] LeoEffect: Ended persistent animation ${sequencerName} for ${token.name}`);
+            }
+
+        } catch (error) {
+            console.error("[DEBUG] LeoEffect: Error in persistent animation:", error);
+        }
+    }    // === CURRENT STATE DETECTION ===
     const getCurrentState = () => {
         const state = {
             customEffects: {},
@@ -601,6 +903,56 @@
         }
 
         try {
+            // Handle transformations removal before deleting effects
+            if (canvas.tokens.controlled.length > 0) {
+                const token = canvas.tokens.controlled[0];
+
+                // Check if any custom effects with special features are active
+                for (const [effectKey, effectData] of Object.entries(CUSTOM_EFFECTS)) {
+                    const existingEffect = actor.effects.find(e => e.name === effectData.name);
+                    if (existingEffect) {
+                        // Handle transformation effects
+                        if (effectData.hasTransformation) {
+                            // Play removal animation
+                            if (effectData.hasAnimation) {
+                                await playTransformationAnimation(token, effectData.animation, false);
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                            }
+
+                            // Remove transformation
+                            await applyTokenTransformation(token, effectData.transformation, false);
+
+                            // Backup cleanup for transformation filters
+                            setTimeout(async () => {
+                                try {
+                                    if (token.TMFXhasFilterId(effectData.transformation.filterId)) {
+                                        await token.TMFXdeleteFilters(effectData.transformation.filterId);
+                                        console.log(`[DEBUG] LeoEffect: Force-deleted transformation filter ${effectData.transformation.filterId}`);
+                                    }
+                                } catch (error) {
+                                    console.error(`[DEBUG] LeoEffect: Error force-deleting transformation filter:`, error);
+                                }
+                            }, effectData.transformation.loopDuration + 200);
+
+                            console.log(`[DEBUG] LeoEffect: Removed transformation for ${effectData.name}`);
+                        }
+
+                        // Handle filter effects
+                        if (effectData.hasFilters) {
+                            // End persistent animation
+                            if (effectData.hasAnimation) {
+                                await playPersistentAnimation(token, effectData.animation, false);
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                            }
+
+                            // Remove filters
+                            await applyTokenFilters(token, effectData.filters, false);
+                            console.log(`[DEBUG] LeoEffect: Removed filters for ${effectData.name}`);
+                        }
+                    }
+                }
+            }
+
             await actor.deleteEmbeddedDocuments("ActiveEffect", allEffects.map(e => e.id));
             ui.notifications.info(`🗑️ Tous les effets supprimés ! (${allEffects.length})`);
         } catch (error) {
@@ -669,6 +1021,32 @@
                 if (newValue === 0 && currentCustomEffect) {
                     effectsToRemove.push(currentCustomEffect.id);
                     operationLog.push(`📚 ${customData.name} supprimé(s)`);
+
+                    // Handle special effects removal for increasable effects
+                    if (canvas.tokens.controlled.length > 0) {
+                        const token = canvas.tokens.controlled[0];
+
+                        // Handle transformation removal
+                        if (customData.hasTransformation) {
+                            if (customData.hasAnimation) {
+                                await playTransformationAnimation(token, customData.animation, false);
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                            }
+                            await applyTokenTransformation(token, customData.transformation, false);
+                            operationLog.push(`🎭 Transformation ${customData.name} supprimée`);
+                        }
+
+                        // Handle filter removal
+                        if (customData.hasFilters) {
+                            if (customData.hasAnimation) {
+                                await playPersistentAnimation(token, customData.animation, false);
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                            }
+                            await applyTokenFilters(token, customData.filters, false);
+                            operationLog.push(`⚡ Filtres ${customData.name} supprimés`);
+                        }
+                    }
+
                 } else if (newValue > 0) {
                     if (currentCustomEffect) {
                         // Update existing
@@ -690,6 +1068,31 @@
 
                         effectsToAdd.push(customEffect);
                         operationLog.push(`📚 ${customData.name} ajouté(s): ${newValue}`);
+
+                        // Handle special effects addition for increasable effects (only when creating new)
+                        if (canvas.tokens.controlled.length > 0) {
+                            const token = canvas.tokens.controlled[0];
+
+                            // Handle transformation addition
+                            if (customData.hasTransformation) {
+                                if (customData.hasAnimation) {
+                                    await playTransformationAnimation(token, customData.animation, true);
+                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                }
+                                await applyTokenTransformation(token, customData.transformation, true);
+                                operationLog.push(`🎭 Transformation ${customData.name} appliquée`);
+                            }
+
+                            // Handle filter addition
+                            if (customData.hasFilters) {
+                                if (customData.hasAnimation) {
+                                    await playPersistentAnimation(token, customData.animation, true);
+                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                }
+                                await applyTokenFilters(token, customData.filters, true);
+                                operationLog.push(`⚡ Filtres ${customData.name} appliqués`);
+                            }
+                        }
                     }
                 }
             }
@@ -733,11 +1136,74 @@
                             flags: flagsObject
                         });
                         operationLog.push(`✅ ${customData.name} activé`);
+
+                        // Handle special effects (transformations, filters, animations)
+                        if (canvas.tokens.controlled.length > 0) {
+                            const token = canvas.tokens.controlled[0];
+
+                            // Handle transformation effects
+                            if (customData.hasTransformation) {
+                                // Play animation first
+                                if (customData.hasAnimation) {
+                                    await playTransformationAnimation(token, customData.animation, true);
+                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                }
+
+                                // Apply transformation
+                                await applyTokenTransformation(token, customData.transformation, true);
+                                operationLog.push(`🎭 Transformation ${customData.name} appliquée`);
+                            }
+
+                            // Handle filter effects
+                            if (customData.hasFilters) {
+                                // Play persistent animation first
+                                if (customData.hasAnimation) {
+                                    await playPersistentAnimation(token, customData.animation, true);
+                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                }
+
+                                // Apply filters
+                                await applyTokenFilters(token, customData.filters, true);
+                                operationLog.push(`⚡ Filtres ${customData.name} appliqués`);
+                            }
+                        }
+
                     } else if (action === 'remove') {
                         const existing = currentState.customEffects[effectKey];
                         if (existing) {
                             effectsToRemove.push(existing.id);
                             operationLog.push(`❌ ${customData.name} désactivé`);
+
+                            // Handle special effects removal
+                            if (canvas.tokens.controlled.length > 0) {
+                                const token = canvas.tokens.controlled[0];
+
+                                // Handle transformation removal
+                                if (customData.hasTransformation) {
+                                    // Play animation first
+                                    if (customData.hasAnimation) {
+                                        await playTransformationAnimation(token, customData.animation, false);
+                                        await new Promise(resolve => setTimeout(resolve, 200));
+                                    }
+
+                                    // Revert transformation
+                                    await applyTokenTransformation(token, customData.transformation, false);
+                                    operationLog.push(`🎭 Transformation ${customData.name} supprimée`);
+                                }
+
+                                // Handle filter removal
+                                if (customData.hasFilters) {
+                                    // End persistent animation first
+                                    if (customData.hasAnimation) {
+                                        await playPersistentAnimation(token, customData.animation, false);
+                                        await new Promise(resolve => setTimeout(resolve, 200));
+                                    }
+
+                                    // Remove filters
+                                    await applyTokenFilters(token, customData.filters, false);
+                                    operationLog.push(`⚡ Filtres ${customData.name} supprimés`);
+                                }
+                            }
                         }
                     }
                     break;
