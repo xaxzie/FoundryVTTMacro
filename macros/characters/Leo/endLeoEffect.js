@@ -77,7 +77,7 @@
         },
         "Royaume des Chaînes (Agilité)": {
             displayName: "Royaume des Chaînes (Agilité)",
-            icon: "icons/commodities/metal/chains-steel.webp",
+            icon: "icons/tools/fasteners/chain-brass-yellow.webp",
             description: "Entravé par le royaume des chaînes de Léo",
             sectionTitle: "🔗 Royaume des Chaînes",
             sectionIcon: "🔗",
