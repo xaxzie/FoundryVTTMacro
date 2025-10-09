@@ -35,7 +35,7 @@
         // Configuration de l'effet de suivi
         trackingEffect: {
             name: "Substitution d'ombre",
-            icon: "icons/creatures/unholy/shadow-spirit-purple.webp",
+            icon: "icons/magic/holy/barrier-shield-winged-cross.webp",
             description: "Compteur d'utilisations pour Substitution d'ombre"
         },
 
