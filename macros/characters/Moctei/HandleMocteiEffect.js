@@ -75,6 +75,27 @@
             description: "Bonus de +3 aux dégâts",
             category: "custom",
             increasable: false
+        },
+        "Ailes supérieures": {
+            name: "Ailes supérieures",
+            icon: "icons/creatures/abilities/wings-feathered-blue.webp",
+            flags: [],
+            description: "Moctei peut voler, ses ailes l'aident à dissimuler ses alliés lorsqu'il faut être discret - Coût: 2 mana (focusable) + 1 mana par usage (non focusable) - Sort lvl 2 - Donne +6 cases de déplacement",
+            category: "custom",
+            increasable: true,
+            counterName: "Déplacement",
+            defaultValue: 6,
+            maxValue: 6,
+            hasAnimation: true,
+            manaCost: "2 (focusable) + 1/usage",
+            animation: {
+                effectFile: "animated-spell-effects.misc.wings.rectangle",
+                scale: 1.0,
+                fadeOut: 2000,
+                persistent: true,
+                sequencerName: "MocteiSuperiorWings",
+                tint: "#8A2BE2" // Tinte violette
+            }
         }
 
         // TODO: Add more Moctei-specific shadow magic effects here
@@ -429,7 +450,7 @@
 
             // Get current value for increasable effects
             const currentValue = effectData.increasable ?
-                (existingEffect?.flags?.statuscounter?.value || 0) : 0;
+                (existingEffect?.flags?.statuscounter?.value || effectData.defaultValue || 0) : 0;
 
             dialogContent += `
                 <div class="effect-item" id="effect-${key}">
@@ -449,7 +470,7 @@
                             ${isActive ? '➖ Désactiver' : '➕ Activer'}
                         </button>
                         ${effectData.increasable ? `
-                        <label>Valeur: <input type="number" id="customCount-${key}" value="${currentValue}" min="0" max="10" style="width: 60px; margin: 0 8px;"></label>
+                        <label>${effectData.counterName || 'Valeur'}: <input type="number" id="customCount-${key}" value="${currentValue}" min="0" max="${effectData.maxValue || 10}" style="width: 60px; margin: 0 8px;"></label>
                         <button type="button" class="btn btn-add" data-action="setCustomCount" data-effect="${key}" data-category="custom">
                             📊 Appliquer
                         </button>
