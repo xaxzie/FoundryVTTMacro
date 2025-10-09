@@ -74,23 +74,6 @@
         willpowerSave: {
             characteristic: "volonte",
             description: "Jet de Volonté pour résister au feu obscur"
-        },
-
-        // Configuration du combo avec Manipulation des ombres
-        comboOption: {
-            name: "Combo Manipulation des ombres",
-            manaCost: 2, // Coût additionnel
-            isFocusable: true,
-            description: "Applique aussi Manipulation des ombres en cas de coup réussi",
-            manipulationAnimations: {
-                shadowTendril: "animated-spell-effects.air.smoke.black_ray",
-                immobilization: "jb2a_patreon.black_tentacles.dark_purple"
-            },
-            manipulationEffect: {
-                name: "Manipulation des ombres",
-                icon: "icons/creatures/tentacles/tentacles-suctioncups-pink.webp",
-                description: "Immobilisé par les ombres de Moctei - Ne peut pas se déplacer (depuis Feu obscur)"
-            }
         }
     };
 
@@ -196,21 +179,6 @@
                             </ul>
                         </div>
 
-                        <div style="margin: 10px 0; padding: 10px; background: #f3e5f5; border-radius: 4px; border: 2px solid #9c27b0;">
-                            <h4 style="margin: 0 0 10px 0; color: #4a148c;">🌑 Options Combo (+2 mana, focalisable)</h4>
-                            <label style="display: flex; align-items: center; margin-bottom: 8px;">
-                                <input type="radio" name="comboOption" value="none" checked style="margin-right: 8px;">
-                                <span><strong>Feu Obscur seul</strong> - Effet standard avec extensions possibles</span>
-                            </label>
-                            <label style="display: flex; align-items: center;">
-                                <input type="radio" name="comboOption" value="shadowManipulation" style="margin-right: 8px;">
-                                <span><strong>+ Manipulation des ombres</strong> - Applique aussi l'immobilisation en cas de coup réussi</span>
-                            </label>
-                            <div style="margin-top: 8px; font-size: 0.9em; color: #6a0dad; font-style: italic;">
-                                ⚠️ Le combo annule la possibilité d'extensions adjacentes
-                            </div>
-                        </div>
-
                         <div style="margin: 10px 0;">
                             <label for="targetCount" style="font-weight: bold;">Nombre de cibles initiales :</label>
                             <select id="targetCount" style="margin-left: 5px;">
@@ -240,8 +208,7 @@
                             const targetCount = parseInt(html.find('#targetCount').val()) || 1;
                             const attackBonus = parseInt(html.find('#attackBonus').val()) || 0;
                             const damageBonus = parseInt(html.find('#damageBonus').val()) || 0;
-                            const comboOption = html.find('input[name="comboOption"]:checked').val();
-                            resolve({ targetCount, attackBonus, damageBonus, comboOption });
+                            resolve({ targetCount, attackBonus, damageBonus });
                         }
                     },
                     cancel: {
@@ -263,7 +230,7 @@
         ui.notifications.info('Sort annulé.');
         return;
     }
-    const { targetCount, attackBonus, damageBonus, comboOption } = initialConfig;
+    const { targetCount, attackBonus, damageBonus } = initialConfig;
 
     // ===== TARGETING INITIAL via Portal =====
     async function selectInitialTargets(count) {
@@ -442,9 +409,7 @@
 
     // ===== DIALOG D'EXTENSION (si cibles adjacentes disponibles) =====
     let extensionTargets = [];
-    const isComboActive = comboOption === 'shadowManipulation';
-
-    if (allAdjacentTargets.length > 0 && !isComboActive) { // Pas d'extension si combo actif
+    if (allAdjacentTargets.length > 0) {
         const extensionCost = currentStance === 'focus' && SPELL_CONFIG.isFocusable ?
             "GRATUIT (Position Focus)" :
             `${SPELL_CONFIG.extensionCost} mana`;
@@ -592,19 +557,6 @@
     // Dégâts initiaux (avec bonus)
     const initialDamage = baseDamage + (damageBonus || 0) + effectDamageBonus;
 
-    // ===== COMBO CONFIGURATION =====
-    const comboManaCost = isComboActive ? SPELL_CONFIG.comboOption.manaCost : 0;
-    const comboManaCostReduced = (currentStance === 'focus' && SPELL_CONFIG.comboOption.isFocusable);
-    const finalComboManaCost = isComboActive ? (comboManaCostReduced ? 0 : comboManaCost) : 0;
-
-    // Calculs pour la Manipulation des ombres combo (basé sur Dextérité)
-    let manipulationInitialDamage = 0;
-    let manipulationContinuousDamage = 0;
-    if (isComboActive) {
-        manipulationInitialDamage = Math.floor(damageCharacteristicInfo.final / 2); // Dex/2 arrondi inf
-        manipulationContinuousDamage = Math.floor(damageCharacteristicInfo.final / 2); // Dex/2 arrondi inf
-    }
-
     // ===== ADD ACTIVE EFFECTS =====
     const allTargets = [...processedTargets, ...extensionTargets];
 
@@ -712,98 +664,6 @@
         }
     }
 
-    // ===== COMBO SHADOW MANIPULATION APPLICATION =====
-    if (isComboActive) {
-        for (const target of allTargets) {
-            // Animation de Manipulation des ombres combo (après les flammes)
-            const manipulationSeq = new Sequence();
-
-            // Trait d'ombre persistant
-            if (SPELL_CONFIG.comboOption.manipulationAnimations.shadowTendril) {
-                manipulationSeq.effect()
-                    .file(SPELL_CONFIG.comboOption.manipulationAnimations.shadowTendril)
-                    .attachTo(caster)
-                    .stretchTo(target.token, { attachTo: true })
-                    .scale(0.8)
-                    .persist()
-                    .name(`shadow-manipulation-combo-${caster.id}-${target.token.id}`)
-                    .fadeIn(1000)
-                    .fadeOut(1000)
-                    .tint("#2e0054")
-                    .delay(2500); // Après les animations de feu obscur
-            }
-
-            // Effet d'immobilisation sur la cible
-            if (SPELL_CONFIG.comboOption.manipulationAnimations.immobilization) {
-                manipulationSeq.effect()
-                    .file(SPELL_CONFIG.comboOption.manipulationAnimations.immobilization)
-                    .attachTo(target.token)
-                    .scale(0.2)
-                    .persist()
-                    .name(`shadow-immobilization-combo-${target.token.id}`)
-                    .fadeIn(1000)
-                    .fadeOut(1000)
-                    .tint("#2e0054")
-                    .opacity(0.8)
-                    .delay(3000); // Légèrement après le trait d'ombre
-            }
-
-            await manipulationSeq.play();
-
-            // Appliquer l'effet Manipulation des ombres combo
-            const manipulationEffectData = {
-                name: SPELL_CONFIG.comboOption.manipulationEffect.name,
-                icon: SPELL_CONFIG.comboOption.manipulationEffect.icon,
-                description: SPELL_CONFIG.comboOption.manipulationEffect.description,
-                duration: { seconds: 86400 },
-                flags: {
-                    world: {
-                        shadowManipulationCaster: caster.id,
-                        shadowManipulationTarget: target.token.id,
-                        shadowManipulationSequenceName: `shadow-manipulation-combo-${caster.id}-${target.token.id}`,
-                        immobilizationSequenceName: `shadow-immobilization-combo-${target.token.id}`,
-                        spellName: "Manipulation des ombres (Combo)",
-                        maintenanceCost: 1, // Même maintenance que Manipulation des ombres normale
-                        damagePerTurn: manipulationContinuousDamage,
-                        isComboManipulation: true // Flag pour identifier les manipulations combo
-                    },
-                    immobilized: { value: true },
-                    statuscounter: { value: manipulationContinuousDamage }
-                }
-            };
-
-            try {
-                await target.actor.createEmbeddedDocuments("ActiveEffect", [manipulationEffectData]);
-                console.log(`[Moctei] Applied combo shadow manipulation to ${target.name}`);
-
-                // Gérer l'effet de contrôle Manipulation des ombres sur Moctei
-                const manipulationCasterEffectData = {
-                    name: "Manipulation des ombres (Contrôle)",
-                    icon: "icons/creatures/tentacles/tentacles-octopus-black-pink.webp",
-                    description: `Contrôle une manipulation d'ombre active - Cible: ${target.name}`,
-                    duration: { seconds: 86400 },
-                    flags: {
-                        world: {
-                            shadowManipulationTarget: target.token.id,
-                            shadowManipulationSequenceName: `shadow-manipulation-combo-${caster.id}-${target.token.id}`,
-                            targetName: target.name,
-                            spellName: "Manipulation des ombres",
-                            maintenanceCost: 1
-                        },
-                        statuscounter: { value: 1 }
-                    }
-                };
-
-                await actor.createEmbeddedDocuments("ActiveEffect", [manipulationCasterEffectData]);
-                console.log(`[Moctei] Applied combo shadow manipulation control effect`);
-
-            } catch (error) {
-                console.error(`[Moctei] Error applying combo shadow manipulation:`, error);
-                ui.notifications.error(`Erreur lors de l'application de la Manipulation des ombres combo !`);
-            }
-        }
-    }
-
     // ===== CHAT MESSAGE =====
     function createFlavor() {
         const costBreakdown = [];
@@ -813,11 +673,7 @@
         if (finalExtensionCost > 0) costBreakdown.push(`${finalExtensionCost} extension`);
         else if (extensionTargets.length > 0 && extensionCostReduced) costBreakdown.push("Extension GRATUIT");
 
-        if (finalComboManaCost > 0) costBreakdown.push(`${finalComboManaCost} combo`);
-        else if (isComboActive && comboManaCostReduced) costBreakdown.push("Combo GRATUIT");
-
         costBreakdown.push(`${SPELL_CONFIG.maintenanceCost}/tour`);
-        if (isComboActive) costBreakdown.push("1/tour (Manipulation)");
 
         const actualMana = costBreakdown.join(" + ");
 
@@ -872,18 +728,6 @@
             </div>
         ` : '';
 
-        const comboDisplay = isComboActive ? `
-            <div style="margin: 8px 0; padding: 10px; background: #f3e5f5; border-radius: 4px; border: 2px solid #9c27b0;">
-                <div style="font-size: 1.1em; color: #4a148c; font-weight: bold; margin-bottom: 6px;">🌑 COMBO MANIPULATION DES OMBRES ACTIVÉ</div>
-                <div style="font-size: 0.9em; color: #6a0dad;">
-                    <div>💀 <strong>Dégâts initiaux Manipulation:</strong> ${manipulationInitialDamage} (Dex/2, fixes)</div>
-                    <div>🔄 <strong>Dégâts continus Manipulation:</strong> ${manipulationContinuousDamage} (Dex/2, fixes)</div>
-                    <div>🚫 <strong>Immobilisation:</strong> Les cibles ne peuvent pas se déplacer</div>
-                    <div>🔄 <strong>Maintenance:</strong> +1 mana par tour pour la Manipulation</div>
-                </div>
-            </div>
-        ` : '';
-
         return `
             <div style="border: 2px solid #4a148c; border-radius: 8px; padding: 10px; background: linear-gradient(135deg, #f8f4ff 0%, #f0e8ff 100%);">
                 <div style="text-align: center; margin-bottom: 10px;">
@@ -916,7 +760,6 @@
                 ${attackDisplay}
                 ${damageDisplay}
                 ${targetsDisplay}
-                ${comboDisplay}
                 ${flameInfo}
             </div>
         `;
@@ -932,9 +775,7 @@
     // ===== FINAL NOTIFICATION =====
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
     const extensionInfo = extensionTargets.length > 0 ? ` + ${extensionTargets.length} extension(s)` : '';
-    const comboInfo = isComboActive ? ` + Manipulation (${manipulationInitialDamage} initiaux, ${manipulationContinuousDamage}/tour, immobilisé)` : '';
-    const totalMaintenanceCost = SPELL_CONFIG.maintenanceCost + (isComboActive ? 1 : 0);
 
-    ui.notifications.info(`🔥 ${SPELL_CONFIG.name} lancé !${stanceInfo} ${processedTargets.length} source(s) initiale(s)${extensionInfo}. Attaque: ${attackRoll.total}, Dégâts: ${initialDamage}. Flammes actives: ${continuousDamage}/tour !${comboInfo} (${totalMaintenanceCost} mana/tour) [${finalTotalSources} source(s) active(s)]`);
+    ui.notifications.info(`🔥 ${SPELL_CONFIG.name} lancé !${stanceInfo} ${processedTargets.length} source(s) initiale(s)${extensionInfo}. Attaque: ${attackRoll.total}, Dégâts: ${initialDamage}. Flammes actives: ${continuousDamage}/tour ! (${SPELL_CONFIG.maintenanceCost} mana/tour) [${finalTotalSources} source(s) active(s)]`);
 
 })();
