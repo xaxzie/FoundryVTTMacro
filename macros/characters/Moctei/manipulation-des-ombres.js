@@ -10,7 +10,7 @@
  * - Dégâts initiaux : Dextérité/2 (dégâts fixes, pas de dés)
  * - Dégâts par tour : Dextérité/2 (dégâts fixes, pas de dés)
  * - Effet : La cible ne peut pas se déplacer (immobilisation totale)
- * - Jet de sauvegarde : Volonté de l'adversaire (mentionné dans le résumé)
+ * - Jet de libération : Volonté opposé contre Moctei (jet manuel chaque tour)
  * - Spécialité : Moctei peut lancer plusieurs manipulations, une seule cible par lancement
  *
  * Animations :
@@ -64,11 +64,10 @@
             description: "Contrôle une manipulation d'ombre active"
         },
 
-        // Jet de sauvegarde de la cible
+        // Jet de libération de la cible (opposé)
         willpowerSave: {
             characteristic: "volonte",
-            difficulty: 15, // Difficulté de base pour se libérer
-            description: "Jet de Volonté pour tenter de se libérer des ombres"
+            description: "Jet de Volonté opposé pour tenter de se libérer des ombres"
         }
     };
 
@@ -164,7 +163,7 @@
                                 <li>⚔️ <strong>Dégâts initiaux :</strong> ${Math.floor(characteristicInfo.final / SPELL_CONFIG.dexterityDivisor)} (Dex/2, fixes)</li>
                                 <li>🔄 <strong>Dégâts/tour :</strong> ${Math.floor(characteristicInfo.final / SPELL_CONFIG.dexterityDivisor)} (Dex/2, fixes)</li>
                                 <li>🚫 <strong>Immobilisation :</strong> La cible ne peut pas se déplacer</li>
-                                <li>🎲 <strong>Libération :</strong> Jet de Volonté (Difficulté ${SPELL_CONFIG.willpowerSave.difficulty})</li>
+                                <li>🎲 <strong>Libération :</strong> Jet de Volonté opposé (manuel chaque tour)</li>
                             </ul>
                         </div>
 
@@ -215,18 +214,14 @@
     // ===== TARGETING via Portal =====
     async function selectTarget() {
         try {
-            const crosshairs = await warpgate.crosshairs.show({
-                size: 1,
-                icon: 'icons/magic/unholy/hand-glow-pink-purple.webp',
-                label: 'Manipulation des ombres',
-                tag: 'shadow-manipulation-crosshairs',
-                drawIcon: true,
-                drawOutline: true,
-                interval: 2
-            });
-            return crosshairs;
+            const portal = new Portal()
+                .origin(caster)
+                .range(SPELL_CONFIG.targeting.range)
+                .color(SPELL_CONFIG.targeting.color)
+                .texture(SPELL_CONFIG.targeting.texture);
+            return await portal.pick();
         } catch (e) {
-            console.log("Portal targeting cancelled or failed:", e);
+            ui.notifications.error("Erreur lors du ciblage. Vérifiez que Portal est installé.");
             return null;
         }
     }
@@ -237,69 +232,67 @@
         return;
     }
 
-    // Get actor at target location (grid-aware detection)
+    // Get actor at target location (Portal compatible)
     function getActorAtLocation(x, y) {
         const gridSize = canvas.grid.size;
 
         // Check if we have a grid
         if (canvas.grid.type !== 0) {
-            // Get grid position
-            const [gridX, gridY] = canvas.grid.getCenter(x, y);
+            // Grid-based detection: convert target coordinates to grid coordinates
+            const targetGridX = Math.floor(x / gridSize);
+            const targetGridY = Math.floor(y / gridSize);
 
-            // Find tokens at this grid position (with some tolerance)
-            const tolerance = gridSize * 0.3;
-            const tokens = canvas.tokens.placeables.filter(token => {
+            const tokensAtLocation = canvas.tokens.placeables.filter(token => {
+                // Calculate token's grid position
+                const tokenGridX = Math.floor(token.x / gridSize);
+                const tokenGridY = Math.floor(token.y / gridSize);
+
+                // Handle multi-grid tokens (width/height > 1)
+                const tokenWidth = Math.ceil(token.width * gridSize / gridSize);
+                const tokenHeight = Math.ceil(token.height * gridSize / gridSize);
+
+                // Check if target grid position intersects with token's grid area
+                const intersects = targetGridX >= tokenGridX &&
+                    targetGridX < tokenGridX + tokenWidth &&
+                    targetGridY >= tokenGridY &&
+                    targetGridY < tokenGridY + tokenHeight;
+
+                // Only include visible tokens to avoid targeting hidden enemies
+                return intersects && token.visible;
+            });
+
+            if (tokensAtLocation.length === 0) return null;
+
+            const targetToken = tokensAtLocation[0];
+            const targetActor = targetToken.actor;
+            if (!targetActor) return null;
+
+            // Return appropriate name based on visibility (tokens are already filtered for visibility)
+            return { name: targetToken.name, token: targetToken, actor: targetActor };
+        } else {
+            // No grid: use circular tolerance detection (original behavior)
+            const tolerance = gridSize;
+            const tokensAtLocation = canvas.tokens.placeables.filter(token => {
                 const tokenCenterX = token.x + (token.width * gridSize) / 2;
                 const tokenCenterY = token.y + (token.height * gridSize) / 2;
 
                 const distance = Math.sqrt(
-                    Math.pow(tokenCenterX - gridX, 2) +
-                    Math.pow(tokenCenterY - gridY, 2)
+                    Math.pow(tokenCenterX - x, 2) +
+                    Math.pow(tokenCenterY - y, 2)
                 );
 
-                return distance <= tolerance;
+                // Only include visible tokens to avoid targeting hidden enemies
+                return distance <= tolerance && token.visible;
             });
 
-            // Prefer visible tokens, then controlled tokens, then any token
-            const visibleTokens = tokens.filter(t => t.visible);
-            const controlledTokens = tokens.filter(t => t.controlled);
+            if (tokensAtLocation.length === 0) return null;
 
-            let selectedToken = null;
-            if (controlledTokens.length > 0) {
-                selectedToken = controlledTokens[0];
-            } else if (visibleTokens.length > 0) {
-                selectedToken = visibleTokens[0];
-            } else if (tokens.length > 0) {
-                selectedToken = tokens[0];
-            }
+            const targetToken = tokensAtLocation[0];
+            const targetActor = targetToken.actor;
+            if (!targetActor) return null;
 
-            return selectedToken;
-        } else {
-            // No grid - check exact position
-            const tokens = canvas.tokens.placeables.filter(token => {
-                const tokenBounds = {
-                    left: token.x,
-                    right: token.x + token.width * gridSize,
-                    top: token.y,
-                    bottom: token.y + token.height * gridSize
-                };
-
-                return x >= tokenBounds.left && x < tokenBounds.right &&
-                    y >= tokenBounds.top && y < tokenBounds.bottom;
-            });
-
-            const visibleTokens = tokens.filter(t => t.visible);
-            const controlledTokens = tokens.filter(t => t.controlled);
-
-            if (controlledTokens.length > 0) {
-                return controlledTokens[0];
-            } else if (visibleTokens.length > 0) {
-                return visibleTokens[0];
-            } else if (tokens.length > 0) {
-                return tokens[0];
-            }
-
-            return null;
+            // Return appropriate name based on visibility (tokens are already filtered for visibility)
+            return { name: targetToken.name, token: targetToken, actor: targetActor };
         }
     }
 
@@ -473,7 +466,7 @@
                 <div style="font-size: 0.9em; margin: 5px 0;">
                     <div>🚫 <strong>Immobilisation totale</strong> - ${targetName} ne peut pas se déplacer</div>
                     <div>💜 <strong>Dégâts continus</strong> - ${totalDamage} points par tour (fixes)</div>
-                    <div>🎲 <strong>Jet de sauvegarde</strong> - Volonté (Difficulté ${SPELL_CONFIG.willpowerSave.difficulty}) pour se libérer</div>
+                    <div>🎲 <strong>Jet de libération</strong> - Volonté opposé (manuel chaque tour)</div>
                 </div>
             </div>
         ` : '';
