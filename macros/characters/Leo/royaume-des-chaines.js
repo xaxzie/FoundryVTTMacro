@@ -254,9 +254,16 @@
             });
 
             if (tokensAtLocation.length === 0) return null;
-            return tokensAtLocation[0];
+
+            const targetToken = tokensAtLocation[0];
+            const targetActor = targetToken.actor;
+            if (!targetActor) return null;
+
+            // Return appropriate name based on visibility (tokens are already filtered for visibility)
+            return { name: targetToken.name, token: targetToken, actor: targetActor };
         } else {
             // No grid: use circular tolerance detection (original behavior with visibility check)
+            const tolerance = gridSize;
             const tokensAtLocation = canvas.tokens.placeables.filter(token => {
                 // First check if the token is visible to the current user
                 const isOwner = token.actor?.isOwner;
@@ -268,13 +275,22 @@
                     return false;
                 }
 
-                if (!token.actor) return false;
-                const distance = Math.sqrt(Math.pow(x - token.center.x, 2) + Math.pow(y - token.center.y, 2));
-                return distance <= 50;
+                const tokenCenterX = token.x + (token.document.width * gridSize) / 2;
+                const tokenCenterY = token.y + (token.document.height * gridSize) / 2;
+                const tokenDistance = Math.sqrt(
+                    Math.pow(tokenCenterX - x, 2) + Math.pow(tokenCenterY - y, 2)
+                );
+                return tokenDistance <= tolerance;
             });
 
             if (tokensAtLocation.length === 0) return null;
-            return tokensAtLocation[0];
+
+            const targetToken = tokensAtLocation[0];
+            const targetActor = targetToken.actor;
+            if (!targetActor) return null;
+
+            // Return appropriate name based on visibility (tokens are already filtered for visibility)
+            return { name: targetToken.name, token: targetToken, actor: targetActor };
         }
     }
 
