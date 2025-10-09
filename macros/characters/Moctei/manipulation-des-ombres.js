@@ -68,6 +68,20 @@
         willpowerSave: {
             characteristic: "volonte",
             description: "Jet de Volonté opposé pour tenter de se libérer des ombres"
+        },
+
+        // Configuration du combo avec Feu Obscur
+        comboOption: {
+            name: "Combo Feu Obscur",
+            manaCost: 2, // Coût additionnel
+            isFocusable: true,
+            description: "Applique aussi Feu Obscur en cas de coup réussi",
+            flameAnimation: "jb2a.markers.simple.001.complete.001.purple",
+            flameEffect: {
+                name: "Flamme Noire",
+                icon: "icons/magic/fire/flame-burning-skull-orange.webp",
+                description: "Brûlé par les flammes noires de Moctei - Dégâts continus (depuis Manipulation des ombres)"
+            }
         }
     };
 
@@ -167,6 +181,21 @@
                             </ul>
                         </div>
 
+                        <div style="margin: 10px 0; padding: 10px; background: #fff3e0; border-radius: 4px; border: 2px solid #f57c00;">
+                            <h4 style="margin: 0 0 10px 0; color: #e65100;">🔥 Options Combo (+2 mana, focalisable)</h4>
+                            <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <input type="radio" name="comboOption" value="none" checked style="margin-right: 8px;">
+                                <span><strong>Manipulation seule</strong> - Effet standard</span>
+                            </label>
+                            <label style="display: flex; align-items: center;">
+                                <input type="radio" name="comboOption" value="darkFlame" style="margin-right: 8px;">
+                                <span><strong>+ Feu Obscur</strong> - Applique aussi Flamme Noire en cas de coup réussi</span>
+                            </label>
+                            <div style="margin-top: 8px; font-size: 0.9em; color: #bf360c; font-style: italic;">
+                                ⚠️ Le Feu Obscur combo ne peut pas être étendu aux cibles adjacentes
+                            </div>
+                        </div>
+
                         <div style="margin: 10px 0;">
                             <label for="attackBonus" style="font-weight: bold;">Bonus d'Attaque Manuel :</label>
                             <input type="number" id="attackBonus" value="0" min="0" max="10" style="width: 60px; margin-left: 5px;">
@@ -187,7 +216,8 @@
                         callback: (html) => {
                             const attackBonus = parseInt(html.find('#attackBonus').val()) || 0;
                             const damageBonus = parseInt(html.find('#damageBonus').val()) || 0;
-                            resolve({ attackBonus, damageBonus });
+                            const comboOption = html.find('input[name="comboOption"]:checked').val();
+                            resolve({ attackBonus, damageBonus, comboOption });
                         }
                     },
                     cancel: {
@@ -209,7 +239,7 @@
         ui.notifications.info('Sort annulé.');
         return;
     }
-    const { attackBonus, damageBonus } = userConfig;
+    const { attackBonus, damageBonus, comboOption } = userConfig;
 
     // ===== TARGETING via Portal =====
     async function selectTarget() {
@@ -371,6 +401,20 @@
     // Dégâts continus (SANS bonus d'effets, uniquement base + bonus manuel)
     const continuousDamage = baseDamage + (damageBonus || 0);
 
+    // ===== COMBO CONFIGURATION =====
+    const isComboActive = comboOption === 'darkFlame';
+    const comboManaCost = isComboActive ? SPELL_CONFIG.comboOption.manaCost : 0;
+    const comboManaCostReduced = (currentStance === 'focus' && SPELL_CONFIG.comboOption.isFocusable);
+    const finalComboManaCost = isComboActive ? (comboManaCostReduced ? 0 : comboManaCost) : 0;
+
+    // Calculs pour le Feu Obscur combo (basé sur Dextérité comme dans feu-obscur.js)
+    let darkFlameInitialDamage = 0;
+    let darkFlameContinuousDamage = 0;
+    if (isComboActive) {
+        darkFlameInitialDamage = Math.ceil(characteristicInfo.final / 2); // Dex/2 arrondi sup
+        darkFlameContinuousDamage = Math.ceil(characteristicInfo.final / 4); // Dex/4 arrondi sup
+    }
+
     // ===== ADD ACTIVE EFFECTS =====
     if (targetActor?.actor) {
         // Effet sur la cible
@@ -428,13 +472,113 @@
         } catch (error) {
             console.error(`[Moctei] Error applying control effect:`, error);
         }
+
+        // ===== COMBO DARK FLAME APPLICATION =====
+        if (isComboActive) {
+            // Animation du Feu Obscur combo (après toutes les autres)
+            const comboSeq = new Sequence();
+            comboSeq.effect()
+                .file(SPELL_CONFIG.comboOption.flameAnimation)
+                .attachTo(targetActor.token)
+                .scale(0.6)
+                .name(`dark-flame-combo-${caster.id}-${targetActor.token.id}`)
+                .tint("#1a0033")
+                .opacity(0.8)
+                .delay(2000); // Déclenché après les autres animations
+
+            await comboSeq.play();
+
+            // Appliquer l'effet Flamme Noire combo
+            const darkFlameEffectData = {
+                name: SPELL_CONFIG.comboOption.flameEffect.name,
+                icon: SPELL_CONFIG.comboOption.flameEffect.icon,
+                description: SPELL_CONFIG.comboOption.flameEffect.description,
+                duration: { seconds: 86400 },
+                flags: {
+                    world: {
+                        darkFlameCaster: caster.id,
+                        darkFlameTarget: targetActor.token.id,
+                        darkFlameSequenceName: `dark-flame-combo-${caster.id}-${targetActor.token.id}`,
+                        darkFlameType: "source", // Considéré comme source pour le comptage
+                        spellName: "Feu obscur (Combo)",
+                        maintenanceCost: 1, // Même maintenance que Feu Obscur normal
+                        damagePerTurn: darkFlameContinuousDamage,
+                        isComboFlame: true // Flag pour identifier les flammes combo
+                    },
+                    statuscounter: { value: darkFlameContinuousDamage, visible: true }
+                }
+            };
+
+            try {
+                await targetActor.actor.createEmbeddedDocuments("ActiveEffect", [darkFlameEffectData]);
+                console.log(`[Moctei] Applied combo dark flame to ${targetName}`);
+
+                // Gérer l'effet de contrôle Feu Obscur sur Moctei
+                const existingDarkFlameControl = actor.effects.find(e => e.name === "Feu obscur (Contrôle)");
+
+                if (existingDarkFlameControl) {
+                    // Mettre à jour l'effet de contrôle existant
+                    const currentSources = existingDarkFlameControl.flags?.world?.darkFlameInitialSources || [];
+                    const currentExtensions = existingDarkFlameControl.flags?.world?.darkFlameExtensions || [];
+                    const updatedSources = [...currentSources, targetActor.token.id];
+                    const allAffectedTargets = [...updatedSources, ...currentExtensions];
+
+                    const updateData = {
+                        description: `Contrôle des flammes noires actives - ${updatedSources.length} source(s) active(s)`,
+                        flags: {
+                            ...existingDarkFlameControl.flags,
+                            world: {
+                                ...existingDarkFlameControl.flags.world,
+                                darkFlameInitialSources: updatedSources,
+                                darkFlameExtensions: currentExtensions,
+                                darkFlameTargets: allAffectedTargets
+                            },
+                            statuscounter: { value: updatedSources.length, visible: true }
+                        }
+                    };
+
+                    await existingDarkFlameControl.update(updateData);
+                    console.log(`[Moctei] Updated existing dark flame control for combo`);
+                } else {
+                    // Créer un nouvel effet de contrôle Feu Obscur
+                    const darkFlameControlData = {
+                        name: "Feu obscur (Contrôle)",
+                        icon: "icons/magic/fire/flame-burning-eye.webp",
+                        description: `Contrôle des flammes noires actives - 1 source(s) active(s)`,
+                        duration: { seconds: 86400 },
+                        flags: {
+                            world: {
+                                darkFlameInitialSources: [targetActor.token.id],
+                                darkFlameExtensions: [],
+                                darkFlameTargets: [targetActor.token.id],
+                                spellName: "Feu obscur",
+                                maintenanceCost: 1
+                            },
+                            statuscounter: { value: 1, visible: true }
+                        }
+                    };
+
+                    await actor.createEmbeddedDocuments("ActiveEffect", [darkFlameControlData]);
+                    console.log(`[Moctei] Created new dark flame control for combo`);
+                }
+
+            } catch (error) {
+                console.error(`[Moctei] Error applying combo dark flame:`, error);
+                ui.notifications.error(`Erreur lors de l'application du Feu Obscur combo !`);
+            }
+        }
     }
 
     // ===== CHAT MESSAGE =====
     function createFlavor() {
-        const actualMana = (currentStance === 'focus' && SPELL_CONFIG.isFocusable) ?
+        let actualMana = (currentStance === 'focus' && SPELL_CONFIG.isFocusable) ?
             `GRATUIT (Position Focus) + ${SPELL_CONFIG.maintenanceCost} par tour` :
             `${SPELL_CONFIG.manaCost} mana + ${SPELL_CONFIG.maintenanceCost} par tour`;
+
+        if (isComboActive) {
+            const comboText = finalComboManaCost === 0 ? "GRATUIT (Position Focus)" : `${finalComboManaCost} mana`;
+            actualMana += ` + ${comboText} (Combo Feu Obscur) + 1 mana/tour`;
+        }
 
         const injuryInfo = characteristicInfo.injuries > 0 ?
             `<div style="color: #d32f2f; font-size: 0.9em; margin: 5px 0;">
@@ -470,8 +614,20 @@
                 <div style="font-weight: bold; color: #1976d2;">🌑 Effets appliqués :</div>
                 <div style="font-size: 0.9em; margin: 5px 0;">
                     <div>🚫 <strong>Immobilisation totale</strong> - ${targetName} ne peut pas se déplacer</div>
-                    <div>💜 <strong>Dégâts continus</strong> - ${continuousDamage} points par tour (fixes, sans bonus d'effets)</div>
+                    <div>💜 <strong>Dégâts continus Manipulation</strong> - ${continuousDamage} points par tour (fixes, sans bonus d'effets)</div>
                     <div>🎲 <strong>Jet de libération</strong> - Volonté opposé (manuel chaque tour)</div>
+                    ${isComboActive ? `<div>🔥 <strong>Flamme Noire Combo</strong> - ${darkFlameContinuousDamage} points par tour supplémentaires</div>` : ''}
+                </div>
+            </div>
+        ` : '';
+
+        const comboDisplay = isComboActive ? `
+            <div style="margin: 8px 0; padding: 10px; background: #fff3e0; border-radius: 4px; border: 2px solid #f57c00;">
+                <div style="font-size: 1.1em; color: #e65100; font-weight: bold; margin-bottom: 6px;">🔥 COMBO FEU OBSCUR ACTIVÉ</div>
+                <div style="font-size: 0.9em; color: #bf360c;">
+                    <div>💥 <strong>Dégâts initiaux Feu Obscur:</strong> ${darkFlameInitialDamage} (Dex/2, arrondi sup.)</div>
+                    <div>🔥 <strong>Dégâts continus Feu Obscur:</strong> ${darkFlameContinuousDamage} (Dex/4, arrondi sup.)</div>
+                    <div>🔥 <strong>Maintenance:</strong> +1 mana par tour pour le Feu Obscur</div>
                 </div>
             </div>
         ` : '';
@@ -512,6 +668,7 @@
                 ${attackDisplay}
                 ${damageDisplay}
                 ${effectsDisplay}
+                ${comboDisplay}
                 ${manipulationInfo}
             </div>
         `;
@@ -528,6 +685,9 @@
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
     const totalManipulations = manipulationCount + 1;
 
-    ui.notifications.info(`🌑 ${SPELL_CONFIG.name} lancée !${stanceInfo} Cible: ${targetName}. Attaque: ${attackRoll.total}, Dégâts initiaux: ${initialDamage}, Continus: ${continuousDamage}/tour. Immobilisé ! (${SPELL_CONFIG.maintenanceCost} mana/tour) [${totalManipulations} manipulation(s) active(s)]`);
+    const comboInfo = isComboActive ? ` + Feu Obscur (${darkFlameInitialDamage} initiaux, ${darkFlameContinuousDamage}/tour)` : '';
+    const totalMaintenanceCost = SPELL_CONFIG.maintenanceCost + (isComboActive ? 1 : 0);
+
+    ui.notifications.info(`🌑 ${SPELL_CONFIG.name} lancée !${stanceInfo} Cible: ${targetName}. Attaque: ${attackRoll.total}, Dégâts initiaux: ${initialDamage}, Continus: ${continuousDamage}/tour. Immobilisé !${comboInfo} (${totalMaintenanceCost} mana/tour) [${totalManipulations} manipulation(s) active(s)]`);
 
 })();
