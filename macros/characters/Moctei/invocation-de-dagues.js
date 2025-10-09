@@ -359,25 +359,91 @@
     const distanceInCells = calculateDistance(caster, target);
     const isCloseRange = distanceInCells <= SPELL_CONFIG.maxCloseRange;
 
-    // Get actor at target location
+    // Get actor at target location (grid-aware detection with visibility filtering)
     function getActorAtLocation(x, y) {
-        const tokens = canvas.tokens.placeables.filter(token => {
-            const tokenBounds = {
-                left: token.x,
-                right: token.x + (token.width * canvas.grid.size),
-                top: token.y,
-                bottom: token.y + (token.height * canvas.grid.size)
-            };
+        const gridSize = canvas.grid.size;
 
-            return x >= tokenBounds.left && x < tokenBounds.right &&
-                   y >= tokenBounds.top && y < tokenBounds.bottom;
-        });
+        // Check if we have a grid
+        if (canvas.grid.type !== 0) {
+            // Grid-based detection: convert target coordinates to grid coordinates
+            const targetGridX = Math.floor(x / gridSize);
+            const targetGridY = Math.floor(y / gridSize);
 
-        return tokens.length > 0 ? tokens[0] : null;
+            const tokensAtLocation = canvas.tokens.placeables.filter(token => {
+                // First check if the token is visible to the current user
+                const isOwner = token.actor?.isOwner;
+                const isVisible = token.visible;
+                const isGM = game.user.isGM;
+
+                // Skip tokens that aren't visible to the current user
+                if (!isOwner && !isVisible && !isGM) {
+                    return false;
+                }
+
+                // Get token's grid position (top-left corner)
+                const tokenGridX = Math.floor(token.x / gridSize);
+                const tokenGridY = Math.floor(token.y / gridSize);
+
+                // Check if any grid square occupied by the token matches the target grid square
+                const tokenWidth = token.document.width;
+                const tokenHeight = token.document.height;
+
+                for (let dx = 0; dx < tokenWidth; dx++) {
+                    for (let dy = 0; dy < tokenHeight; dy++) {
+                        const tokenSquareX = tokenGridX + dx;
+                        const tokenSquareY = tokenGridY + dy;
+
+                        if (tokenSquareX === targetGridX && tokenSquareY === targetGridY) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            });
+
+            if (tokensAtLocation.length === 0) return null;
+
+            const targetToken = tokensAtLocation[0];
+            const targetActor = targetToken.actor;
+            if (!targetActor) return null;
+
+            // Return appropriate name based on visibility (tokens are already filtered for visibility)
+            return { name: targetToken.name, token: targetToken, actor: targetActor };
+        } else {
+            // No grid: use circular tolerance detection (original behavior with visibility check)
+            const tolerance = gridSize;
+            const tokensAtLocation = canvas.tokens.placeables.filter(token => {
+                // First check if the token is visible to the current user
+                const isOwner = token.actor?.isOwner;
+                const isVisible = token.visible;
+                const isGM = game.user.isGM;
+
+                // Skip tokens that aren't visible to the current user
+                if (!isOwner && !isVisible && !isGM) {
+                    return false;
+                }
+
+                const tokenCenterX = token.x + (token.document.width * gridSize) / 2;
+                const tokenCenterY = token.y + (token.document.height * gridSize) / 2;
+                const tokenDistance = Math.sqrt(
+                    Math.pow(tokenCenterX - x, 2) + Math.pow(tokenCenterY - y, 2)
+                );
+                return tokenDistance <= tolerance;
+            });
+
+            if (tokensAtLocation.length === 0) return null;
+
+            const targetToken = tokensAtLocation[0];
+            const targetActor = targetToken.actor;
+            if (!targetActor) return null;
+
+            // Return appropriate name based on visibility (tokens are already filtered for visibility)
+            return { name: targetToken.name, token: targetToken, actor: targetActor };
+        }
     }
 
-    const targetToken = getActorAtLocation(target.x, target.y);
-    const targetName = targetToken ? targetToken.name : `Position (${Math.round(target.x)}, ${Math.round(target.y)})`;
+    const targetActorInfo = getActorAtLocation(target.x, target.y);
+    const targetName = targetActorInfo ? targetActorInfo.name : `Position (${Math.round(target.x)}, ${Math.round(target.y)})`;
 
     // ===== ANIMATIONS (Sequencer) =====
     async function playAnimation() {
@@ -434,21 +500,50 @@
 
     await playAnimation();
 
-    // ===== ATTACK RESOLUTION =====
+    // ===== COMBINED ATTACK AND DAMAGE RESOLUTION =====
     const baseAttackDice = characteristicInfo.final + attackBonus;
     const finalAttackDice = Math.max(1, baseAttackDice);
     const levelBonus = 2 * SPELL_CONFIG.spellLevel;
 
-    const attackRoll = new Roll(`${finalAttackDice}d7 + ${levelBonus}`);
-    await attackRoll.evaluate({ async: true });
-
-    // ===== DAMAGE CALCULATION =====
+    // Damage configuration based on range
     const damageConfig = isCloseRange ? SPELL_CONFIG.damage.close : SPELL_CONFIG.damage.ranged;
-    const dexterityBonus = characteristicInfo.final; // Bonus de dextérité aux dégâts
-    const totalDamageBonus = dexterityBonus + damageBonus; // Dextérité + bonus manuel
+    const dexterityBonus = characteristicInfo.final;
+    const totalDamageBonus = dexterityBonus + damageBonus;
 
-    const damageRoll = new Roll(`${damageConfig.dice} + ${totalDamageBonus}`);
-    await damageRoll.evaluate({ async: true });
+    // Build combined roll formula: attack roll + damage roll
+    let combinedRollParts = [`${finalAttackDice}d7 + ${levelBonus}`];
+
+    // Add damage roll to the combined formula (only if not maximized)
+    if (currentStance !== 'offensif') {
+        combinedRollParts.push(`${damageConfig.dice} + ${totalDamageBonus}`);
+    }
+
+    const combinedRoll = new Roll(`{${combinedRollParts.join(', ')}}`);
+    await combinedRoll.evaluate({ async: true });
+
+    // Extract results from the combined roll
+    const attackResult = combinedRoll.terms[0].results[0];
+    let finalDamageResult;
+
+    if (currentStance === 'offensif') {
+        // Calculate maximized damage for offensive stance
+        const damageRoll = new Roll(damageConfig.dice);
+        await damageRoll.evaluate({ async: true });
+        const maxPossibleDamage = damageRoll.terms[0].faces * damageRoll.terms[0].number;
+        finalDamageResult = {
+            total: maxPossibleDamage + totalDamageBonus,
+            formula: `${damageConfig.dice} + ${totalDamageBonus} (MAXIMISÉ)`,
+            result: maxPossibleDamage + totalDamageBonus
+        };
+    } else {
+        // Extract damage result from dice roll
+        const damageRollResult = combinedRoll.terms[0].results[1];
+        finalDamageResult = {
+            total: damageRollResult.result,
+            formula: damageRollResult.expression,
+            result: damageRollResult.result
+        };
+    }
 
     // ===== GESTION DE L'EFFET LONGUE DURÉE =====
     let effectMessage = "";
@@ -536,14 +631,16 @@
 
         const attackDisplay = `
             <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff8e1; border-radius: 4px;">
-                <div style="font-size: 1.4em; color: #f57f17; font-weight: bold;">🎯 ATTAQUE: ${attackRoll.total}</div>
+                <div style="font-size: 1.4em; color: #f57f17; font-weight: bold;">🎯 ATTAQUE: ${attackResult.result}</div>
                 <div style="font-size: 0.9em; color: #666; margin-top: 4px;">${distanceInfo}</div>
             </div>
         `;
 
+        const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
         const damageDisplay = `
             <div style="text-align: center; margin: 8px 0; padding: 10px; background: #ffebee; border-radius: 4px;">
-                <div style="font-size: 1.4em; color: #c62828; font-weight: bold;">⚔️ DÉGÂTS: ${damageRoll.total}</div>
+                <div style="font-size: 1.1em; color: #c62828; margin-bottom: 6px;"><strong>⚔️ ${SPELL_CONFIG.name}${stanceNote}</strong></div>
+                <div style="font-size: 1.4em; color: #c62828; font-weight: bold;">💥 DÉGÂTS: ${finalDamageResult.total}</div>
                 <div style="font-size: 0.9em; color: #666; margin-top: 4px;">${damageConfig.description} (${damageConfig.dice} + ${totalDamageBonus})</div>
             </div>
         `;
@@ -575,27 +672,21 @@
         `;
     }
 
-    // Send attack roll to chat with damage
-    await attackRoll.toMessage({
+    // Send the combined roll to chat with enhanced flavor
+    await combinedRoll.toMessage({
         speaker: ChatMessage.getSpeaker({ token: caster }),
         flavor: createFlavor(),
-        rollMode: game.settings.get("core", "rollMode")
-    });
-
-    // Send damage roll to chat
-    await damageRoll.toMessage({
-        speaker: ChatMessage.getSpeaker({ token: caster }),
-        flavor: `<div style="text-align: center; color: #4a148c;"><strong>🗡️ Dégâts des Dagues d'Ombre</strong></div>`,
         rollMode: game.settings.get("core", "rollMode")
     });
 
     // ===== FINAL NOTIFICATION =====
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
     const rangeInfo = isCloseRange ? "rapprochée" : "à distance";
+    const maximizedInfo = currentStance === 'offensif' ? ' MAXIMISÉ' : '';
 
     ui.notifications.info(
         `🌑 ${SPELL_CONFIG.name} lancé !${stanceInfo} Cible: ${targetName} (${rangeInfo}). ` +
-        `Attaque: ${attackRoll.total}, Dégâts: ${damageRoll.total}. ${actualManaCost} mana utilisé.`
+        `Attaque: ${attackResult.result}, Dégâts: ${finalDamageResult.total}${maximizedInfo}. ${actualManaCost} mana utilisé.`
     );
 
 })();
