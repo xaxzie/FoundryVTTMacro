@@ -45,8 +45,8 @@
             borderColor: "#2e0054",
             bgColor: "#f3e5f5",
             detectFlags: [
-                { path: "flags.world.shadowManipulationCaster", matchValue: "CASTER_ID" },
-                { path: "flags.world.spellName", matchValue: "Manipulation des ombres" }
+                { path: "name", matchValue: "Manipulation des ombres" },
+                { path: "flags.world.shadowManipulationCaster", matchValue: "CASTER_ID" }
             ],
             cleanup: {
                 sequencerNames: [
@@ -57,7 +57,7 @@
             mechanicType: "shadowManipulation"
         },
 
-        // Flamme Noire - Effet de feu obscur
+        // Flamme Noire - Effet de feu obscur (toutes variantes)
         "Flamme Noire": {
             displayName: "Flamme Noire",
             icon: "icons/magic/fire/flame-burning-eye.webp",
@@ -68,25 +68,31 @@
             borderColor: "#1a0033",
             bgColor: "#f3e5f5",
             detectFlags: [
+                { path: "name", matchValue: "Flamme Noire" },
                 { path: "flags.world.darkFlameCaster", matchValue: "CASTER_ID" }
-                // Note: Pas de vérification spellName pour permettre "Feu obscur", "Feu obscur (Combo)", etc.
             ],
             mechanicType: "darkFlame",
             // Données supplémentaires pour l'affichage
             getExtraData: (effect) => ({
                 damagePerTurn: effect.flags?.statuscounter?.value || 0,
                 isComboFlame: effect.flags?.world?.isComboFlame || false,
-                sourceSpell: effect.flags?.world?.spellName || "Feu obscur"
+                sourceSpell: effect.flags?.world?.spellName || "Feu obscur",
+                flameType: effect.flags?.world?.darkFlameType || "unknown"
             }),
             getDynamicDescription: (effect) => {
                 const damage = effect.flags?.statuscounter?.value || 0;
                 const isCombo = effect.flags?.world?.isComboFlame || false;
                 const sourceSpell = effect.flags?.world?.spellName || "Feu obscur";
+                const flameType = effect.flags?.world?.darkFlameType || "";
+
+                let typeInfo = "";
+                if (flameType === "source") typeInfo = " (source)";
+                else if (flameType === "extension") typeInfo = " (extension)";
 
                 if (isCombo) {
-                    return `Flamme noire (${sourceSpell}) - ${damage} dégâts/tour`;
+                    return `Flamme noire${typeInfo} (${sourceSpell}) - ${damage} dégâts/tour`;
                 } else {
-                    return `Flamme noire - ${damage} dégâts/tour`;
+                    return `Flamme noire${typeInfo} - ${damage} dégâts/tour`;
                 }
             }
         },
@@ -98,19 +104,26 @@
     // ===== FONCTIONS UTILITAIRES =====
 
     /**
-     * Vérifie si un effet correspond aux flags de configuration
+     * Vérifie si un effet correspond aux flags de configuration (comme Urgen)
      */
     function checkEffectFlags(effect, config, casterId, targetId = null) {
         for (const flagCheck of config.detectFlags) {
-            const flagValue = getProperty(effect, flagCheck.path);
-            let expectedValue = flagCheck.matchValue;
+            if (flagCheck.path === "name") {
+                // Vérification spéciale par nom d'effet (comme Urgen)
+                if (effect.name === flagCheck.matchValue) {
+                    return true;
+                }
+            } else {
+                const flagValue = getProperty(effect, flagCheck.path);
+                let expectedValue = flagCheck.matchValue;
 
-            // Remplacements dynamiques
-            if (expectedValue === "CASTER_ID") expectedValue = casterId;
-            if (expectedValue === "TARGET_ID") expectedValue = targetId;
+                // Remplacements dynamiques
+                if (expectedValue === "CASTER_ID") expectedValue = casterId;
+                if (expectedValue === "TARGET_ID") expectedValue = targetId;
 
-            if (flagValue === expectedValue) {
-                return true;
+                if (flagValue === expectedValue) {
+                    return true;
+                }
             }
         }
         return false;
@@ -511,45 +524,32 @@
             if (!token.actor) continue;
             if (token.id === caster.id) continue; // Skip Moctei lui-même
 
-            // Chercher les effets appliqués par Moctei
+            // Chercher les effets appliqués par Moctei (approche identique à Urgen)
             for (const effect of token.actor.effects.contents) {
-                let matchedConfig = null;
-                let matchedEffectType = null;
+                // Vérifier chaque type d'effet configuré
+                for (const [effectType, config] of Object.entries(EFFECT_CONFIG)) {
 
-                // Approche simplifiée : détecter les effets de Moctei par flags de caster
-                const casterId = actor.id;
+                    // Utiliser la même logique que Urgen : checkEffectFlags
+                    if (checkEffectFlags(effect, config, actor.id, token.id)) {
+                        const extraData = config.getExtraData ? config.getExtraData(effect) : {};
+                        const description = config.getDynamicDescription ?
+                            config.getDynamicDescription(effect) : config.description;
 
-                // Vérifier si c'est une Manipulation des ombres
-                if (effect.flags?.world?.shadowManipulationCaster === casterId) {
-                    matchedConfig = EFFECT_CONFIG["Manipulation des ombres"];
-                    matchedEffectType = "Manipulation des ombres";
-                }
-                // Vérifier si c'est une Flamme Noire (toutes variantes)
-                else if (effect.flags?.world?.darkFlameCaster === casterId) {
-                    matchedConfig = EFFECT_CONFIG["Flamme Noire"];
-                    matchedEffectType = "Flamme Noire";
-                }
+                        characterEffects.push({
+                            token: token,
+                            effect: effect,
+                            effectType: effectType,
+                            config: config,
+                            description: description,
+                            extraData: extraData
+                        });
 
-                // Si on a trouvé une correspondance
-                if (matchedConfig && matchedEffectType) {
-                    const extraData = matchedConfig.getExtraData ? matchedConfig.getExtraData(effect) : {};
-                    const description = matchedConfig.getDynamicDescription ?
-                        matchedConfig.getDynamicDescription(effect) : matchedConfig.description;
-
-                    characterEffects.push({
-                        token: token,
-                        effect: effect,
-                        effectType: matchedEffectType,
-                        config: matchedConfig,
-                        description: description,
-                        extraData: extraData
-                    });
-
-                    console.log(`[Moctei] Found ${matchedEffectType} on ${token.name}:`, {
-                        effectName: effect.name,
-                        flags: effect.flags?.world,
-                        extraData: extraData
-                    });
+                        console.log(`[Moctei] Found ${effectType} on ${token.name}:`, {
+                            effectName: effect.name,
+                            flags: effect.flags?.world,
+                            extraData: extraData
+                        });
+                    }
                 }
             }
         }
