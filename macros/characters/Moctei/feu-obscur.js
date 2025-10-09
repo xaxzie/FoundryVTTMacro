@@ -504,7 +504,7 @@
                     .scale(0.6)
                     .name(`dark-flame-${caster.id}-${target.token.id}`)
                     .tint("#1a0033")
-                    .opacity(0.8);
+                    .opacity(0.4);
             }
         }
 
@@ -516,12 +516,9 @@
                 if (originTargetData) {
                     seq.effect()
                         .file(SPELL_CONFIG.animations.extension)
-                        .from(originTargetData.token)
+                        .attachTo(originTargetData.token)
                         .stretchTo(extTarget.token)
-                        .scale(0.8)
-                        .duration(1500)
-                        .fadeIn(500)
-                        .fadeOut(500)
+                        .scale(1)
                         .tint("#1a0033");
                 }
 
@@ -530,7 +527,7 @@
                     seq.effect()
                         .file(SPELL_CONFIG.animations.darkFlame)
                         .attachTo(extTarget.token)
-                        .scale(0.6)
+                        .scale(0.4)
                         .name(`dark-flame-${caster.id}-${extTarget.token.id}`)
                         .delay(1000)
                         .fadeIn(1000)
