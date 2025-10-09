@@ -37,7 +37,7 @@
         // Manipulation des ombres - Effet principal d'immobilisation
         "Manipulation des ombres": {
             displayName: "Manipulation des ombres",
-            icon: "icons/magic/unholy/hand-glow-pink-purple.webp",
+            icon: "icons/creatures/tentacles/tentacles-octopus-black-pink.webp",
             description: "Immobilisé par les ombres de Moctei",
             sectionTitle: "🌑 Manipulation des Ombres",
             sectionIcon: "🌑",
@@ -48,13 +48,6 @@
                 { path: "flags.world.shadowManipulationCaster", matchValue: "CASTER_ID" },
                 { path: "flags.world.spellName", matchValue: "Manipulation des ombres" }
             ],
-            removeAnimation: {
-                file: "jb2a.markers.chain.standard.complete.02.purple",
-                scale: 0.6,
-                duration: 2000,
-                fadeOut: 1000,
-                tint: "#2e0054"
-            },
             cleanup: {
                 sequencerNames: [
                     "shadowManipulationSequenceName", // Trait d'ombre

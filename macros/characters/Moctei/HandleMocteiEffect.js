@@ -65,6 +65,16 @@
                 persistent: false,
                 sequencerName: "MocteiShadowDaggers"
             }
+        },
+        "Ora Eyes": {
+            name: "Ora Eyes",
+            icon: "icons/svg/eye.svg",
+            flags: [
+                { key: "damage", value: 3 }
+            ],
+            description: "Bonus de +3 aux dégâts",
+            category: "custom",
+            increasable: false
         }
 
         // TODO: Add more Moctei-specific shadow magic effects here

@@ -53,14 +53,14 @@
         // Configuration de l'effet persistant sur la cible
         targetEffect: {
             name: "Manipulation des ombres",
-            icon: "icons/magic/unholy/hand-glow-pink-purple.webp",
+            icon: "icons/creatures/tentacles/tentacles-suctioncups-pink.webp",
             description: "Immobilisé par les ombres de Moctei - Ne peut pas se déplacer"
         },
 
         // Configuration de l'effet sur Moctei pour tracker l'état
         casterEffect: {
             name: "Manipulation des ombres (Contrôle)",
-            icon: "icons/magic/symbols/runes-star-purple.webp",
+            icon: "icons/creatures/tentacles/tentacles-octopus-black-pink.webp",
             description: "Contrôle une manipulation d'ombre active"
         },
 
@@ -333,6 +333,7 @@
                 .persist()
                 .name(`shadow-manipulation-${caster.id}-${targetActor.token.id}`)
                 .fadeIn(1000)
+                .fadeOut(1000)
                 .tint("#2e0054");
 
             // Effet d'immobilisation sur la cible
@@ -340,10 +341,11 @@
                 seq.effect()
                     .file(SPELL_CONFIG.animations.immobilization)
                     .attachTo(targetActor.token)
-                    .scale(1.2)
+                    .scale(0.2)
                     .persist()
                     .name(`shadow-immobilization-${targetActor.token.id}`)
                     .fadeIn(1000)
+                    .fadeOut(1000)
                     .tint("#2e0054")
                     .opacity(0.8);
             }
