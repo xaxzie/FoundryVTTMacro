@@ -38,9 +38,9 @@
         isMultipleAllowed: true, // Peut lancer plusieurs manipulations
 
         animations: {
-            cast: "jb2a.eldritch_blast.dark_purple",
-            shadowTendril: "jb2a.chain.02.complete.01.dark_purple", // Trait d'ombre persistant
-            immobilization: "jb2a.markers.chain.standard.loop.01.dark_purple", // Effet d'immobilisation
+            cast: "jaamod.spells_effects.black_tentacle2",
+            shadowTendril: "animated-spell-effects.air.smoke.black_ray", // Trait d'ombre persistant
+            immobilization: "jb2a_patreon.black_tentacles.dark_purple", // Effet d'immobilisation
             sound: null
         },
 
