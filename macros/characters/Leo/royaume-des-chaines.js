@@ -135,62 +135,133 @@
         return;
     }
 
-    // ===== CHOIX DE LA VERSION =====
-    async function selectSpellVersion() {
+    // ===== MENU UNIFIÉ DE CONFIGURATION =====
+    async function showUnifiedDialog() {
         return new Promise(resolve => {
             new Dialog({
-                title: "🔗 Royaume des Chaînes - Choix de la Version",
+                title: "🔗 Royaume des Chaînes - Configuration",
                 content: `
-                    <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="text-align: center; margin-bottom: 15px;">
                         <h2 style="margin: 0; color: #3f51b5;">🔗 Royaume des Chaînes</h2>
-                        <p style="margin: 5px 0; color: #666;">Choisissez la version du sort à lancer</p>
+                        <p style="margin: 5px 0; color: #666;"><strong>Lanceur:</strong> ${actor.name}</p>
+                        <p style="margin: 5px 0; color: #666;"><strong>Physique:</strong> ${characteristicInfo.final}</p>
                     </div>
 
-                    <div style="display: flex; gap: 15px; margin: 20px 0;">
-                        <!-- Version Simple -->
-                        <div style="flex: 1; border: 2px solid #4a4a4a; border-radius: 8px; padding: 15px; background: linear-gradient(135deg, #e8eaf6, #fff8e1);">
-                            <h3 style="margin-top: 0; color: #3f51b5; text-align: center;">🎯 Version Simple</h3>
-                            <div style="font-size: 0.9em; line-height: 1.4;">
-                                <p><strong>Cibles :</strong> 1 seule cible</p>
-                                <p><strong>Coût :</strong> 3 mana + 3/tour maintenu</p>
-                                <p><strong>Effets :</strong></p>
-                                <ul style="margin: 5px 0; padding-left: 20px;">
-                                    <li>Cible : -4 Agilité, -2 autres stats</li>
-                                    <li>Léo : -3 Agilité (concentration)</li>
-                                </ul>
-                                <p><strong>Animation :</strong> Royaume complexe + lien</p>
-                                <p style="color: #ff9800;"><strong>Maintenance requise</strong></p>
-                            </div>
+                    <!-- Sélection de Version -->
+                    <div style="margin: 15px 0;">
+                        <h3 style="color: #3f51b5; margin-bottom: 10px;">🎯 Choix de la Version</h3>
+                        <div style="display: flex; gap: 10px;">
+                            <label style="flex: 1; cursor: pointer; border: 2px solid #ddd; border-radius: 8px; padding: 10px; background: linear-gradient(135deg, #e8eaf6, #fff8e1);">
+                                <input type="radio" name="spellVersion" value="simple" checked style="margin-right: 8px;">
+                                <div style="font-size: 0.9em;">
+                                    <strong>🎯 Simple</strong><br>
+                                    1 cible | 3 mana + 3/tour<br>
+                                    <small>-4 Agilité + -2 autres stats</small>
+                                </div>
+                            </label>
+                            <label style="flex: 1; cursor: pointer; border: 2px solid #ddd; border-radius: 8px; padding: 10px; background: linear-gradient(135deg, #f3e5f5, #fff3e0);">
+                                <input type="radio" name="spellVersion" value="multicible" style="margin-right: 8px;">
+                                <div style="font-size: 0.9em;">
+                                    <strong>🔗 Multicible</strong><br>
+                                    1-4 cibles | 5 mana | -4 dés<br>
+                                    <small>Chaîne d'Acier + libération +2</small>
+                                </div>
+                            </label>
                         </div>
+                    </div>
 
-                        <!-- Version Multicible -->
-                        <div style="flex: 1; border: 2px solid #4a4a4a; border-radius: 8px; padding: 15px; background: linear-gradient(135deg, #f3e5f5, #fff3e0);">
-                            <h3 style="margin-top: 0; color: #9c27b0; text-align: center;">🔗 Version Multicible</h3>
-                            <div style="font-size: 0.9em; line-height: 1.4;">
-                                <p><strong>Cibles :</strong> 1 à 4 cibles</p>
-                                <p><strong>Coût :</strong> 5 mana (pas de maintenance)</p>
-                                <p><strong>Malus :</strong> -4 dés d'attaque</p>
-                                <p><strong>Effets :</strong></p>
-                                <ul style="margin: 5px 0; padding-left: 20px;">
-                                    <li>Effet "Chaîne d'Acier" sur chaque cible</li>
-                                    <li>Bonus libération +2 pour les cibles</li>
-                                </ul>
-                                <p><strong>Animation :</strong> Chaînes multiples</p>
-                                <p style="color: #4caf50;"><strong>Pas de maintenance</strong></p>
+                    <!-- Nombre de Cibles (pour multicible seulement) -->
+                    <div id="targetCountSection" style="margin: 15px 0; display: none;">
+                        <h3 style="color: #9c27b0; margin-bottom: 8px;">🔗 Nombre de Cibles</h3>
+                        <div style="padding: 10px; background: #f3e5f5; border: 1px solid #e1bee7; border-radius: 5px;">
+                            <label for="targetCount"><strong>Cibles à enchaîner :</strong></label>
+                            <input type="number" id="targetCount" name="targetCount" value="2" min="1" max="4" style="width: 60px; margin-left: 10px;">
+                            <small>(1-4 cibles)</small>
+                            <div style="font-size: 0.8em; color: #666; margin-top: 5px;">
+                                Malus d'attaque: -4 dés | Effet: Chaîne d'Acier | Libération: +2
                             </div>
                         </div>
                     </div>
+
+                    <!-- Bonus d'Attaque Manuel -->
+                    <div style="margin: 15px 0;">
+                        <h3 style="color: #3f51b5; margin-bottom: 8px;">⚡ Bonus d'Attaque</h3>
+                        <label for="attackBonus">Bonus d'attaque manuel:</label>
+                        <input type="number" id="attackBonus" name="attackBonus" value="0" min="-10" max="10" style="width: 60px; margin-left: 10px;">
+                    </div>
+
+                    <!-- Aperçu de l'Attaque -->
+                    <div style="margin: 15px 0; padding: 10px; background: #e8f5e8; border-radius: 4px;">
+                        <div><strong>Jet d'attaque final :</strong> <span id="finalAttack">${characteristicInfo.final}d7 + ${2 * 2}</span></div>
+                        <div id="manaInfo" style="font-size: 0.9em; color: #666; margin-top: 5px;">
+                            Coût: ${currentStance === 'focus' ? 'GRATUIT (Focus)' : '3 mana'} + 3 mana/tour maintenu
+                        </div>
+                    </div>
+
+                    <script>
+                        function updatePreview() {
+                            const version = document.querySelector('input[name="spellVersion"]:checked').value;
+                            const targetCountSection = document.getElementById('targetCountSection');
+                            const finalAttack = document.getElementById('finalAttack');
+                            const manaInfo = document.getElementById('manaInfo');
+                            const attackBonus = parseInt(document.getElementById('attackBonus').value) || 0;
+
+                            const base = ${characteristicInfo.final};
+                            let penalty = 0;
+                            let costText = '';
+
+                            if (version === 'multicible') {
+                                targetCountSection.style.display = 'block';
+                                penalty = -4;
+                                costText = '${currentStance === 'focus' ? 'GRATUIT (Focus)' : '5 mana'} (pas de maintenance)';
+                            } else {
+                                targetCountSection.style.display = 'none';
+                                penalty = 0;
+                                costText = '${currentStance === 'focus' ? 'GRATUIT (Focus)' : '3 mana'} + 3 mana/tour maintenu';
+                            }
+
+                            const total = Math.max(1, base + penalty + attackBonus);
+                            finalAttack.textContent = total + 'd7 + 4';
+                            manaInfo.textContent = 'Coût: ' + costText;
+                        }
+
+                        document.querySelectorAll('input[name="spellVersion"]').forEach(radio => {
+                            radio.addEventListener('change', updatePreview);
+                        });
+
+                        document.getElementById('attackBonus').addEventListener('input', updatePreview);
+
+                        // Style for selected radio labels
+                        document.querySelectorAll('input[name="spellVersion"]').forEach(radio => {
+                            radio.addEventListener('change', function() {
+                                document.querySelectorAll('label').forEach(label => {
+                                    label.style.borderColor = '#ddd';
+                                });
+                                this.parentElement.style.borderColor = this.value === 'simple' ? '#3f51b5' : '#9c27b0';
+                            });
+                        });
+
+                        // Initialize
+                        updatePreview();
+                    </script>
                 `,
                 buttons: {
-                    simple: {
-                        icon: '<i class="fas fa-target"></i>',
-                        label: "🎯 Version Simple",
-                        callback: () => resolve('simple')
-                    },
-                    multicible: {
-                        icon: '<i class="fas fa-sitemap"></i>',
-                        label: "🔗 Version Multicible",
-                        callback: () => resolve('multicible')
+                    confirm: {
+                        icon: '<i class="fas fa-chain"></i>',
+                        label: "🔗 Lancer le Sort",
+                        callback: (html) => {
+                            const selectedVersion = html.find('input[name="spellVersion"]:checked').val();
+                            const targetCount = parseInt(html.find('#targetCount').val()) || 2;
+                            const attackBonus = parseInt(html.find('#attackBonus').val()) || 0;
+
+                            const clampedTargetCount = Math.max(1, Math.min(4, targetCount));
+
+                            resolve({
+                                selectedVersion,
+                                targetCount: clampedTargetCount,
+                                attackBonus
+                            });
+                        }
                     },
                     cancel: {
                         icon: '<i class="fas fa-times"></i>',
@@ -198,22 +269,23 @@
                         callback: () => resolve(null)
                     }
                 },
-                default: "simple",
+                default: "confirm",
                 close: () => resolve(null)
             }, {
-                width: 700,
-                height: 500,
+                width: 600,
+                height: 650,
                 resizable: true
             }).render(true);
         });
     }
 
-    const selectedVersion = await selectSpellVersion();
-    if (!selectedVersion) {
+    const userConfig = await showUnifiedDialog();
+    if (!userConfig) {
         ui.notifications.info('Sort annulé.');
         return;
     }
 
+    const { selectedVersion, targetCount, attackBonus } = userConfig;
     const SPELL_CONFIG = SPELL_CONFIGS[selectedVersion];
 
     // ===== UTILS (stance, effets) =====
@@ -256,174 +328,7 @@
     const characteristicInfo = getCharacteristicValue(actor, SPELL_CONFIG.characteristic);
     if (!characteristicInfo) return;
 
-    // ===== GESTION DU CIBLAGE MULTICIBLE =====
-    let targetCount = 1;
-    if (SPELL_CONFIG.isMultiTarget) {
-        const targetCountResult = await getTargetCount();
-        if (!targetCountResult) {
-            ui.notifications.info('Sort annulé.');
-            return;
-        }
-        targetCount = targetCountResult.targetCount;
-    }
 
-    // ===== TARGET COUNT DIALOG (pour multicible) =====
-    async function getTargetCount() {
-        const manaInfo = currentStance === 'focus' && SPELL_CONFIG.isFocusable ?
-            `<strong>Coût en Mana :</strong> GRATUIT (Position Focus)` :
-            `<strong>Coût en Mana :</strong> ${SPELL_CONFIG.manaCost} mana`;
-
-        return new Promise(resolve => {
-            new Dialog({
-                title: `🔗 ${SPELL_CONFIG.name} - Sélection des Cibles`,
-                content: `
-                    <h3>🔗 ${SPELL_CONFIG.name}</h3>
-                    <p><strong>Lanceur:</strong> ${actor.name}</p>
-                    <p>${manaInfo}</p>
-                    <p><strong>Physique:</strong> ${characteristicInfo.final} <span style="color: #d32f2f;">(-4 dés multicible)</span></p>
-
-                    <div style="margin: 15px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">
-                        <p><strong>📜 Mécaniques multicibles :</strong></p>
-                        <ul>
-                            <li><strong>Malus d'attaque :</strong> -4 dés (difficulté du multicible)</li>
-                            <li><strong>Effet appliqué :</strong> "Chaîne d'Acier" sur chaque cible touchée</li>
-                            <li><strong>Bonus de libération :</strong> +2 pour les cibles (plus facile à briser)</li>
-                            <li><strong>Animations :</strong> Chaînes persistantes vers chaque cible</li>
-                        </ul>
-                    </div>
-
-                    <div style="margin: 15px 0;">
-                        <label for="targetCount"><strong>Nombre de cibles à enchaîner :</strong></label>
-                        <input type="number" id="targetCount" name="targetCount" value="2"
-                               min="${SPELL_CONFIG.targetLimits.min}" max="${SPELL_CONFIG.targetLimits.max}"
-                               style="width: 80px; margin-left: 10px;">
-                        <small>(${SPELL_CONFIG.targetLimits.min}-${SPELL_CONFIG.targetLimits.max} cibles)</small>
-                    </div>
-                `,
-                buttons: {
-                    confirm: {
-                        icon: '<i class="fas fa-chain"></i>',
-                        label: "Sélectionner les Cibles",
-                        callback: (html) => {
-                            const targetCount = parseInt(html.find('#targetCount').val()) || 2;
-                            const clampedCount = Math.max(SPELL_CONFIG.targetLimits.min,
-                                Math.min(SPELL_CONFIG.targetLimits.max, targetCount));
-                            resolve({ targetCount: clampedCount });
-                        }
-                    },
-                    cancel: {
-                        icon: '<i class="fas fa-times"></i>',
-                        label: "Annuler",
-                        callback: () => resolve(null)
-                    }
-                },
-                default: "confirm",
-                close: () => resolve(null)
-            }).render(true);
-        });
-    }
-
-    // ===== DIALOG DE CONFIGURATION =====
-    async function showConfigDialog() {
-        let manaInfo, effectsInfo;
-
-        if (SPELL_CONFIG.isMultiTarget) {
-            // Version multicible
-            manaInfo = currentStance === 'focus' && SPELL_CONFIG.isFocusable ?
-                `<strong>Coût en Mana :</strong> GRATUIT (Position Focus)` :
-                `<strong>Coût en Mana :</strong> ${SPELL_CONFIG.manaCost} mana`;
-
-            effectsInfo = `
-                <div style="margin: 15px 0; padding: 10px; background: #f3e5f5; border: 1px solid #e1bee7; border-radius: 5px;">
-                    <p><strong>📜 Effets multicibles :</strong></p>
-                    <ul>
-                        <li><strong>Cibles à enchaîner :</strong> ${targetCount}</li>
-                        <li><strong>Effet appliqué :</strong> "Chaîne d'Acier" sur chaque cible</li>
-                        <li><strong>Bonus de libération :</strong> +2 pour les cibles</li>
-                        <li><strong>Malus d'attaque :</strong> -4 dés (multicible)</li>
-                    </ul>
-                </div>
-            `;
-        } else {
-            // Version simple
-            manaInfo = currentStance === 'focus' && SPELL_CONFIG.isFocusable ?
-                `<strong>Coût en Mana :</strong> GRATUIT (Position Focus) + ${SPELL_CONFIG.maintenanceCost} mana par tour maintenu (non focalisable)` :
-                `<strong>Coût en Mana :</strong> ${SPELL_CONFIG.manaCost} mana initial + ${SPELL_CONFIG.maintenanceCost} mana par tour maintenu (non focalisable)`;
-
-            effectsInfo = `
-                <div style="margin: 15px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">
-                    <p><strong>📜 Effets du royaume :</strong></p>
-                    <ul>
-                        <li><strong>Sur la cible :</strong> -4 Agilité, -2 sur toutes autres caractéristiques</li>
-                        <li><strong>Sur Léo :</strong> -3 Agilité (concentration requise)</li>
-                        <li><strong>Maintenance :</strong> ${SPELL_CONFIG.maintenanceCost} mana/tour (non focalisable)</li>
-                        <li><strong>Jets de libération :</strong> Aucun malus pour la cible</li>
-                    </ul>
-                </div>
-            `;
-        }
-
-        const attackPreview = SPELL_CONFIG.isMultiTarget ?
-            `${Math.max(1, characteristicInfo.final + SPELL_CONFIG.multiTargetPenalty)}d7 + ${2 * SPELL_CONFIG.spellLevel}` :
-            `${characteristicInfo.final}d7 + ${2 * SPELL_CONFIG.spellLevel}`;
-
-        return new Promise(resolve => {
-            new Dialog({
-                title: `🔗 ${SPELL_CONFIG.name} - Configuration`,
-                content: `
-                    <h3>🔗 ${SPELL_CONFIG.name}</h3>
-                    <p><strong>Lanceur:</strong> ${actor.name}</p>
-                    <p>${manaInfo}</p>
-                    <p><strong>Physique:</strong> ${characteristicInfo.final}${SPELL_CONFIG.isMultiTarget ? ' <span style="color: #d32f2f;">(-4 dés multicible)</span>' : ''}</p>
-
-                    ${effectsInfo}
-
-                    <div style="margin: 15px 0;">
-                        <label for="attackBonus">Bonus d'attaque manuel:</label>
-                        <input type="number" id="attackBonus" name="attackBonus" value="0" min="-10" max="10">
-                    </div>
-
-                    <div style="margin: 10px 0; padding: 8px; background: #e8f5e8; border-radius: 4px;">
-                        <div><strong>Jet d'attaque final :</strong> <span id="finalAttack">${attackPreview}</span></div>
-                    </div>
-
-                    <script>
-                        document.getElementById('attackBonus').addEventListener('input', function() {
-                            const base = ${characteristicInfo.final};
-                            const penalty = ${SPELL_CONFIG.multiTargetPenalty || 0};
-                            const bonus = parseInt(this.value) || 0;
-                            const total = Math.max(1, base + penalty + bonus);
-                            document.getElementById('finalAttack').textContent = total + 'd7 + ${SPELL_CONFIG.spellLevel * 2}';
-                        });
-                    </script>
-                `,
-                buttons: {
-                    confirm: {
-                        icon: '<i class="fas fa-chain"></i>',
-                        label: SPELL_CONFIG.isMultiTarget ? "🔗 Lancer Multicible" : "🎯 Invoquer le Royaume",
-                        callback: (html) => {
-                            const attackBonus = parseInt(html.find('#attackBonus').val()) || 0;
-                            resolve({ attackBonus });
-                        }
-                    },
-                    cancel: {
-                        icon: '<i class="fas fa-times"></i>',
-                        label: "Annuler",
-                        callback: () => resolve(null)
-                    }
-                },
-                default: "confirm",
-                close: () => resolve(null)
-            }).render(true);
-        });
-    }
-
-    const userConfig = await showConfigDialog();
-    if (!userConfig) {
-        ui.notifications.info('Sort annulé.');
-        return;
-    }
-    const { attackBonus } = userConfig;
 
     // ===== TARGETING via Portal =====
     async function selectTargets() {
