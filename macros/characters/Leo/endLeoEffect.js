@@ -74,6 +74,44 @@
                     stacks: effect.flags?.statuscounter?.value || 1
                 };
             }
+        },
+        "Royaume des Chaînes (Agilité)": {
+            displayName: "Royaume des Chaînes (Agilité)",
+            icon: "icons/commodities/metal/chains-steel.webp",
+            description: "Entravé par le royaume des chaînes de Léo",
+            sectionTitle: "🔗 Royaume des Chaînes",
+            sectionIcon: "🔗",
+            cssClass: "kingdom-effect",
+            borderColor: "#4a4a4a",
+            bgColor: "#e8eaf6",
+            // Détection des flags - seulement l'effet principal (Agilité -4)
+            detectFlags: [
+                { path: "flags.world.chainKingdomCaster", matchValue: "CASTER_ID" },
+                { path: "flags.world.spellName", matchValue: "Royaume des Chaînes" }
+            ],
+            // Description dynamique basée sur les malus
+            getDynamicDescription: (effect) => {
+                const agilityMalus = effect.flags?.statuscounter?.value || 4;
+                return `Royaume des chaînes (-${agilityMalus} Agilité, -2 autres stats)`;
+            },
+            // Données supplémentaires pour l'affichage
+            getExtraData: (effect) => {
+                return {
+                    agilityMalus: effect.flags?.statuscounter?.value || 4
+                };
+            },
+            // Nettoyage spécial pour les animations et effets liés
+            cleanup: {
+                sequencerNames: [
+                    "flags.world.chainKingdomSequenceName",
+                    "flags.world.chainConnectionSequenceName"
+                ],
+                removeLinkedEffects: true, // Indique qu'il faut supprimer les effets liés
+                linkedEffectNames: [
+                    "Royaume des Chaînes (Général)", // Effet -2 sur les autres stats
+                    "Royaume des Chaînes (Concentration)" // Effet sur Léo
+                ]
+            }
         }
     };
 
@@ -339,56 +377,136 @@
     const removedEffects = {
         chains: [],
         slowdowns: [],
+        kingdoms: [],
         failed: []
     };
 
     for (const effectInfo of effectsToRemove) {
         try {
-            // Nettoyage spécial via configuration
             const config = effectInfo.config;
-            if (config.cleanup?.sequencerName && effectInfo.sequenceName) {
-                Sequencer.EffectManager.endEffects({ name: effectInfo.sequenceName });
-                console.log(`[DEBUG] Removed ${effectInfo.effectType} animation: ${effectInfo.sequenceName}`);
-            }
 
-            // Supprimer l'effet actif via GM delegation
-            if (!globalThis.gmSocket) {
-                ui.notifications.error("GM Socket non disponible ! Assurez-vous que le module custom-status-effects est actif.");
-                console.error("[DEBUG] GM Socket not available for effect removal");
-                removedEffects.failed.push({
-                    name: effectInfo.name,
-                    type: effectInfo.effectType,
-                    error: "GM Socket non disponible"
-                });
-                continue;
-            }
+            // Nettoyage spécial pour Royaume des Chaînes
+            if (effectInfo.effectType === "Royaume des Chaînes (Agilité)" && config.cleanup?.removeLinkedEffects) {
+                console.log(`[DEBUG] Removing Kingdom of Chains complex effect from ${effectInfo.name}`);
 
-            console.log(`[DEBUG] Removing ${effectInfo.effectType} effect from ${effectInfo.name} via GM socket`);
-            const result = await globalThis.gmSocket.executeAsGM("removeEffectFromActor", effectInfo.actor.id, effectInfo.effect.id);
-
-            if (result?.success) {
-                console.log(`[DEBUG] Successfully removed ${effectInfo.effectType} effect from ${effectInfo.name}`);
-
-                // Organiser les résultats par type d'effet
-                if (!removedEffects[effectInfo.effectType]) {
-                    removedEffects[effectInfo.effectType] = [];
+                // 1. Nettoyer les animations Sequencer
+                if (config.cleanup.sequencerNames) {
+                    for (const sequencerPath of config.cleanup.sequencerNames) {
+                        const sequenceName = getProperty(effectInfo.effect, sequencerPath);
+                        if (sequenceName) {
+                            try {
+                                Sequencer.EffectManager.endEffects({ name: sequenceName });
+                                console.log(`[DEBUG] Removed Kingdom animation: ${sequenceName}`);
+                            } catch (seqError) {
+                                console.warn(`[DEBUG] Could not remove animation ${sequenceName}:`, seqError);
+                            }
+                        }
+                    }
                 }
 
-                if (effectInfo.effectType === "Chaîne d'Acier") {
-                    removedEffects.chains.push(effectInfo.name);
-                } else if (effectInfo.effectType === "Ralentissement") {
-                    removedEffects.slowdowns.push({
+                // 2. Supprimer l'effet principal (Agilité -4) via GM delegation
+                if (!globalThis.gmSocket) {
+                    ui.notifications.error("GM Socket non disponible !");
+                    removedEffects.failed.push({
                         name: effectInfo.name,
-                        stacks: effectInfo.stacks
+                        type: effectInfo.effectType,
+                        error: "GM Socket non disponible"
+                    });
+                    continue;
+                }
+
+                const mainResult = await globalThis.gmSocket.executeAsGM("removeEffectFromActor", effectInfo.actor.id, effectInfo.effect.id);
+
+                if (mainResult?.success) {
+                    console.log(`[DEBUG] Removed main Kingdom effect from ${effectInfo.name}`);
+
+                    // 3. Supprimer l'effet secondaire (autres stats -2) sur la même cible
+                    const secondaryEffect = effectInfo.actor.effects.find(e =>
+                        e.name === "Royaume des Chaînes (Général)" &&
+                        e.flags?.world?.chainKingdomCaster === caster.id
+                    );
+
+                    if (secondaryEffect) {
+                        const secondaryResult = await globalThis.gmSocket.executeAsGM("removeEffectFromActor", effectInfo.actor.id, secondaryEffect.id);
+                        if (secondaryResult?.success) {
+                            console.log(`[DEBUG] Removed secondary Kingdom effect from ${effectInfo.name}`);
+                        } else {
+                            console.warn(`[DEBUG] Failed to remove secondary Kingdom effect: ${secondaryResult?.error}`);
+                        }
+                    }
+
+                    // 4. Supprimer l'effet sur Léo (concentration -3 Agilité)
+                    const casterEffect = actor.effects.find(e =>
+                        e.name === "Royaume des Chaînes (Concentration)" &&
+                        e.flags?.world?.chainKingdomTarget === effectInfo.token.id
+                    );
+
+                    if (casterEffect) {
+                        try {
+                            await casterEffect.delete();
+                            console.log(`[DEBUG] Removed Kingdom concentration effect from Leo`);
+                        } catch (casterError) {
+                            console.warn(`[DEBUG] Failed to remove concentration effect from Leo:`, casterError);
+                        }
+                    }
+
+                    removedEffects.kingdoms.push({
+                        name: effectInfo.name,
+                        agilityMalus: effectInfo.agilityMalus
+                    });
+
+                } else {
+                    console.error(`[DEBUG] Failed to remove Kingdom main effect: ${mainResult?.error}`);
+                    removedEffects.failed.push({
+                        name: effectInfo.name,
+                        type: effectInfo.effectType,
+                        error: mainResult?.error || "Erreur inconnue"
                     });
                 }
+
             } else {
-                console.error(`[DEBUG] Failed to remove ${effectInfo.effectType} effect: ${result?.error}`);
-                removedEffects.failed.push({
-                    name: effectInfo.name,
-                    type: effectInfo.effectType,
-                    error: result?.error || "Erreur inconnue"
-                });
+                // Gestion normale pour les autres effets (Chaîne d'Acier, Ralentissement)
+
+                // Nettoyage d'animation simple
+                if (config.cleanup?.sequencerName && effectInfo.sequenceName) {
+                    Sequencer.EffectManager.endEffects({ name: effectInfo.sequenceName });
+                    console.log(`[DEBUG] Removed ${effectInfo.effectType} animation: ${effectInfo.sequenceName}`);
+                }
+
+                // Supprimer l'effet actif via GM delegation
+                if (!globalThis.gmSocket) {
+                    ui.notifications.error("GM Socket non disponible ! Assurez-vous que le module custom-status-effects est actif.");
+                    console.error("[DEBUG] GM Socket not available for effect removal");
+                    removedEffects.failed.push({
+                        name: effectInfo.name,
+                        type: effectInfo.effectType,
+                        error: "GM Socket non disponible"
+                    });
+                    continue;
+                }
+
+                console.log(`[DEBUG] Removing ${effectInfo.effectType} effect from ${effectInfo.name} via GM socket`);
+                const result = await globalThis.gmSocket.executeAsGM("removeEffectFromActor", effectInfo.actor.id, effectInfo.effect.id);
+
+                if (result?.success) {
+                    console.log(`[DEBUG] Successfully removed ${effectInfo.effectType} effect from ${effectInfo.name}`);
+
+                    if (effectInfo.effectType === "Chaîne d'Acier") {
+                        removedEffects.chains.push(effectInfo.name);
+                    } else if (effectInfo.effectType === "Ralentissement") {
+                        removedEffects.slowdowns.push({
+                            name: effectInfo.name,
+                            stacks: effectInfo.stacks
+                        });
+                    }
+                } else {
+                    console.error(`[DEBUG] Failed to remove ${effectInfo.effectType} effect: ${result?.error}`);
+                    removedEffects.failed.push({
+                        name: effectInfo.name,
+                        type: effectInfo.effectType,
+                        error: result?.error || "Erreur inconnue"
+                    });
+                }
             }
 
         } catch (error) {
@@ -402,38 +520,11 @@
     }
 
     // ===== RESULTS AND FEEDBACK =====
-    const totalRemoved = removedEffects.chains.length + removedEffects.slowdowns.length;
+    const totalRemoved = removedEffects.chains.length + removedEffects.slowdowns.length + removedEffects.kingdoms.length;
     const totalFailed = removedEffects.failed.length;
 
     if (totalRemoved > 0) {
-        // Animations de libération basées sur la configuration
-        const liberationSeq = new Sequence();
-        let hasAnimations = false;
-
-        for (const effectInfo of effectsToRemove) {
-            const config = effectInfo.config;
-            if (config.removeAnimation) {
-                // Vérifier si cet effet a bien été supprimé
-                const wasRemoved = (effectInfo.effectType === "Chaîne d'Acier" && removedEffects.chains.includes(effectInfo.name)) ||
-                                   (effectInfo.effectType === "Ralentissement" && removedEffects.slowdowns.some(s => s.name === effectInfo.name));
-
-                if (wasRemoved) {
-                    const anim = config.removeAnimation;
-                    liberationSeq.effect()
-                        .file(anim.file)
-                        .atLocation(effectInfo.token)
-                        .scale(anim.scale)
-                        .duration(anim.duration)
-                        .fadeOut(anim.fadeOut)
-                        .tint(anim.tint);
-                    hasAnimations = true;
-                }
-            }
-        }
-
-        if (hasAnimations) {
-            await liberationSeq.play();
-        }
+        // Note: Pas d'animations de libération pour éviter les conflits avec les animations Sequencer
 
         // Message dans le chat
         let chatContent = `
@@ -475,6 +566,25 @@
             `;
         }
 
+        // Royaumes des Chaînes supprimés
+        if (removedEffects.kingdoms.length > 0) {
+            const config = EFFECT_CONFIG["Royaume des Chaînes (Agilité)"];
+            const kingdomList = removedEffects.kingdoms.map(k =>
+                `${k.name} (-${k.agilityMalus} Agilité)`
+            ).join(', ');
+
+            chatContent += `
+                <div style="text-align: center; margin: 8px 0; padding: 10px; background: ${config.bgColor}; border-radius: 4px;">
+                    <div style="font-size: 1.1em; color: #3f51b5; margin-bottom: 6px;"><strong>${config.sectionTitle} Dissous</strong></div>
+                    <div style="font-size: 1.0em; font-weight: bold;">${kingdomList}</div>
+                    <div style="font-size: 0.8em; color: #666; margin-top: 4px;">
+                        Le royaume de chaînes s'effondre - Tous les effets liés supprimés<br>
+                        <em>Léo récupère sa concentration (-3 Agilité annulé)</em>
+                    </div>
+                </div>
+            `;
+        }
+
         // Erreurs s'il y en a
         if (removedEffects.failed.length > 0) {
             const failedList = removedEffects.failed.map(f =>
@@ -505,6 +615,9 @@
         }
         if (removedEffects.slowdowns.length > 0) {
             parts.push(`${removedEffects.slowdowns.length} ralentissement${removedEffects.slowdowns.length > 1 ? 's' : ''}`);
+        }
+        if (removedEffects.kingdoms.length > 0) {
+            parts.push(`${removedEffects.kingdoms.length} royaume${removedEffects.kingdoms.length > 1 ? 's' : ''} des chaînes`);
         }
         notificationText += parts.join(', ');
 

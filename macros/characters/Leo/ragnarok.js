@@ -36,6 +36,7 @@
 
         animations: {
             cast: "jb2a_patreon.divine_smite.caster.dark_red",
+            portal: "jb2a.misty_step.02.blue",
             weaponProjectiles: [
                 "jb2a_patreon.javelin.throw",
                 "jb2a_patreon.dagger.throw.02.white",
@@ -151,7 +152,7 @@
                         callback: (html) => {
                             const weaponCount = parseInt(html.find('#weaponCount').val()) || 5;
                             const clampedCount = Math.max(SPELL_CONFIG.weaponLimits.min,
-                                                Math.min(SPELL_CONFIG.weaponLimits.max, weaponCount));
+                                Math.min(SPELL_CONFIG.weaponLimits.max, weaponCount));
                             resolve({ weaponCount: clampedCount });
                         }
                     },
@@ -373,7 +374,7 @@
 
             // Random distance (2-4 cases)
             const distance = (SPELL_CONFIG.weaponLimits.minDistance +
-                            Math.random() * (SPELL_CONFIG.weaponLimits.maxDistance - SPELL_CONFIG.weaponLimits.minDistance)) * gridSize;
+                Math.random() * (SPELL_CONFIG.weaponLimits.maxDistance - SPELL_CONFIG.weaponLimits.minDistance)) * gridSize;
 
             // Calculate launch position
             const launchX = target.x + Math.cos(angle) * distance;
@@ -402,6 +403,17 @@
                 cumulativeDelay += Math.random() * 80 + 20; // 20-100ms
             }
 
+            // Portal opening at launch position (starts slightly before the projectile)
+            sequence
+                .effect()
+                .file(SPELL_CONFIG.animations.portal)
+                .atLocation({ x: launch.startX, y: launch.startY })
+                .scale(0.8)
+                .delay(cumulativeDelay - 200) // Portal opens 200ms before projectile launch
+                .duration(1000)
+                .fadeOut(300)
+
+            // Weapon projectile coming through the portal
             sequence
                 .effect()
                 .file(launch.weapon)
