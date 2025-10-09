@@ -46,8 +46,8 @@
             fadeOut: 500,
             offsetDistance: 0.5, // Cases de décalage
             tint: "#8A2BE2", // Tinte violette
-            opacity: 0.6,
-            scale: 10.2
+            opacity: 0.9,
+            scale: 0.15
         },
 
         animations: {
