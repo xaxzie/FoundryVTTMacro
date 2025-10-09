@@ -766,6 +766,15 @@
                             }
                             await applyTokenFilters(token, customData.filters, false);
                         }
+
+                        // Handle standalone animations removal for increasable effects
+                        if (customData.hasAnimation && !customData.hasTransformation && !customData.hasFilters) {
+                            if (customData.animation.persistent) {
+                                await playPersistentAnimation(token, customData.animation, false);
+                            }
+                            // Note: Non-persistent animations don't need cleanup as they are already finished
+                            console.log(`[Moctei] Cleaned up standalone animation for increasable ${customData.name}`);
+                        }
                     }
 
                 } else if (newValue > 0) {
@@ -812,6 +821,16 @@
                                     await new Promise(resolve => setTimeout(resolve, 200));
                                 }
                                 await applyTokenFilters(token, customData.filters, true);
+                            }
+
+                            // Handle standalone animations for increasable effects
+                            if (customData.hasAnimation && !customData.hasTransformation && !customData.hasFilters) {
+                                if (customData.animation.persistent) {
+                                    await playPersistentAnimation(token, customData.animation, true);
+                                } else {
+                                    await playTransformationAnimation(token, customData.animation, true);
+                                }
+                                console.log(`[Moctei] Played standalone animation for increasable ${customData.name}`);
                             }
                         }
                     }
@@ -925,6 +944,16 @@
                             await applyTokenFilters(token, effectData.filters, true);
                             console.log(`[Moctei] Applied filters for ${effectData.name}`);
                         }
+
+                        // Handle standalone animations (no transformation or filters)
+                        if (effectData.hasAnimation && !effectData.hasTransformation && !effectData.hasFilters) {
+                            if (effectData.animation.persistent) {
+                                await playPersistentAnimation(token, effectData.animation, true);
+                            } else {
+                                await playTransformationAnimation(token, effectData.animation, true);
+                            }
+                            console.log(`[Moctei] Played standalone animation for ${effectData.name}`);
+                        }
                     }
 
                 } else if (action === 'remove') {
@@ -958,6 +987,15 @@
                                 // Remove filters
                                 await applyTokenFilters(token, effectData.filters, false);
                                 console.log(`[Moctei] Removed filters for ${effectData.name}`);
+                            }
+
+                            // Handle standalone animations removal (no transformation or filters)
+                            if (effectData.hasAnimation && !effectData.hasTransformation && !effectData.hasFilters) {
+                                if (effectData.animation.persistent) {
+                                    await playPersistentAnimation(token, effectData.animation, false);
+                                }
+                                // Note: Non-persistent animations don't need cleanup as they are already finished
+                                console.log(`[Moctei] Cleaned up standalone animation for ${effectData.name}`);
                             }
                         }
 
