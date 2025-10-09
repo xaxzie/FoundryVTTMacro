@@ -78,7 +78,7 @@
         },
         "Ailes supérieures": {
             name: "Ailes supérieures",
-            icon: "icons/creatures/abilities/wings-batlike-purple-blue.webp",
+            icon: "icons/creatures/abilities/wing-batlike-purple-blue.webp",
             flags: [
                 { key: "movement", value: 6 }
             ],
@@ -89,12 +89,11 @@
             manaCost: "2 (focusable) + 1/usage",
             animation: {
                 effectFile: "animated-spell-effects.misc.wings.rectangle",
-                scale: 1.0,
                 fadeOut: 2000,
                 persistent: true,
                 scale: 0.4,
                 sequencerName: "MocteiSuperiorWings",
-                tint: "#8A2BE2" // Tinte violette
+                tint: "#010101" // Tinte noire
             }
         }
 
