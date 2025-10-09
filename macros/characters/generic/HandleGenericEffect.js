@@ -1,17 +1,30 @@
 /**
- * Complete Effect Manager - Handle All Effects, Postures, and Injuries
+ * Complete Effect Manager - Generic Template for Character Effect Handlers
  *
  * This comprehensive manager handles:
  * - Custom active effects with flags
  * - The 3 postures (Focus, Offensif, Défensif) - mutually exclusive
  * - Injuries system with stackable counter
  * - Dynamic retrieval from CONFIG.statusEffects (FoundryVTT v13)
+ * - Token transformations with Token Magic FX
+ * - Token filters with Token Magic FX
+ * - Persistent animations with Sequencer
+ * - Increasable effects with counters
+ * - Mana cost tracking (one-time or per-turn)
+ * - Status counter values
  *
  * Features:
  * - Unified interface for all effect types
  * - Posture management (only one active at a time)
  * - Injury stacking with configurable amounts
  * - Integration with FoundryVTT's status effect system
+ * - Token transformation system
+ * - Token filter system with persistent effects
+ * - Animation system (both one-time and persistent)
+ * - Increasable effects with counters
+ * - Mana cost display and tracking
+ * - Status counter integration
+ * - External effect detection and management
  */
 
 (async () => {
@@ -25,133 +38,117 @@
 
     // === CONFIGURATION ===
 
-    // Custom Active Effects with Flags
+    // Custom Active Effects with Flags - CUSTOMIZE THIS FOR EACH CHARACTER
     const CUSTOM_EFFECTS = {
-        "Red Eyes": {
-            name: "Red Eyes",
-            icon: "icons/creatures/eyes/humanoid-single-red-brown.webp",
-            flags: [
-                { key: "agilite", value: 1 },
-                { key: "damage", value: 2 }
-            ],
-            description: "Bonus de +2 aux dégâts, +1 Agilité",
-            category: "custom",
-            increasable: false
-        },
-        "Serpent": {
-            name: "Serpent",
-            icon: "icons/creatures/reptiles/snake-fangs-bite-green.webp",
-            flags: [
-                { key: "damage", value: 4 }
-            ],
-            description: "Bonus de +4 aux dégâts",
-            category: "custom",
-            increasable: false
-        },
-        "Ora Eyes": {
-            name: "Ora Eyes",
-            icon: "icons/svg/eye.svg",
-            flags: [
-                { key: "damage", value: 3 }
-            ],
-            description: "Bonus de +3 aux dégâts",
-            category: "custom",
-            increasable: false
-        },
-        "Electrical Armor": {
-            name: "Electrical Armor",
-            icon: "icons/magic/lightning/bolt-strike-blue.webp",
-            flags: [
-                { key: "agilite", value: -3 },
-                { key: "physique", value: 1 }
-            ],
-            description: "Agilité -3, Physique +1",
-            category: "custom",
-            increasable: false
-        },
-        "Bow": {
-            name: "Bow",
-            icon: "icons/weapons/bows/shortbow-recurve-yellow.webp",
-            flags: [
-                { key: "agilite", value: -3 }
-            ],
-            description: "Agilité -3",
-            category: "custom",
-            increasable: false,
-            // Token transformation configuration
-            hasTransformation: true,
-            transformation: {
-                targetImagePath: "worlds/ft/TOKEN/Edgy_leo_token.png",
-                transitionType: 4, // Water drop
-                loopDuration: 1000,
-                padding: 70,
-                magnify: 1,
-                filterId: "leoArcherTransformation"
-            },
-            // Animation configuration
-            hasAnimation: true,
-            animation: {
-                effectFile: "animated-spell-effects.air.shockwave.circle.02",
-                scale: 0.5,
-                duration: 2000
-            }
-        },
-        "Second Origin God Speed": {
-            name: "Second Origin God Speed",
-            icon: "icons/magic/unholy/strike-body-explode-disintegrate.webp",
-            flags: [],
-            description: "Activation du pouvoir Second Origin - Effet visuel et filtres persistants",
-            category: "custom",
-            increasable: false,
-            // Token filters configuration (no image transformation)
-            hasFilters: true,
-            filters: {
-                filterId: "leoGodSpeedFilters",
-                filterConfigs: [
-                    {
-                        filterType: "shadow",
-                        blur: 1,
-                        quality: 5,
-                        distance: 0.2,
-                        alpha: 1.0,
-                        padding: 100,
-                        color: 0xff0000,
-                        animated: {
-                            blur: {
-                                active: true,
-                                loopDuration: 500,
-                                animType: "syncCosOscillation",
-                                val1: 2,
-                                val2: 4
-                            }
-                        }
-                    },
-                    {
-                        filterType: "electric",
-                        color: 0xff0000,
-                        time: 0,
-                        blend: 2,
-                        intensity: 8,
-                        animated: {
-                            time: {
-                                active: true,
-                                speed: 0.0015,
-                                animType: "move"
-                            }
-                        }
-                    }
-                ]
-            },
-            // Animation configuration (persistent)
-            hasAnimation: true,
-            animation: {
-                effectFile: "jb2a_patreon.static_electricity.02.dark_red",
-                scale: 2,
-                fadeOut: 3000,
-                persistent: true,
-                sequencerName: "LeoGodSpeed"
-            }
-        }
+        // Example for regular effect with flags:
+        // "ExampleEffect": {
+        //     name: "Example Effect",
+        //     icon: "icons/svg/aura.svg",
+        //     flags: [
+        //         { key: "physique", value: 2 },
+        //         { key: "damage", value: 1 }
+        //     ],
+        //     description: "Example effect (+2 Physique, +1 damage)",
+        //     category: "custom",
+        //     increasable: false,
+        //     manaCost: 3 // Optional: mana cost (one-time)
+        // },
+
+        // Example for increasable effect:
+        // "ExampleIncreaseableEffect": {
+        //     name: "Example Book Effect",
+        //     icon: "icons/sundries/books/book-embossed-blue.webp",
+        //     description: "Increasable effect with counter",
+        //     category: "custom",
+        //     increasable: true,
+        //     flags: [
+        //         { key: "statuscounter", value: 0 }
+        //     ]
+        // },
+
+        // Example for effect with transformation:
+        // "ExampleTransformation": {
+        //     name: "Example Transformation",
+        //     icon: "icons/weapons/bows/shortbow-recurve-yellow.webp",
+        //     flags: [
+        //         { key: "agilite", value: -3 }
+        //     ],
+        //     description: "Effect with token transformation",
+        //     category: "custom",
+        //     increasable: false,
+        //     hasTransformation: true,
+        //     transformation: {
+        //         targetImagePath: "path/to/transformed/token.png",
+        //         transitionType: 4, // Water drop effect
+        //         loopDuration: 1000,
+        //         padding: 70,
+        //         magnify: 1,
+        //         filterId: "exampleTransformation"
+        //     },
+        //     hasAnimation: true,
+        //     animation: {
+        //         effectFile: "animated-spell-effects.air.shockwave.circle.02",
+        //         scale: 0.5,
+        //         duration: 2000
+        //     }
+        // },
+
+        // Example for effect with filters only:
+        // "ExampleFilters": {
+        //     name: "Example Filters",
+        //     icon: "icons/magic/unholy/strike-body-explode-disintegrate.webp",
+        //     flags: [],
+        //     description: "Effect with persistent filters and animation",
+        //     category: "custom",
+        //     increasable: false,
+        //     hasFilters: true,
+        //     filters: {
+        //         filterId: "exampleFilters",
+        //         filterConfigs: [
+        //             {
+        //                 filterType: "shadow",
+        //                 blur: 1,
+        //                 quality: 5,
+        //                 distance: 0.2,
+        //                 alpha: 1.0,
+        //                 padding: 100,
+        //                 color: 0xff0000,
+        //                 animated: {
+        //                     blur: {
+        //                         active: true,
+        //                         loopDuration: 500,
+        //                         animType: "syncCosOscillation",
+        //                         val1: 2,
+        //                         val2: 4
+        //                     }
+        //                 }
+        //             }
+        //         ]
+        //     },
+        //     hasAnimation: true,
+        //     animation: {
+        //         effectFile: "jb2a_patreon.static_electricity.02.dark_red",
+        //         scale: 2,
+        //         fadeOut: 3000,
+        //         persistent: true,
+        //         sequencerName: "ExampleEffect"
+        //     }
+        // },
+
+        // Example for effect with mana cost tracking:
+        // "ExampleManaCost": {
+        //     name: "Example Mana Effect",
+        //     icon: "icons/equipment/shield/heater-steel-worn.webp",
+        //     flags: [
+        //         { key: "resistance", value: 5 }
+        //     ],
+        //     description: "Effect with mana cost per turn",
+        //     category: "custom",
+        //     increasable: false,
+        //     manaCost: 2,
+        //     isPerTurn: true, // Cost per turn
+        //     statusCounterValue: 5 // Fixed status counter value
+        // }
     };
 
     // === DYNAMIC STATUS EFFECTS FROM CONFIG ===
@@ -166,31 +163,17 @@
         if (CONFIG.statusEffects && Array.isArray(CONFIG.statusEffects)) {
             for (const effect of CONFIG.statusEffects) {
                 if (effect.id && (effect.name || effect.label)) {
-                    const effectId = effect.id.toLowerCase();
+                    const effectName = effect.name || effect.label;
+                    const effectLower = effectName.toLowerCase();
 
-                    // Categorize postures - store the EXACT CONFIG object
-                    if (['focus', 'offensif', 'defensif'].includes(effectId)) {
-                        configEffects.postures[effect.id] = {
-                            ...effect, // Copy the exact CONFIG object
-                            category: "posture",
-                            description: `Position ${effect.name || effect.label || effect.id}`
-                        };
-                    }
-                    // Categorize injuries - store the EXACT CONFIG object
-                    else if (['blessures', 'blessure', 'injury', 'injuries'].includes(effectId)) {
-                        configEffects.injuries[effect.id] = {
-                            ...effect, // Copy the exact CONFIG object
-                            category: "injury",
-                            description: `Système de blessures: ${effect.name || effect.label || effect.id}`
-                        };
-                    }
-                    // Other status effects - store the EXACT CONFIG object
-                    else {
-                        configEffects.other[effect.id] = {
-                            ...effect, // Copy the exact CONFIG object
-                            category: "status",
-                            description: `Effet de statut: ${effect.name || effect.label || effect.id}`
-                        };
+                    // Categorize by type
+                    if (['focus', 'offensif', 'defensif'].includes(effectLower)) {
+                        configEffects.postures[effectLower] = effect;
+                    } else if (['blessures', 'injury', 'injuries', 'wounded'].includes(effectLower)) {
+                        configEffects.injuries[effectLower] = effect;
+                    } else {
+                        // Other status effects
+                        configEffects.other[effect.id] = effect;
                     }
                 }
             }
@@ -204,7 +187,6 @@
     const INJURY_EFFECTS = configStatusEffects.injuries;
 
     // === TOKEN TRANSFORMATION FUNCTIONS ===
-    // Based on token-transformation.js utility
 
     /**
      * Apply or revert token transformation using Token Magic FX
@@ -214,7 +196,7 @@
      */
     async function applyTokenTransformation(token, transformConfig, shouldTransform) {
         if (!token || typeof TokenMagic === "undefined") {
-            console.warn("[DEBUG] LeoEffect: Token Magic FX not available for transformation");
+            console.warn("[DEBUG] Generic Effect: Token Magic FX not available for transformation");
             return;
         }
 
@@ -223,76 +205,58 @@
             const { targetImagePath, transitionType, loopDuration, padding, magnify, filterId } = transformConfig;
 
             if (shouldTransform) {
-                // Check if filter already exists
-                if (token.TMFXhasFilterId(filterId)) {
-                    console.log(`[DEBUG] LeoEffect: Token ${token.name} already has transformation ${filterId}`);
-                    return;
-                }
-
-                // Create transformation filter
+                // Apply transformation with polymorph effect
                 filterParams = [{
                     filterType: "polymorph",
                     filterId: filterId,
-                    type: transitionType,
-                    padding: padding,
-                    magnify: magnify,
+                    type: transitionType || 4,
+                    padding: padding || 70,
+                    magnify: magnify || 1,
                     imagePath: targetImagePath,
+                    animated: {
+                        progress: {
+                            active: false,
+                            animType: "halfCosOscillation",
+                            val1: 0,
+                            val2: 100,
+                            loopDuration: loopDuration || 1000
+                        }
+                    }
+                }];
+            } else {
+                // Revert transformation
+                filterParams = [{
+                    filterType: "polymorph",
+                    filterId: filterId,
+                    type: transitionType || 4,
+                    padding: padding || 70,
+                    magnify: magnify || 1,
+                    imagePath: token.document.texture.src,
                     animated: {
                         progress: {
                             active: true,
                             animType: "halfCosOscillation",
-                            val1: 0,
-                            val2: 100,
-                            loops: 1,
-                            loopDuration: loopDuration
+                            val1: 100,
+                            val2: 0,
+                            loopDuration: loopDuration || 1000
                         }
                     }
                 }];
 
-                console.log(`[DEBUG] LeoEffect: Applying transformation to ${token.name}`);
-            } else {
-                // Check if filter exists to revert
-                if (!token.TMFXhasFilterId(filterId)) {
-                    console.log(`[DEBUG] LeoEffect: No transformation ${filterId} found on ${token.name} to revert`);
-                    return;
-                }
-
-                // First trigger revert animation, then delete the filter
-                filterParams = [{
-                    filterType: "polymorph",
-                    filterId: filterId,
-                    type: transitionType,
-                    animated: {
-                        progress: {
-                            active: true,
-                            loops: 1
-                        }
-                    }
-                }];
-
-                // Apply the revert animation
-                await token.TMFXaddUpdateFilters(filterParams);
-
-                // Wait for animation to complete, then delete the filter completely
+                // Schedule filter removal after animation
                 setTimeout(async () => {
                     try {
-                        if (token.TMFXhasFilterId(filterId)) {
-                            await token.TMFXdeleteFilters(filterId);
-                            console.log(`[DEBUG] LeoEffect: Deleted transformation filter ${filterId} from ${token.name}`);
-                        }
+                        await TokenMagic.deleteFiltersOnSelected(filterId);
                     } catch (error) {
-                        console.error(`[DEBUG] LeoEffect: Error deleting filter ${filterId}:`, error);
+                        console.warn("[DEBUG] Generic Effect: Error removing transformation filter:", error);
                     }
-                }, loopDuration + 100); // Wait for animation duration + small buffer
-
-                console.log(`[DEBUG] LeoEffect: Reverting transformation on ${token.name}`);
-                return; // Exit early since we're handling the deletion asynchronously
+                }, (loopDuration || 1000) + 100);
             }
 
             await token.TMFXaddUpdateFilters(filterParams);
 
         } catch (error) {
-            console.error("[DEBUG] LeoEffect: Error in token transformation:", error);
+            console.error("[DEBUG] Generic Effect: Error in token transformation:", error);
         }
     }
 
@@ -304,7 +268,7 @@
      */
     async function playTransformationAnimation(token, animConfig, isActivating) {
         if (!token || typeof Sequence === "undefined") {
-            console.warn("[DEBUG] LeoEffect: Sequencer not available for animation");
+            console.warn("[DEBUG] Generic Effect: Sequencer not available for animation");
             return;
         }
 
@@ -320,10 +284,10 @@
                 .belowTokens()
                 .play();
 
-            console.log(`[DEBUG] LeoEffect: Played transformation animation for ${token.name}`);
+            console.log(`[DEBUG] Generic Effect: Played transformation animation for ${token.name}`);
 
         } catch (error) {
-            console.error("[DEBUG] LeoEffect: Error in transformation animation:", error);
+            console.error("[DEBUG] Generic Effect: Error in transformation animation:", error);
         }
     }
 
@@ -335,7 +299,7 @@
      */
     async function applyTokenFilters(token, filterConfig, shouldApply) {
         if (!token || typeof TokenMagic === "undefined") {
-            console.warn("[DEBUG] LeoEffect: Token Magic FX not available for filters");
+            console.warn("[DEBUG] Generic Effect: Token Magic FX not available for filters");
             return;
         }
 
@@ -343,38 +307,32 @@
             const { filterId, filterConfigs } = filterConfig;
 
             if (shouldApply) {
-                // Check if filters are already applied
+                // Remove any existing filters first
                 const hasFilters = token.document.flags?.tokenmagic;
                 if (hasFilters) {
-                    console.log(`[DEBUG] LeoEffect: Token ${token.name} already has filters`);
-                    return;
+                    await TokenMagic.deleteFiltersOnSelected(filterId);
                 }
 
-                // Select the token and apply filters
-                canvas.tokens.releaseAll();
-                token.control({ releaseOthers: false });
+                // Apply new filters
+                const filterParams = filterConfigs.map(config => ({
+                    ...config,
+                    filterId: filterId
+                }));
 
-                await TokenMagic.addFiltersOnSelected(filterConfigs);
-                console.log(`[DEBUG] LeoEffect: Applied ${filterConfigs.length} filter(s) to ${token.name}`);
-
+                await TokenMagic.addFiltersOnSelected(filterParams);
             } else {
                 // Remove filters
                 const hasFilters = token.document.flags?.tokenmagic;
                 if (!hasFilters) {
-                    console.log(`[DEBUG] LeoEffect: No filters found on ${token.name} to remove`);
+                    console.log("[DEBUG] Generic Effect: No filters to remove");
                     return;
                 }
 
-                // Select the token and remove filters
-                canvas.tokens.releaseAll();
-                token.control({ releaseOthers: false });
-
-                await TokenMagic.deleteFiltersOnSelected();
-                console.log(`[DEBUG] LeoEffect: Removed filters from ${token.name}`);
+                await TokenMagic.deleteFiltersOnSelected(filterId);
             }
 
         } catch (error) {
-            console.error("[DEBUG] LeoEffect: Error in token filters:", error);
+            console.error("[DEBUG] Generic Effect: Error in token filters:", error);
         }
     }
 
@@ -386,7 +344,7 @@
      */
     async function playPersistentAnimation(token, animConfig, isActivating) {
         if (!token || typeof Sequence === "undefined") {
-            console.warn("[DEBUG] LeoEffect: Sequencer not available for persistent animation");
+            console.warn("[DEBUG] Generic Effect: Sequencer not available for persistent animation");
             return;
         }
 
@@ -394,43 +352,34 @@
             const { effectFile, scale, fadeOut, persistent, sequencerName } = animConfig;
 
             if (isActivating) {
-                // Check if effect already exists
-                const existingEffects = Sequencer.EffectManager.getEffects({ name: sequencerName, object: token });
-                if (existingEffects.length > 0) {
-                    console.log(`[DEBUG] LeoEffect: Persistent effect ${sequencerName} already active on ${token.name}`);
-                    return;
+                // Remove any existing animation first
+                if (Sequencer.EffectManager.getEffects({ name: sequencerName }).length > 0) {
+                    await Sequencer.EffectManager.endEffects({ name: sequencerName });
                 }
 
-                // Create persistent effect
+                // Play persistent animation
                 new Sequence()
                     .effect()
                     .file(effectFile)
-                    .fadeOut(fadeOut)
-                    .scaleToObject(scale)
-                    .atLocation(token)
                     .attachTo(token)
+                    .scale(scale)
+                    .fadeOut(fadeOut)
                     .persist()
                     .name(sequencerName)
                     .play();
-
-                console.log(`[DEBUG] LeoEffect: Started persistent animation ${sequencerName} for ${token.name}`);
-
             } else {
-                // End persistent effect
-                const existingEffects = Sequencer.EffectManager.getEffects({ name: sequencerName, object: token });
-                if (existingEffects.length === 0) {
-                    console.log(`[DEBUG] LeoEffect: No persistent effect ${sequencerName} found on ${token.name} to remove`);
-                    return;
+                // Remove persistent animation
+                if (Sequencer.EffectManager.getEffects({ name: sequencerName }).length > 0) {
+                    await Sequencer.EffectManager.endEffects({ name: sequencerName });
                 }
-
-                Sequencer.EffectManager.endEffects({ name: sequencerName, object: token });
-                console.log(`[DEBUG] LeoEffect: Ended persistent animation ${sequencerName} for ${token.name}`);
             }
 
         } catch (error) {
-            console.error("[DEBUG] LeoEffect: Error in persistent animation:", error);
+            console.error("[DEBUG] Generic Effect: Error in persistent animation:", error);
         }
-    }    // === CURRENT STATE DETECTION ===
+    }
+
+    // === CURRENT STATE DETECTION ===
     const getCurrentState = () => {
         const state = {
             customEffects: {},
@@ -470,7 +419,9 @@
             } else {
                 state.injuries[key] = null;
             }
-        }        // Check other config status effects
+        }
+
+        // Check other config status effects
         for (const [key, effectData] of Object.entries(configStatusEffects.other)) {
             const existingEffect = actor.effects.find(e =>
                 e.statuses?.has(effectData.id) ||
@@ -510,7 +461,7 @@
 
     // === BUILD DIALOG CONTENT ===
     let dialogContent = `
-        <h3>🎭 Gestionnaire Complet d'Effets</h3>
+        <h3>🎭 Gestionnaire Complet d'Effets - Generic</h3>
         <p><strong>Token:</strong> ${actor.name}</p>
         <style>
             .effect-section { margin: 20px 0; padding: 15px; border: 2px solid #ccc; border-radius: 8px; }
@@ -546,23 +497,21 @@
             if (effect.duration?.seconds) {
                 const hours = Math.floor(effect.duration.seconds / 3600);
                 const minutes = Math.floor((effect.duration.seconds % 3600) / 60);
-                if (hours > 0) durationInfo = ` (${hours}h${minutes > 0 ? ` ${minutes}m` : ''})`;
-                else if (minutes > 0) durationInfo = ` (${minutes}m)`;
-                else durationInfo = ` (${effect.duration.seconds}s)`;
+                durationInfo = ` (${hours}h ${minutes}m)`;
             } else if (effect.duration?.rounds) {
-                durationInfo = ` (${effect.duration.rounds} rounds)`;
+                durationInfo = ` (${effect.duration.rounds} tours)`;
             }
 
             dialogContent += `
-                <div class="effect-item">
-                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                        <div class="effect-icon" data-is-svg="${isSvg}" style="background-image: url(${effectIcon});"></div>
+                <div class="effect-item" style="border-left: 4px solid #ff5722;">
+                    <div style="display: flex; align-items: center;">
+                        <div class="effect-icon" ${isSvg ? 'data-is-svg="true"' : ''} style="background-image: url('${effectIcon}');"></div>
                         <div style="flex-grow: 1;">
                             <strong>${effect.name}</strong>${durationInfo}
-                            <br><small style="color: #666;">Origine: ${effect.origin || 'Inconnue'}</small>
+                            <br><small style="color: #666;">Effet externe non géré par ce système</small>
                         </div>
                         <div class="status-indicator" style="color: #ff5722;">
-                            🔍 EXTERNE
+                            ⚠️ EXTERNE
                         </div>
                     </div>
                     <div class="button-group">
@@ -577,78 +526,101 @@
     }
 
     // === CUSTOM EFFECTS SECTION ===
-    dialogContent += `
-        <div class="effect-section" style="border-color: #4caf50;">
-            <h4>🎯 Effets Personnalisés</h4>
-    `;
+    if (Object.keys(CUSTOM_EFFECTS).length > 0) {
+        dialogContent += `
+            <div class="effect-section" style="border-color: #4caf50;">
+                <h4>🎯 Effets Personnalisés</h4>
+        `;
 
-    for (const [key, effectData] of Object.entries(CUSTOM_EFFECTS)) {
-        const existingEffect = currentState.customEffects[key];
-        const isActive = existingEffect !== null;
-        const statusIcon = isActive ? "✅" : "❌";
-        const statusText = isActive ? "ACTIF" : "INACTIF";
-        const statusColor = isActive ? "#2e7d32" : "#d32f2f";
-        const isSvg = effectData.icon.toLowerCase().endsWith('.svg');
+        for (const [key, effectData] of Object.entries(CUSTOM_EFFECTS)) {
+            const existingEffect = currentState.customEffects[key];
+            const isActive = existingEffect !== null;
+            const statusIcon = isActive ? "✅" : "❌";
+            const statusText = isActive ? "ACTIF" : "INACTIF";
+            const statusColor = isActive ? "#2e7d32" : "#d32f2f";
+            const isSvg = effectData.icon.toLowerCase().endsWith('.svg');
 
-        // Check if this is an increasable effect
-        if (effectData.increasable) {
-            // Display increasable effect with counter
-            const effectCount = existingEffect ? (existingEffect.flags?.statuscounter?.value || 0) : 0;
+            // Check if this is an increasable effect
+            if (effectData.increasable) {
+                // Display increasable effect with counter
+                const effectCount = existingEffect ? (existingEffect.flags?.statuscounter?.value || 0) : 0;
 
-            dialogContent += `
-                <div class="effect-item">
-                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                        <div class="effect-icon" data-is-svg="${isSvg}" style="background-image: url(${effectData.icon});"></div>
-                        <div style="flex-grow: 1;">
-                            <strong>${effectData.name}</strong>
-                            <br><small style="color: #666;">${effectData.description}</small>
+                dialogContent += `
+                    <div class="effect-item">
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <div class="effect-icon" data-is-svg="${isSvg}" style="background-image: url(${effectData.icon});"></div>
+                            <div style="flex-grow: 1;">
+                                <strong>${effectData.name}</strong>
+                                <br><small style="color: #666;">${effectData.description}</small>
+                            </div>
+                            <div class="status-indicator status-${key}" style="color: ${effectCount > 0 ? '#673ab7' : '#666'};">
+                                📚 ${effectCount} ${effectData.name.toLowerCase()}${effectCount > 1 ? 's' : ''}
+                            </div>
                         </div>
-                        <div class="status-indicator status-${key}" style="color: ${effectCount > 0 ? '#673ab7' : '#666'};">
-                            📚 ${effectCount} ${effectData.name.toLowerCase()}${effectCount > 1 ? 's' : ''}
-                        </div>
-                    </div>
-                    <div class="button-group">
-                        <label>Nombre: <input type="number" id="customCount-${key}" value="${effectCount}" min="0" max="20" style="width: 60px; margin: 0 8px;"></label>
-                        <button type="button" class="btn btn-add" data-action="setCustomCount" data-effect="${key}" data-category="custom">
-                            📚 Appliquer
-                        </button>
-                    </div>
-                </div>
-            `;
-        } else {
-            // Display regular effect with flags
-            const bonusDisplay = effectData.flags.map(flag => {
-                const sign = flag.value >= 0 ? '+' : '';
-                return `${sign}${flag.value}`;
-            }).join(', ');
-
-            dialogContent += `
-                <div class="effect-item">
-                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                        <div class="effect-icon" data-src="${effectData.icon}" data-is-svg="${isSvg}" style="background-image: url(${effectData.icon});"></div>
-                        <div style="flex-grow: 1;">
-                            <strong>${effectData.name}</strong> (${bonusDisplay})
-                            <br><small style="color: #666;">${effectData.description}</small>
-                        </div>
-                        <div class="status-indicator status-${key}" style="color: ${statusColor};">
-                            ${statusIcon} ${statusText}
+                        <div class="button-group">
+                            <label>Nombre: <input type="number" id="customCount-${key}" value="${effectCount}" min="0" max="20" style="width: 60px; margin: 0 8px;"></label>
+                            <button type="button" class="btn btn-add" data-action="setCustomCount" data-effect="${key}" data-category="custom">
+                                📚 Appliquer
+                            </button>
                         </div>
                     </div>
-                    <div class="button-group">
-                        ${isActive ?
-                    `<button type="button" class="btn btn-remove" data-action="remove" data-effect="${key}" data-category="custom">
-                                ➖ Supprimer
-                            </button>` :
-                    `<button type="button" class="btn btn-add" data-action="add" data-effect="${key}" data-category="custom">
-                                ➕ Ajouter
-                            </button>`
-                }
+                `;
+            } else {
+                // Display regular effect with flags
+                const bonusDisplay = effectData.flags.map(flag => {
+                    return `+${flag.value} ${flag.key}`;
+                }).join(', ');
+
+                // Add status counter display if present
+                const counterDisplay = effectData.statusCounterValue !== undefined ?
+                    ` [${effectData.statusCounterValue}]` : '';
+
+                // Add mana cost display
+                const manaCostDisplay = effectData.manaCost ?
+                    (effectData.isPerTurn ? ` (${effectData.manaCost} mana/tour)` : ` (${effectData.manaCost} mana)`) : '';
+
+                const statusDisplayText = isActive ?
+                    (existingEffect?.flags?.statuscounter?.value !== undefined ?
+                        `ACTIF [${existingEffect.flags.statuscounter.value}]` : "ACTIF") : "INACTIF";
+
+                dialogContent += `
+                    <div class="effect-item">
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <div class="effect-icon" data-src="${effectData.icon}" data-is-svg="${isSvg}" style="background-image: url(${effectData.icon});"></div>
+                            <div style="flex-grow: 1;">
+                                <strong>${effectData.name}</strong>${bonusDisplay ? ` (${bonusDisplay})` : ''}${counterDisplay}${manaCostDisplay}
+                                <br><small style="color: #666;">${effectData.description}</small>
+                            </div>
+                            <div class="status-indicator status-${key}" style="color: ${statusColor};">
+                                ${statusIcon} ${statusDisplayText}
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            ${isActive ?
+                        `<button type="button" class="btn btn-remove" data-action="remove" data-effect="${key}" data-category="custom">
+                                    ➖ Supprimer
+                                </button>` :
+                        `<button type="button" class="btn btn-add" data-action="add" data-effect="${key}" data-category="custom">
+                                    ➕ Ajouter
+                                </button>`
+                    }
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
         }
+        dialogContent += `</div>`;
+    } else {
+        dialogContent += `
+            <div class="effect-section" style="border-color: #4caf50;">
+                <h4>🎯 Effets Personnalisés</h4>
+                <div class="effect-item" style="text-align: center; color: #666; font-style: italic;">
+                    Aucun effet personnalisé configuré.
+                    <br><small>Configurez les effets spécifiques du personnage dans CUSTOM_EFFECTS.</small>
+                </div>
+            </div>
+        `;
     }
-    dialogContent += `</div>`;
 
     // === POSTURES SECTION ===
     dialogContent += `
@@ -794,7 +766,7 @@
     // === DIALOG CREATION ===
     const result = await new Promise((resolve) => {
         new Dialog({
-            title: "🎭 Gestionnaire Complet d'Effets",
+            title: "🎭 Gestionnaire d'Effets - Generic",
             content: dialogContent,
             buttons: {
                 save: {
@@ -803,14 +775,22 @@
                     callback: (html) => {
                         const injuryValues = {};
                         for (const key of Object.keys(INJURY_EFFECTS)) {
-                            injuryValues[key] = parseInt(html.find(`#injuryCount-${key}`).val()) || 0;
+                            const input = html.find(`#injuryCount-${key}`);
+                            if (input.length) {
+                                injuryValues[key] = parseInt(input.val()) || 0;
+                            }
                         }
+
                         const customCountValues = {};
                         for (const key of Object.keys(CUSTOM_EFFECTS)) {
                             if (CUSTOM_EFFECTS[key].increasable) {
-                                customCountValues[key] = parseInt(html.find(`#customCount-${key}`).val()) || 0;
+                                const input = html.find(`#customCount-${key}`);
+                                if (input.length) {
+                                    customCountValues[key] = parseInt(input.val()) || 0;
+                                }
                             }
                         }
+
                         resolve({ pendingChanges, injuryValues, customCountValues });
                     }
                 },
@@ -847,6 +827,17 @@
                         return;
                     }
 
+                    if (action === 'removeExternal') {
+                        // Handle external effect removal
+                        pendingChanges[effectKey] = { action, category };
+                        const $item = $(this).closest('.effect-item');
+                        $item.addClass('pending-change');
+                        const $status = $item.find('.status-indicator');
+                        $status.html('🔄 SUPPRESSION').css('color', '#ff9800');
+                        $(this).prop('disabled', true).addClass('btn-disabled');
+                        return;
+                    }
+
                     // Handle other effects
                     const isAlreadySelected = $(this).hasClass('pending-change');
                     const statusDiv = $(this).closest('.effect-item').find('.status-indicator');
@@ -868,20 +859,10 @@
                     } else {
                         // Set pending change
                         pendingChanges[effectKey] = { action, category };
-
-                        // Clear other buttons in this group
-                        $(this).closest('.button-group').find('button').removeClass('pending-change');
                         $(this).addClass('pending-change');
 
                         // Update status display
-                        let pendingText = '';
-                        switch (action) {
-                            case 'add': pendingText = '📝 À AJOUTER'; break;
-                            case 'remove': pendingText = '📝 À SUPPRIMER'; break;
-                            case 'setPosture': pendingText = '📝 À ACTIVER'; break;
-                            case 'removePostures': pendingText = '📝 À SUPPRIMER'; break;
-                            case 'removeExternal': pendingText = '📝 À SUPPRIMER'; break;
-                        }
+                        const pendingText = action === 'add' || action === 'setPosture' ? '🔄 EN ATTENTE' : '🔄 SUPPRESSION';
                         statusDiv.html(`<strong style="color: #2196f3;">${pendingText}</strong>`);
                     }
                 });
@@ -907,51 +888,32 @@
         }
 
         try {
-            // Handle transformations removal before deleting effects
+            // Handle transformations and filters removal before deleting effects
             if (canvas.tokens.controlled.length > 0) {
                 const token = canvas.tokens.controlled[0];
 
-                // Check if any custom effects with special features are active
-                for (const [effectKey, effectData] of Object.entries(CUSTOM_EFFECTS)) {
+                // Handle special effects removal for each custom effect
+                for (const [key, effectData] of Object.entries(CUSTOM_EFFECTS)) {
                     const existingEffect = actor.effects.find(e => e.name === effectData.name);
                     if (existingEffect) {
-                        // Handle transformation effects
+                        // Handle transformation removal
                         if (effectData.hasTransformation) {
-                            // Play removal animation
                             if (effectData.hasAnimation) {
                                 await playTransformationAnimation(token, effectData.animation, false);
-                                await new Promise(resolve => setTimeout(resolve, 200));
                             }
-
-                            // Remove transformation
+                            // Small delay for animation
+                            await new Promise(resolve => setTimeout(resolve, 200));
                             await applyTokenTransformation(token, effectData.transformation, false);
-
-                            // Backup cleanup for transformation filters
-                            setTimeout(async () => {
-                                try {
-                                    if (token.TMFXhasFilterId(effectData.transformation.filterId)) {
-                                        await token.TMFXdeleteFilters(effectData.transformation.filterId);
-                                        console.log(`[DEBUG] LeoEffect: Force-deleted transformation filter ${effectData.transformation.filterId}`);
-                                    }
-                                } catch (error) {
-                                    console.error(`[DEBUG] LeoEffect: Error force-deleting transformation filter:`, error);
-                                }
-                            }, effectData.transformation.loopDuration + 200);
-
-                            console.log(`[DEBUG] LeoEffect: Removed transformation for ${effectData.name}`);
                         }
 
-                        // Handle filter effects
+                        // Handle filters removal
                         if (effectData.hasFilters) {
-                            // End persistent animation
                             if (effectData.hasAnimation) {
                                 await playPersistentAnimation(token, effectData.animation, false);
-                                await new Promise(resolve => setTimeout(resolve, 200));
                             }
-
-                            // Remove filters
+                            // Small delay for animation cleanup
+                            await new Promise(resolve => setTimeout(resolve, 200));
                             await applyTokenFilters(token, effectData.filters, false);
-                            console.log(`[DEBUG] LeoEffect: Removed filters for ${effectData.name}`);
                         }
                     }
                 }
@@ -981,34 +943,27 @@
             const currentValue = currentInjuryEffect ? (currentInjuryEffect.flags?.statuscounter?.value || 1) : 0;
 
             if (newValue !== currentValue) {
-                if (newValue === 0 && currentInjuryEffect) {
+                // Remove existing injury if present
+                if (currentInjuryEffect) {
                     effectsToRemove.push(currentInjuryEffect.id);
-                    operationLog.push(`🩸 ${injuryData.name} supprimées`);
-                } else if (newValue > 0) {
-                    if (currentInjuryEffect) {
-                        // Update existing
-                        await currentInjuryEffect.update({
-                            "flags.statuscounter.value": newValue
-                        });
-                        operationLog.push(`🩸 ${injuryData.name} mises à jour: ${newValue}`);
-                    } else {
-                        // Create new using exact CONFIG object structure
-                        const injuryEffect = {
-                            ...injuryData, // Copy all CONFIG properties
-                            origin: actor.uuid,
-                            duration: { seconds: 86400 },
-                            flags: {
-                                statuscounter: { value: newValue }
-                            },
-                            statuses: [injuryData.id] // Add status ID to statuses array
-                        };
-                        // Remove our custom properties that aren't part of the effect
-                        delete injuryEffect.category;
-                        delete injuryEffect.description;
+                }
 
-                        effectsToAdd.push(injuryEffect);
-                        operationLog.push(`🩸 ${injuryData.name || injuryData.label} ajoutées: ${newValue}`);
-                    }
+                // Add new injury if value > 0
+                if (newValue > 0) {
+                    const injuryConfig = {
+                        name: injuryData.name || injuryData.label,
+                        icon: injuryData.icon || injuryData.img || 'icons/skills/wounds/blood-spurt-spray-red.webp',
+                        description: injuryData.description,
+                        duration: { seconds: 86400 },
+                        statuses: [injuryData.id],
+                        flags: {
+                            statuscounter: { value: newValue }
+                        }
+                    };
+                    effectsToAdd.push(injuryConfig);
+                    operationLog.push(`🩸 ${injuryData.name || injuryData.label} (${newValue})`);
+                } else if (currentValue > 0) {
+                    operationLog.push(`❌ ${injuryData.name || injuryData.label} supprimé`);
                 }
             }
         }
@@ -1022,82 +977,80 @@
             const currentValue = currentCustomEffect ? (currentCustomEffect.flags?.statuscounter?.value || 0) : 0;
 
             if (newValue !== currentValue) {
-                if (newValue === 0 && currentCustomEffect) {
-                    effectsToRemove.push(currentCustomEffect.id);
-                    operationLog.push(`📚 ${customData.name} supprimé(s)`);
-
+                // Remove existing effect if present
+                if (currentCustomEffect) {
                     // Handle special effects removal for increasable effects
                     if (canvas.tokens.controlled.length > 0) {
                         const token = canvas.tokens.controlled[0];
 
-                        // Handle transformation removal
                         if (customData.hasTransformation) {
                             if (customData.hasAnimation) {
                                 await playTransformationAnimation(token, customData.animation, false);
-                                await new Promise(resolve => setTimeout(resolve, 200));
                             }
+                            await new Promise(resolve => setTimeout(resolve, 200));
                             await applyTokenTransformation(token, customData.transformation, false);
-                            operationLog.push(`🎭 Transformation ${customData.name} supprimée`);
                         }
 
-                        // Handle filter removal
                         if (customData.hasFilters) {
                             if (customData.hasAnimation) {
                                 await playPersistentAnimation(token, customData.animation, false);
-                                await new Promise(resolve => setTimeout(resolve, 200));
                             }
+                            await new Promise(resolve => setTimeout(resolve, 200));
                             await applyTokenFilters(token, customData.filters, false);
-                            operationLog.push(`⚡ Filtres ${customData.name} supprimés`);
                         }
                     }
 
-                } else if (newValue > 0) {
-                    if (currentCustomEffect) {
-                        // Update existing
-                        await currentCustomEffect.update({
-                            "flags.statuscounter.value": newValue
-                        });
-                        operationLog.push(`📚 ${customData.name} mis à jour: ${newValue}`);
-                    } else {
-                        // Create new with statuscounter
-                        const customEffect = {
-                            name: customData.name,
-                            icon: customData.icon,
-                            origin: actor.uuid,
-                            duration: { seconds: 86400 },
-                            flags: {
-                                statuscounter: { value: newValue }
-                            }
-                        };
+                    effectsToRemove.push(currentCustomEffect.id);
+                }
 
-                        effectsToAdd.push(customEffect);
-                        operationLog.push(`📚 ${customData.name} ajouté(s): ${newValue}`);
+                // Add new effect if value > 0
+                if (newValue > 0) {
+                    const effectConfig = {
+                        name: customData.name,
+                        icon: customData.icon,
+                        description: customData.description,
+                        duration: { seconds: 86400 },
+                        flags: {
+                            statuscounter: { value: newValue }
+                        }
+                    };
 
-                        // Handle special effects addition for increasable effects (only when creating new)
-                        if (canvas.tokens.controlled.length > 0) {
-                            const token = canvas.tokens.controlled[0];
+                    // Add custom flags
+                    for (const flag of customData.flags) {
+                        if (flag.key !== 'statuscounter') {
+                            effectConfig.flags[flag.key] = { value: flag.value };
+                        }
+                    }
 
-                            // Handle transformation addition
+                    effectsToAdd.push(effectConfig);
+
+                    // Handle special effects addition for increasable effects (only when creating new)
+                    if (currentValue === 0 && canvas.tokens.controlled.length > 0) {
+                        const token = canvas.tokens.controlled[0];
+
+                        // Small delay to let effect be created
+                        setTimeout(async () => {
                             if (customData.hasTransformation) {
                                 if (customData.hasAnimation) {
                                     await playTransformationAnimation(token, customData.animation, true);
-                                    await new Promise(resolve => setTimeout(resolve, 200));
                                 }
+                                await new Promise(resolve => setTimeout(resolve, 200));
                                 await applyTokenTransformation(token, customData.transformation, true);
-                                operationLog.push(`🎭 Transformation ${customData.name} appliquée`);
                             }
 
-                            // Handle filter addition
                             if (customData.hasFilters) {
                                 if (customData.hasAnimation) {
                                     await playPersistentAnimation(token, customData.animation, true);
-                                    await new Promise(resolve => setTimeout(resolve, 200));
                                 }
+                                await new Promise(resolve => setTimeout(resolve, 200));
                                 await applyTokenFilters(token, customData.filters, true);
-                                operationLog.push(`⚡ Filtres ${customData.name} appliqués`);
                             }
-                        }
+                        }, 500);
                     }
+
+                    operationLog.push(`📚 ${customData.name} (${newValue})`);
+                } else if (currentValue > 0) {
+                    operationLog.push(`❌ ${customData.name} supprimé`);
                 }
             }
         }
@@ -1105,13 +1058,14 @@
         // Handle posture changes (remove current, add new)
         const hasPostureChange = Object.values(changes).some(c => c.action === 'setPosture' || c.action === 'removePostures');
         if (hasPostureChange) {
-            // Remove current posture
-            if (currentState.currentPosture) {
-                const currentPostureEffect = actor.effects.find(e =>
-                    e.name.toLowerCase() === (POSTURES[currentState.currentPosture].name || POSTURES[currentState.currentPosture].label).toLowerCase()
-                );
-                if (currentPostureEffect) {
-                    effectsToRemove.push(currentPostureEffect.id);
+            // Remove all current postures
+            for (const effect of actor.effects.contents) {
+                for (const postureData of Object.values(POSTURES)) {
+                    if (effect.statuses?.has(postureData.id) ||
+                        effect.name.toLowerCase() === (postureData.name || postureData.label).toLowerCase()) {
+                        effectsToRemove.push(effect.id);
+                        break;
+                    }
                 }
             }
         }
@@ -1120,154 +1074,122 @@
         for (const [effectKey, changeData] of Object.entries(changes)) {
             const { action, category } = changeData;
 
-            switch (category) {
-                case 'custom':
-                    const customData = CUSTOM_EFFECTS[effectKey];
-                    // Skip increasable effects - they're handled separately
-                    if (customData.increasable) break;
+            if (category === 'external') {
+                if (action === 'removeExternal') {
+                    const externalEffect = actor.effects.find(e => e.id === effectKey);
+                    if (externalEffect) {
+                        effectsToRemove.push(externalEffect.id);
+                        operationLog.push(`🗑️ Effet externe ${externalEffect.name} supprimé`);
+                    }
+                }
+            } else if (category === 'custom') {
+                const customData = CUSTOM_EFFECTS[effectKey];
+                if (!customData) continue;
 
-                    if (action === 'add') {
-                        const flagsObject = {};
-                        customData.flags.forEach(flag => {
-                            flagsObject[flag.key] = { value: flag.value };
-                        });
+                // Skip increasable effects - they're handled separately
+                if (customData.increasable) break;
 
-                        effectsToAdd.push({
-                            name: customData.name,
-                            icon: customData.icon,
-                            origin: actor.uuid,
-                            duration: { seconds: 86400 },
-                            flags: flagsObject
-                        });
-                        operationLog.push(`✅ ${customData.name} activé`);
+                if (action === 'add') {
+                    const effectConfig = {
+                        name: customData.name,
+                        icon: customData.icon,
+                        description: customData.description,
+                        duration: { seconds: 86400 },
+                        flags: {}
+                    };
 
-                        // Handle special effects (transformations, filters, animations)
+                    // Add custom flags
+                    for (const flag of customData.flags) {
+                        effectConfig.flags[flag.key] = { value: flag.value };
+                    }
+
+                    // Add status counter if defined
+                    if (customData.statusCounterValue !== undefined) {
+                        effectConfig.flags.statuscounter = { value: customData.statusCounterValue };
+                    }
+
+                    effectsToAdd.push(effectConfig);
+                    operationLog.push(`✅ ${customData.name} ajouté`);
+
+                    // Handle special effects (delayed to let effect be created)
+                    if (canvas.tokens.controlled.length > 0) {
+                        const token = canvas.tokens.controlled[0];
+                        setTimeout(async () => {
+                            if (customData.hasTransformation) {
+                                if (customData.hasAnimation) {
+                                    await playTransformationAnimation(token, customData.animation, true);
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                                await applyTokenTransformation(token, customData.transformation, true);
+                            }
+
+                            if (customData.hasFilters) {
+                                if (customData.hasAnimation) {
+                                    await playPersistentAnimation(token, customData.animation, true);
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                                await applyTokenFilters(token, customData.filters, true);
+                            }
+                        }, 500);
+                    }
+
+                } else if (action === 'remove') {
+                    const existingEffect = currentState.customEffects[effectKey];
+                    if (existingEffect) {
+                        // Handle special effects removal first
                         if (canvas.tokens.controlled.length > 0) {
                             const token = canvas.tokens.controlled[0];
 
-                            // Handle transformation effects
                             if (customData.hasTransformation) {
-                                // Play animation first
                                 if (customData.hasAnimation) {
-                                    await playTransformationAnimation(token, customData.animation, true);
-                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                    await playTransformationAnimation(token, customData.animation, false);
                                 }
-
-                                // Apply transformation
-                                await applyTokenTransformation(token, customData.transformation, true);
-                                operationLog.push(`🎭 Transformation ${customData.name} appliquée`);
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                                await applyTokenTransformation(token, customData.transformation, false);
                             }
 
-                            // Handle filter effects
                             if (customData.hasFilters) {
-                                // Play persistent animation first
                                 if (customData.hasAnimation) {
-                                    await playPersistentAnimation(token, customData.animation, true);
-                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                    await playPersistentAnimation(token, customData.animation, false);
                                 }
-
-                                // Apply filters
-                                await applyTokenFilters(token, customData.filters, true);
-                                operationLog.push(`⚡ Filtres ${customData.name} appliqués`);
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                                await applyTokenFilters(token, customData.filters, false);
                             }
                         }
 
-                    } else if (action === 'remove') {
-                        const existing = currentState.customEffects[effectKey];
-                        if (existing) {
-                            effectsToRemove.push(existing.id);
-                            operationLog.push(`❌ ${customData.name} désactivé`);
-
-                            // Handle special effects removal
-                            if (canvas.tokens.controlled.length > 0) {
-                                const token = canvas.tokens.controlled[0];
-
-                                // Handle transformation removal
-                                if (customData.hasTransformation) {
-                                    // Play animation first
-                                    if (customData.hasAnimation) {
-                                        await playTransformationAnimation(token, customData.animation, false);
-                                        await new Promise(resolve => setTimeout(resolve, 200));
-                                    }
-
-                                    // Revert transformation
-                                    await applyTokenTransformation(token, customData.transformation, false);
-                                    operationLog.push(`🎭 Transformation ${customData.name} supprimée`);
-                                }
-
-                                // Handle filter removal
-                                if (customData.hasFilters) {
-                                    // End persistent animation first
-                                    if (customData.hasAnimation) {
-                                        await playPersistentAnimation(token, customData.animation, false);
-                                        await new Promise(resolve => setTimeout(resolve, 200));
-                                    }
-
-                                    // Remove filters
-                                    await applyTokenFilters(token, customData.filters, false);
-                                    operationLog.push(`⚡ Filtres ${customData.name} supprimés`);
-                                }
-                            }
-                        }
+                        effectsToRemove.push(existingEffect.id);
+                        operationLog.push(`❌ ${customData.name} supprimé`);
                     }
-                    break;
+                }
 
-                case 'posture':
-                    if (action === 'setPosture') {
-                        const postureData = POSTURES[effectKey];
-                        // Create effect using exact CONFIG object structure
-                        const postureEffect = {
-                            ...postureData, // Copy all CONFIG properties
-                            origin: actor.uuid,
-                            duration: { seconds: 86400 },
-                            statuses: [postureData.id] // Add status ID to statuses array
-                        };
-                        // Remove our custom properties that aren't part of the effect
-                        delete postureEffect.category;
-                        delete postureEffect.description;
-
-                        effectsToAdd.push(postureEffect);
-                        operationLog.push(`⚔️ Posture ${postureData.name || postureData.label} activée`);
-                    } else if (action === 'removePostures') {
-                        operationLog.push(`🚫 Toutes les postures supprimées`);
+            } else if (category === 'posture') {
+                if (action === 'setPosture') {
+                    const postureData = POSTURES[effectKey];
+                    if (postureData) {
+                        // Add the new posture (after removal handled above)
+                        setTimeout(async () => {
+                            await actor.toggleStatusEffect(postureData.id);
+                        }, 100);
+                        operationLog.push(`⚔️ ${postureData.name || postureData.label} activé`);
                     }
-                    break;
+                }
 
-                case 'status':
-                    const statusData = configStatusEffects.other[effectKey];
-                    if (action === 'add') {
-                        // Create effect using exact CONFIG object structure
-                        const statusEffect = {
-                            ...statusData, // Copy all CONFIG properties
-                            origin: actor.uuid,
-                            duration: { seconds: 86400 },
-                            statuses: [statusData.id] // Add status ID to statuses array
-                        };
-                        // Remove our custom properties that aren't part of the effect
-                        delete statusEffect.category;
-                        delete statusEffect.description;
+            } else if (category === 'status') {
+                const statusData = configStatusEffects.other[effectKey];
+                if (!statusData) continue;
 
-                        effectsToAdd.push(statusEffect);
-                        operationLog.push(`📊 ${statusData.name || statusData.label} activé`);
-                    } else if (action === 'remove') {
-                        const existing = currentState.statusEffects[effectKey];
-                        if (existing) {
-                            effectsToRemove.push(existing.id);
-                            operationLog.push(`📊 ${statusData.name || statusData.label} désactivé`);
-                        }
-                    }
-                    break;
+                if (action === 'add') {
+                    setTimeout(async () => {
+                        await actor.toggleStatusEffect(statusData.id);
+                    }, 100);
+                    operationLog.push(`✅ ${statusData.name || statusData.label} ajouté`);
 
-                case 'external':
-                    if (action === 'removeExternal') {
-                        // Find the external effect by ID
-                        const externalEffect = actor.effects.get(effectKey);
-                        if (externalEffect) {
-                            effectsToRemove.push(externalEffect.id);
-                            operationLog.push(`🗑️ Effet externe "${externalEffect.name}" supprimé`);
-                        }
-                    }
-                    break;
+                } else if (action === 'remove') {
+                    setTimeout(async () => {
+                        await actor.toggleStatusEffect(statusData.id);
+                    }, 100);
+                    operationLog.push(`❌ ${statusData.name || statusData.label} supprimé`);
+                }
             }
         }
 
@@ -1280,10 +1202,10 @@
         }
 
         if (operationLog.length > 0) {
-            ui.notifications.info(`🎭 Modifications appliquées ! (${operationLog.length} changement${operationLog.length > 1 ? 's' : ''})`);
-            console.log("Changements appliqués:", operationLog);
+            const message = `🎭 Effets mis à jour !\n${operationLog.join('\n')}`;
+            ui.notifications.info(message);
         } else {
-            ui.notifications.info("Aucune modification nécessaire.");
+            ui.notifications.info("Aucune modification apportée.");
         }
 
     } catch (error) {

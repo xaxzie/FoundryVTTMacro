@@ -77,6 +77,190 @@
     const POSTURES = configStatusEffects.postures;
     const INJURY_EFFECTS = configStatusEffects.injuries;
 
+    // === TOKEN TRANSFORMATION FUNCTIONS ===
+
+    /**
+     * Apply or revert token transformation using Token Magic FX
+     * @param {Token} token - The token to transform
+     * @param {Object} transformConfig - Transformation configuration
+     * @param {boolean} shouldTransform - True to transform, false to revert
+     */
+    async function applyTokenTransformation(token, transformConfig, shouldTransform) {
+        if (!token || typeof TokenMagic === "undefined") {
+            console.warn("[DEBUG] Missy Effect: Token Magic FX not available for transformation");
+            return;
+        }
+
+        try {
+            let filterParams;
+            const { targetImagePath, transitionType, loopDuration, padding, magnify, filterId } = transformConfig;
+
+            if (shouldTransform) {
+                filterParams = [{
+                    filterType: "polymorph",
+                    filterId: filterId,
+                    type: transitionType || 4,
+                    padding: padding || 70,
+                    magnify: magnify || 1,
+                    imagePath: targetImagePath,
+                    animated: {
+                        progress: {
+                            active: false,
+                            animType: "halfCosOscillation",
+                            val1: 0,
+                            val2: 100,
+                            loopDuration: loopDuration || 1000
+                        }
+                    }
+                }];
+            } else {
+                filterParams = [{
+                    filterType: "polymorph",
+                    filterId: filterId,
+                    type: transitionType || 4,
+                    padding: padding || 70,
+                    magnify: magnify || 1,
+                    imagePath: token.document.texture.src,
+                    animated: {
+                        progress: {
+                            active: true,
+                            animType: "halfCosOscillation",
+                            val1: 100,
+                            val2: 0,
+                            loopDuration: loopDuration || 1000
+                        }
+                    }
+                }];
+
+                setTimeout(async () => {
+                    try {
+                        await TokenMagic.deleteFiltersOnSelected(filterId);
+                    } catch (error) {
+                        console.warn("[DEBUG] Missy Effect: Error removing transformation filter:", error);
+                    }
+                }, (loopDuration || 1000) + 100);
+            }
+
+            await token.TMFXaddUpdateFilters(filterParams);
+
+        } catch (error) {
+            console.error("[DEBUG] Missy Effect: Error in token transformation:", error);
+        }
+    }
+
+    /**
+     * Play transformation animation using Sequencer
+     * @param {Token} token - The token to animate
+     * @param {Object} animConfig - Animation configuration
+     * @param {boolean} isActivating - True if activating effect, false if deactivating
+     */
+    async function playTransformationAnimation(token, animConfig, isActivating) {
+        if (!token || typeof Sequence === "undefined") {
+            console.warn("[DEBUG] Missy Effect: Sequencer not available for animation");
+            return;
+        }
+
+        try {
+            const { effectFile, scale } = animConfig;
+
+            new Sequence()
+                .effect()
+                .file(effectFile)
+                .atLocation(token)
+                .scale(scale)
+                .fadeOut(500)
+                .belowTokens()
+                .play();
+
+            console.log(`[DEBUG] Missy Effect: Played transformation animation for ${token.name}`);
+
+        } catch (error) {
+            console.error("[DEBUG] Missy Effect: Error in transformation animation:", error);
+        }
+    }
+
+    /**
+     * Apply or remove Token Magic FX filters
+     * @param {Token} token - The token to apply filters to
+     * @param {Object} filterConfig - Filter configuration
+     * @param {boolean} shouldApply - True to apply filters, false to remove
+     */
+    async function applyTokenFilters(token, filterConfig, shouldApply) {
+        if (!token || typeof TokenMagic === "undefined") {
+            console.warn("[DEBUG] Missy Effect: Token Magic FX not available for filters");
+            return;
+        }
+
+        try {
+            const { filterId, filterConfigs } = filterConfig;
+
+            if (shouldApply) {
+                const hasFilters = token.document.flags?.tokenmagic;
+                if (hasFilters) {
+                    await TokenMagic.deleteFiltersOnSelected(filterId);
+                }
+
+                const filterParams = filterConfigs.map(config => ({
+                    ...config,
+                    filterId: filterId
+                }));
+
+                await TokenMagic.addFiltersOnSelected(filterParams);
+            } else {
+                const hasFilters = token.document.flags?.tokenmagic;
+                if (!hasFilters) {
+                    console.log("[DEBUG] Missy Effect: No filters to remove");
+                    return;
+                }
+
+                await TokenMagic.deleteFiltersOnSelected(filterId);
+            }
+
+        } catch (error) {
+            console.error("[DEBUG] Missy Effect: Error in token filters:", error);
+        }
+    }
+
+    /**
+     * Play persistent animation using Sequencer
+     * @param {Token} token - The token to animate
+     * @param {Object} animConfig - Animation configuration
+     * @param {boolean} isActivating - True if activating effect, false if deactivating
+     */
+    async function playPersistentAnimation(token, animConfig, isActivating) {
+        if (!token || typeof Sequence === "undefined") {
+            console.warn("[DEBUG] Missy Effect: Sequencer not available for persistent animation");
+            return;
+        }
+
+        try {
+            const { effectFile, scale, fadeOut, persistent, sequencerName } = animConfig;
+
+            if (isActivating) {
+                if (Sequencer.EffectManager.getEffects({ name: sequencerName }).length > 0) {
+                    await Sequencer.EffectManager.endEffects({ name: sequencerName });
+                }
+
+                new Sequence()
+                    .effect()
+                    .file(effectFile)
+                    .attachTo(token)
+                    .scale(scale)
+                    .fadeOut(fadeOut)
+                    .persist()
+                    .name(sequencerName)
+                    .play();
+            } else {
+                if (Sequencer.EffectManager.getEffects({ name: sequencerName }).length > 0) {
+                    await Sequencer.EffectManager.endEffects({ name: sequencerName });
+                }
+            }
+
+        } catch (error) {
+            console.error("[DEBUG] Missy Effect: Error in persistent animation:", error);
+        }
+    }
+
     // === CURRENT STATE DETECTION ===
     const getCurrentState = () => {
         const state = {
@@ -212,6 +396,11 @@
                             ⚠️ EXTERNE
                         </div>
                     </div>
+                    <div class="button-group">
+                        <button type="button" class="btn btn-remove" data-action="removeExternal" data-effect="${effect.id}" data-category="external">
+                            🗑️ Supprimer
+                        </button>
+                    </div>
                 </div>
             `;
         }
@@ -239,6 +428,34 @@
             const statusText = isActive ? "ACTIF" : "INACTIF";
             const statusColor = isActive ? "#2e7d32" : "#d32f2f";
             const isSvg = effectData.icon.toLowerCase().endsWith('.svg');
+
+            // Check if this is an increasable effect
+            if (effectData.increasable) {
+                // Display increasable effect with counter
+                const effectCount = existingEffect ? (existingEffect.flags?.statuscounter?.value || 0) : 0;
+
+                dialogContent += `
+                    <div class="effect-item">
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <div class="effect-icon" data-is-svg="${isSvg}" style="background-image: url(${effectData.icon});"></div>
+                            <div style="flex-grow: 1;">
+                                <strong>${effectData.name}</strong>
+                                <br><small style="color: #666;">${effectData.description}</small>
+                            </div>
+                            <div class="status-indicator status-${key}" style="color: ${effectCount > 0 ? '#673ab7' : '#666'};">
+                                📚 ${effectCount} ${effectData.name.toLowerCase()}${effectCount > 1 ? 's' : ''}
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            <label>Nombre: <input type="number" id="customCount-${key}" value="${effectCount}" min="0" max="20" style="width: 60px; margin: 0 8px;"></label>
+                            <button type="button" class="btn btn-add" data-action="setCustomCount" data-effect="${key}" data-category="custom">
+                                📚 Appliquer
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Display regular effect with flags
 
             // Build bonus display like Leo's system
             const bonusDisplay = effectData.flags.length > 0 ?
@@ -282,6 +499,7 @@
                     </div>
                 </div>
             `;
+            }
         }
     }
     dialogContent += `</div>`;
@@ -454,7 +672,18 @@
                                 injuryValues[key] = parseInt(input.val()) || 0;
                             }
                         }
-                        resolve({ pendingChanges, injuryValues });
+
+                        const customCountValues = {};
+                        for (const key of Object.keys(CUSTOM_EFFECTS)) {
+                            if (CUSTOM_EFFECTS[key].increasable) {
+                                const input = html.find(`#customCount-${key}`);
+                                if (input.length) {
+                                    customCountValues[key] = parseInt(input.val()) || 0;
+                                }
+                            }
+                        }
+
+                        resolve({ pendingChanges, injuryValues, customCountValues });
                     }
                 },
                 removeAll: {
@@ -490,6 +719,9 @@
                     if (action === 'setInjury') {
                         const injuryValue = parseInt(html.find(`#injury-${effect}`).val()) || 0;
                         pendingChanges[effect] = { action, category, value: injuryValue };
+                    } else if (action === 'setCustomCount') {
+                        // Handle custom count setting directly - no pending change needed
+                        return;
                     } else {
                         pendingChanges[effect] = { action, category };
                     }
@@ -502,7 +734,7 @@
                     const $status = $item.find('.status-indicator');
                     if (action === 'add' || action === 'setPosture') {
                         $status.html('🔄 EN ATTENTE').css('color', '#2196f3');
-                    } else if (action === 'remove' || action === 'removePostures') {
+                    } else if (action === 'remove' || action === 'removePostures' || action === 'removeExternal') {
                         $status.html('🔄 SUPPRESSION').css('color', '#ff9800');
                     } else if (action === 'setInjury') {
                         const injuryValue = parseInt(html.find(`#injury-${effect}`).val()) || 0;
@@ -528,27 +760,147 @@
 
     // === HANDLE REMOVE ALL ===
     if (result.action === "removeAll") {
-        console.log("[DEBUG] Removing all effects from actor");
-
-        for (const effect of [...actor.effects.contents]) {
-            try {
-                await effect.delete();
-            } catch (error) {
-                console.warn(`[DEBUG] Failed to remove effect ${effect.name}:`, error);
-            }
+        const allEffects = actor.effects.contents;
+        if (allEffects.length === 0) {
+            ui.notifications.info("Aucun effet à supprimer.");
+            return;
         }
 
-        ui.notifications.info("🧹 Tous les effets ont été supprimés !");
+        try {
+            // Handle special effects removal before deleting effects
+            if (canvas.tokens.controlled.length > 0) {
+                const token = canvas.tokens.controlled[0];
+
+                // Handle special effects removal for each custom effect
+                for (const [key, effectData] of Object.entries(CUSTOM_EFFECTS)) {
+                    const existingEffect = actor.effects.find(e => e.name === effectData.name);
+                    if (existingEffect) {
+                        // Handle transformation removal
+                        if (effectData.hasTransformation) {
+                            if (effectData.hasAnimation) {
+                                await playTransformationAnimation(token, effectData.animation, false);
+                            }
+                            // Small delay for animation
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                            await applyTokenTransformation(token, effectData.transformation, false);
+                        }
+
+                        // Handle filters removal
+                        if (effectData.hasFilters) {
+                            if (effectData.hasAnimation) {
+                                await playPersistentAnimation(token, effectData.animation, false);
+                            }
+                            // Small delay for animation cleanup
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                            await applyTokenFilters(token, effectData.filters, false);
+                        }
+                    }
+                }
+            }
+
+            await actor.deleteEmbeddedDocuments("ActiveEffect", allEffects.map(e => e.id));
+            ui.notifications.info(`🗑️ Tous les effets supprimés ! (${allEffects.length})`);
+        } catch (error) {
+            console.error("Erreur lors de la suppression:", error);
+            ui.notifications.error("❌ Erreur lors de la suppression !");
+        }
         return;
     }
 
     // === PROCESS CHANGES ===
-    const { pendingChanges: changes, injuryValues } = result;
+    const { pendingChanges: changes, injuryValues, customCountValues } = result;
 
     try {
         let addedEffects = [];
         let removedEffects = [];
         let modifiedEffects = [];
+
+        // Handle custom count effects updates (increasable effects)
+        for (const [customKey, newValue] of Object.entries(customCountValues || {})) {
+            const customData = CUSTOM_EFFECTS[customKey];
+            if (!customData || !customData.increasable) continue;
+
+            const currentCustomEffect = currentState.customEffects[customKey];
+            const currentValue = currentCustomEffect ? (currentCustomEffect.flags?.statuscounter?.value || 0) : 0;
+
+            if (newValue !== currentValue) {
+                // Remove existing effect if present
+                if (currentCustomEffect) {
+                    // Handle special effects removal for increasable effects
+                    if (canvas.tokens.controlled.length > 0) {
+                        const token = canvas.tokens.controlled[0];
+
+                        if (customData.hasTransformation) {
+                            if (customData.hasAnimation) {
+                                await playTransformationAnimation(token, customData.animation, false);
+                            }
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                            await applyTokenTransformation(token, customData.transformation, false);
+                        }
+
+                        if (customData.hasFilters) {
+                            if (customData.hasAnimation) {
+                                await playPersistentAnimation(token, customData.animation, false);
+                            }
+                            await new Promise(resolve => setTimeout(resolve, 200));
+                            await applyTokenFilters(token, customData.filters, false);
+                        }
+                    }
+
+                    await currentCustomEffect.delete();
+                }
+
+                // Add new effect if value > 0
+                if (newValue > 0) {
+                    const effectConfig = {
+                        name: customData.name,
+                        icon: customData.icon,
+                        description: customData.description,
+                        duration: { seconds: 86400 },
+                        flags: {
+                            statuscounter: { value: newValue }
+                        }
+                    };
+
+                    // Add custom flags
+                    for (const flag of customData.flags) {
+                        if (flag.key !== 'statuscounter') {
+                            effectConfig.flags[flag.key] = { value: flag.value };
+                        }
+                    }
+
+                    await actor.createEmbeddedDocuments("ActiveEffect", [effectConfig]);
+
+                    // Handle special effects addition for increasable effects (only when creating new)
+                    if (currentValue === 0 && canvas.tokens.controlled.length > 0) {
+                        const token = canvas.tokens.controlled[0];
+
+                        // Small delay to let effect be created
+                        setTimeout(async () => {
+                            if (customData.hasTransformation) {
+                                if (customData.hasAnimation) {
+                                    await playTransformationAnimation(token, customData.animation, true);
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                                await applyTokenTransformation(token, customData.transformation, true);
+                            }
+
+                            if (customData.hasFilters) {
+                                if (customData.hasAnimation) {
+                                    await playPersistentAnimation(token, customData.animation, true);
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                                await applyTokenFilters(token, customData.filters, true);
+                            }
+                        }, 500);
+                    }
+
+                    modifiedEffects.push(`${customData.name} (${newValue})`);
+                } else if (currentValue > 0) {
+                    modifiedEffects.push(`${customData.name} supprimé`);
+                }
+            }
+        }
 
         // Process each pending change
         for (const [effectKey, changeData] of Object.entries(changes)) {
@@ -566,9 +918,20 @@
                         }
                     }
                 }
+            } else if (category === 'external') {
+                if (action === 'removeExternal') {
+                    const externalEffect = actor.effects.find(e => e.id === effectKey);
+                    if (externalEffect) {
+                        await externalEffect.delete();
+                        removedEffects.push(`Effet externe: ${externalEffect.name}`);
+                    }
+                }
             } else if (category === 'custom') {
                 const effectData = CUSTOM_EFFECTS[effectKey];
                 if (!effectData) continue;
+
+                // Skip increasable effects - they're handled separately
+                if (effectData.increasable) continue;
 
                 if (action === 'add') {
                     // Create custom effect with flags
@@ -593,9 +956,52 @@
                     await actor.createEmbeddedDocuments("ActiveEffect", [effectConfig]);
                     addedEffects.push(effectData.name);
 
+                    // Handle special effects (delayed to let effect be created)
+                    if (canvas.tokens.controlled.length > 0) {
+                        const token = canvas.tokens.controlled[0];
+                        setTimeout(async () => {
+                            if (effectData.hasTransformation) {
+                                if (effectData.hasAnimation) {
+                                    await playTransformationAnimation(token, effectData.animation, true);
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                                await applyTokenTransformation(token, effectData.transformation, true);
+                            }
+
+                            if (effectData.hasFilters) {
+                                if (effectData.hasAnimation) {
+                                    await playPersistentAnimation(token, effectData.animation, true);
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                                await applyTokenFilters(token, effectData.filters, true);
+                            }
+                        }, 500);
+                    }
+
                 } else if (action === 'remove') {
                     const existingEffect = actor.effects.find(e => e.name === effectData.name);
                     if (existingEffect) {
+                        // Handle special effects removal first
+                        if (canvas.tokens.controlled.length > 0) {
+                            const token = canvas.tokens.controlled[0];
+
+                            if (effectData.hasTransformation) {
+                                if (effectData.hasAnimation) {
+                                    await playTransformationAnimation(token, effectData.animation, false);
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                                await applyTokenTransformation(token, effectData.transformation, false);
+                            }
+
+                            if (effectData.hasFilters) {
+                                if (effectData.hasAnimation) {
+                                    await playPersistentAnimation(token, effectData.animation, false);
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                                await applyTokenFilters(token, effectData.filters, false);
+                            }
+                        }
+
                         await existingEffect.delete();
                         removedEffects.push(effectData.name);
                     }

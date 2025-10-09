@@ -88,6 +88,190 @@
     const POSTURES = configStatusEffects.postures;
     const INJURY_EFFECTS = configStatusEffects.injuries;
 
+    // === TOKEN TRANSFORMATION FUNCTIONS ===
+
+    /**
+     * Apply or revert token transformation using Token Magic FX
+     * @param {Token} token - The token to transform
+     * @param {Object} transformConfig - Transformation configuration
+     * @param {boolean} shouldTransform - True to transform, false to revert
+     */
+    async function applyTokenTransformation(token, transformConfig, shouldTransform) {
+        if (!token || typeof TokenMagic === "undefined") {
+            console.warn("[DEBUG] Robby Effect: Token Magic FX not available for transformation");
+            return;
+        }
+
+        try {
+            let filterParams;
+            const { targetImagePath, transitionType, loopDuration, padding, magnify, filterId } = transformConfig;
+
+            if (shouldTransform) {
+                filterParams = [{
+                    filterType: "polymorph",
+                    filterId: filterId,
+                    type: transitionType || 4,
+                    padding: padding || 70,
+                    magnify: magnify || 1,
+                    imagePath: targetImagePath,
+                    animated: {
+                        progress: {
+                            active: false,
+                            animType: "halfCosOscillation",
+                            val1: 0,
+                            val2: 100,
+                            loopDuration: loopDuration || 1000
+                        }
+                    }
+                }];
+            } else {
+                filterParams = [{
+                    filterType: "polymorph",
+                    filterId: filterId,
+                    type: transitionType || 4,
+                    padding: padding || 70,
+                    magnify: magnify || 1,
+                    imagePath: token.document.texture.src,
+                    animated: {
+                        progress: {
+                            active: true,
+                            animType: "halfCosOscillation",
+                            val1: 100,
+                            val2: 0,
+                            loopDuration: loopDuration || 1000
+                        }
+                    }
+                }];
+
+                setTimeout(async () => {
+                    try {
+                        await TokenMagic.deleteFiltersOnSelected(filterId);
+                    } catch (error) {
+                        console.warn("[DEBUG] Robby Effect: Error removing transformation filter:", error);
+                    }
+                }, (loopDuration || 1000) + 100);
+            }
+
+            await token.TMFXaddUpdateFilters(filterParams);
+
+        } catch (error) {
+            console.error("[DEBUG] Robby Effect: Error in token transformation:", error);
+        }
+    }
+
+    /**
+     * Play transformation animation using Sequencer
+     * @param {Token} token - The token to animate
+     * @param {Object} animConfig - Animation configuration
+     * @param {boolean} isActivating - True if activating effect, false if deactivating
+     */
+    async function playTransformationAnimation(token, animConfig, isActivating) {
+        if (!token || typeof Sequence === "undefined") {
+            console.warn("[DEBUG] Robby Effect: Sequencer not available for animation");
+            return;
+        }
+
+        try {
+            const { effectFile, scale } = animConfig;
+
+            new Sequence()
+                .effect()
+                .file(effectFile)
+                .atLocation(token)
+                .scale(scale)
+                .fadeOut(500)
+                .belowTokens()
+                .play();
+
+            console.log(`[DEBUG] Robby Effect: Played transformation animation for ${token.name}`);
+
+        } catch (error) {
+            console.error("[DEBUG] Robby Effect: Error in transformation animation:", error);
+        }
+    }
+
+    /**
+     * Apply or remove Token Magic FX filters
+     * @param {Token} token - The token to apply filters to
+     * @param {Object} filterConfig - Filter configuration
+     * @param {boolean} shouldApply - True to apply filters, false to remove
+     */
+    async function applyTokenFilters(token, filterConfig, shouldApply) {
+        if (!token || typeof TokenMagic === "undefined") {
+            console.warn("[DEBUG] Robby Effect: Token Magic FX not available for filters");
+            return;
+        }
+
+        try {
+            const { filterId, filterConfigs } = filterConfig;
+
+            if (shouldApply) {
+                const hasFilters = token.document.flags?.tokenmagic;
+                if (hasFilters) {
+                    await TokenMagic.deleteFiltersOnSelected(filterId);
+                }
+
+                const filterParams = filterConfigs.map(config => ({
+                    ...config,
+                    filterId: filterId
+                }));
+
+                await TokenMagic.addFiltersOnSelected(filterParams);
+            } else {
+                const hasFilters = token.document.flags?.tokenmagic;
+                if (!hasFilters) {
+                    console.log("[DEBUG] Robby Effect: No filters to remove");
+                    return;
+                }
+
+                await TokenMagic.deleteFiltersOnSelected(filterId);
+            }
+
+        } catch (error) {
+            console.error("[DEBUG] Robby Effect: Error in token filters:", error);
+        }
+    }
+
+    /**
+     * Play persistent animation using Sequencer
+     * @param {Token} token - The token to animate
+     * @param {Object} animConfig - Animation configuration
+     * @param {boolean} isActivating - True if activating effect, false if deactivating
+     */
+    async function playPersistentAnimation(token, animConfig, isActivating) {
+        if (!token || typeof Sequence === "undefined") {
+            console.warn("[DEBUG] Robby Effect: Sequencer not available for persistent animation");
+            return;
+        }
+
+        try {
+            const { effectFile, scale, fadeOut, persistent, sequencerName } = animConfig;
+
+            if (isActivating) {
+                if (Sequencer.EffectManager.getEffects({ name: sequencerName }).length > 0) {
+                    await Sequencer.EffectManager.endEffects({ name: sequencerName });
+                }
+
+                new Sequence()
+                    .effect()
+                    .file(effectFile)
+                    .attachTo(token)
+                    .scale(scale)
+                    .fadeOut(fadeOut)
+                    .persist()
+                    .name(sequencerName)
+                    .play();
+            } else {
+                if (Sequencer.EffectManager.getEffects({ name: sequencerName }).length > 0) {
+                    await Sequencer.EffectManager.endEffects({ name: sequencerName });
+                }
+            }
+
+        } catch (error) {
+            console.error("[DEBUG] Robby Effect: Error in persistent animation:", error);
+        }
+    }
+
     // === CURRENT STATE DETECTION ===
     const getCurrentState = () => {
         const state = {
