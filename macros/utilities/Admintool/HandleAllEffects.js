@@ -1,17 +1,28 @@
 /**
- * Complete Effect Manager - Handle All Effects, Postures, and Injuries
+ * Complete Effect Manager - Handle All Effects, Postures, Injuries, and Visual Effects
  *
  * This comprehensive manager handles:
  * - Custom active effects with flags
  * - The 3 postures (Focus, Offensif, Défensif) - mutually exclusive
  * - Injuries system with stackable counter
  * - Dynamic retrieval from CONFIG.statusEffects (FoundryVTT v13)
+ * - Sequencer persistent animations detection and removal
+ * - Token Magic FX filters detection and removal
  *
  * Features:
  * - Unified interface for all effect types
  * - Posture management (only one active at a time)
  * - Injury stacking with configurable amounts
  * - Integration with FoundryVTT's status effect system
+ * - Visual effects detection and management (animations + filters)
+ * - Individual or bulk removal of visual effects
+ * - Comprehensive "Remove All" that includes visual effects
+ *
+ * Visual Effects Supported:
+ * - Sequencer persistent animations (God Speed, transformations, etc.)
+ * - Token Magic FX filters (shadows, electricity, glows, etc.)
+ * - Individual removal by effect ID
+ * - Bulk removal of all visual effects
  */
 
 (async () => {
@@ -76,7 +87,131 @@
 
     const configStatusEffects = getConfigStatusEffects();
     const POSTURES = configStatusEffects.postures;
-    const INJURY_EFFECTS = configStatusEffects.injuries;    // === CURRENT STATE DETECTION ===
+    const INJURY_EFFECTS = configStatusEffects.injuries;
+
+    // === VISUAL EFFECTS DETECTION AND CLEANUP UTILITIES ===
+
+    /**
+     * Detects Sequencer animations on a token
+     */
+    function detectSequencerAnimations(token) {
+        if (!window.Sequencer || !window.Sequencer.EffectManager) {
+            return [];
+        }
+
+        try {
+            const allEffects = window.Sequencer.EffectManager.getEffects();
+            const tokenEffects = allEffects.filter(effect => {
+                return effect.source && (
+                    effect.source.uuid === token.uuid ||
+                    effect.source.id === token.id ||
+                    (effect.source.object && effect.source.object.id === token.id)
+                );
+            });
+            return tokenEffects.map(effect => ({
+                id: effect.id,
+                name: effect.name || 'Animation sans nom',
+                file: effect.file || 'Fichier inconnu'
+            }));
+        } catch (error) {
+            console.warn(`[DEBUG] Could not detect Sequencer animations for ${token.name}:`, error);
+            return [];
+        }
+    }
+
+    /**
+     * Detects Token Magic FX filters on a token
+     */
+    function detectTokenMagicFilters(token) {
+        if (!window.TokenMagic || typeof token.TMFXhasFilterId !== 'function') {
+            return [];
+        }
+
+        try {
+            const tokenData = token.document || token;
+            const filters = tokenData.getFlag('tokenmagic', 'filters') || [];
+            if (Array.isArray(filters)) {
+                return filters.map((filter, index) => ({
+                    id: filter.filterId || `filter_${index}`,
+                    type: filter.filterType || 'Type inconnu',
+                    name: filter.filterId || `Filtre ${index + 1}`
+                }));
+            }
+            return [];
+        } catch (error) {
+            console.warn(`[DEBUG] Could not detect Token Magic filters for ${token.name}:`, error);
+            return [];
+        }
+    }
+
+    /**
+     * Removes Sequencer animations from a token
+     */
+    async function removeSequencerAnimations(token, animationIds = null) {
+        if (!window.Sequencer || !window.Sequencer.EffectManager) {
+            return { success: false, reason: "Sequencer not available" };
+        }
+
+        try {
+            if (animationIds && animationIds.length > 0) {
+                // Remove specific animations by ID
+                for (const animId of animationIds) {
+                    try {
+                        await window.Sequencer.EffectManager.endEffects({ name: animId });
+                    } catch (error) {
+                        console.warn(`[DEBUG] Could not end animation ${animId}:`, error);
+                    }
+                }
+            } else {
+                // Remove all animations on this token
+                await window.Sequencer.EffectManager.endEffects({ object: token });
+            }
+            return { success: true };
+        } catch (error) {
+            console.error(`[ERROR] Failed to remove Sequencer animations:`, error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * Removes Token Magic FX filters from a token
+     */
+    async function removeTokenMagicFilters(token, filterIds = null) {
+        if (!window.TokenMagic || typeof token.TMFXdeleteFilters !== 'function') {
+            return { success: false, reason: "Token Magic FX not available" };
+        }
+
+        try {
+            if (filterIds && filterIds.length > 0) {
+                // Remove specific filters by ID
+                for (const filterId of filterIds) {
+                    try {
+                        await token.TMFXdeleteFilters(filterId);
+                    } catch (error) {
+                        console.warn(`[DEBUG] Could not delete filter ${filterId}:`, error);
+                    }
+                }
+            } else {
+                // Remove all filters from the token
+                await token.TMFXdeleteFilters();
+            }
+            return { success: true };
+        } catch (error) {
+            console.error(`[ERROR] Failed to remove Token Magic filters:`, error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // === TOKEN AND VISUAL EFFECTS DETECTION ===
+    const currentToken = canvas.tokens.controlled[0];
+    const hasVisualEffects = currentToken ? {
+        sequencerAnimations: detectSequencerAnimations(currentToken),
+        tokenMagicFilters: detectTokenMagicFilters(currentToken)
+    } : { sequencerAnimations: [], tokenMagicFilters: [] };
+
+    const totalVisualEffects = hasVisualEffects.sequencerAnimations.length + hasVisualEffects.tokenMagicFilters.length;
+
+    // === CURRENT STATE DETECTION ===
     const getCurrentState = () => {
         const state = {
             customEffects: {},
@@ -170,10 +305,93 @@
             .btn-remove { background: #f44336; color: white; }
             .btn-disabled { background: #e0e0e0; color: #999; cursor: not-allowed; }
             .pending-change { box-shadow: 0 0 5px #2196f3 !important; }
+            .visual-effects-section { border-color: #9c27b0; background: linear-gradient(135deg, #f3e5f5, #e1bee7); }
         </style>
     `;
 
     let pendingChanges = {};
+
+    // === VISUAL EFFECTS SECTION ===
+    if (totalVisualEffects > 0) {
+        dialogContent += `
+            <div class="effect-section visual-effects-section">
+                <h4>✨ Effets Visuels Détectés</h4>
+                <p style="margin: 8px 0; font-size: 0.9em; color: #666;">Animations et filtres visuels actifs sur ce token</p>
+        `;
+
+        // Show Sequencer animations
+        if (hasVisualEffects.sequencerAnimations.length > 0) {
+            for (const animation of hasVisualEffects.sequencerAnimations) {
+                dialogContent += `
+                    <div class="effect-item">
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <div class="effect-icon" data-is-svg="true" style="background-image: url('icons/svg/clockwork.svg');"></div>
+                            <div style="flex-grow: 1;">
+                                <strong>🎬 ${animation.name}</strong>
+                                <br><small style="color: #666;">Animation Sequencer - ${animation.file}</small>
+                            </div>
+                            <div class="status-indicator" style="color: #9c27b0;">
+                                🎬 ACTIVE
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            <button type="button" class="btn btn-remove" data-action="removeSequencerAnimation" data-effect="${animation.id}" data-category="visual">
+                                🗑️ Supprimer Animation
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Show Token Magic FX filters
+        if (hasVisualEffects.tokenMagicFilters.length > 0) {
+            for (const filter of hasVisualEffects.tokenMagicFilters) {
+                dialogContent += `
+                    <div class="effect-item">
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <div class="effect-icon" data-is-svg="true" style="background-image: url('icons/svg/explosion.svg');"></div>
+                            <div style="flex-grow: 1;">
+                                <strong>✨ ${filter.name}</strong>
+                                <br><small style="color: #666;">Filtre Token Magic FX - ${filter.type}</small>
+                            </div>
+                            <div class="status-indicator" style="color: #9c27b0;">
+                                ✨ ACTIVE
+                            </div>
+                        </div>
+                        <div class="button-group">
+                            <button type="button" class="btn btn-remove" data-action="removeTokenMagicFilter" data-effect="${filter.id}" data-category="visual">
+                                🗑️ Supprimer Filtre
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Add "Remove All Visual Effects" button
+        dialogContent += `
+            <div class="effect-item" style="border: 2px solid #9c27b0; background: rgba(156, 39, 176, 0.1);">
+                <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                    <div class="effect-icon" data-is-svg="true" style="background-image: url('icons/svg/explosion.svg');"></div>
+                    <div style="flex-grow: 1;">
+                        <strong>🧹 Supprimer Tous les Effets Visuels</strong>
+                        <br><small style="color: #666;">Supprime toutes les animations et tous les filtres visuels de ce token</small>
+                    </div>
+                    <div class="status-indicator" style="color: #d32f2f;">
+                        🧹 ${totalVisualEffects} élément(s)
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button type="button" class="btn btn-remove" data-action="removeAllVisualEffects" data-effect="all" data-category="visual">
+                        🗑️ Supprimer Tout (${totalVisualEffects})
+                    </button>
+                </div>
+            </div>
+        `;
+
+        dialogContent += `</div>`;
+    }
 
     // === CUSTOM OUTSIDE EFFECTS SECTION ===
     if (outsideEffects.length > 0) {
@@ -538,6 +756,9 @@
                             case 'setPosture': pendingText = '📝 À ACTIVER'; break;
                             case 'removePostures': pendingText = '📝 À SUPPRIMER'; break;
                             case 'removeExternal': pendingText = '📝 À SUPPRIMER'; break;
+                            case 'removeSequencerAnimation': pendingText = '📝 ANIMATION À SUPPRIMER'; break;
+                            case 'removeTokenMagicFilter': pendingText = '📝 FILTRE À SUPPRIMER'; break;
+                            case 'removeAllVisualEffects': pendingText = '📝 TOUS EFFETS VISUELS À SUPPRIMER'; break;
                         }
                         statusDiv.html(`<strong style="color: #2196f3;">${pendingText}</strong>`);
                     }
@@ -554,17 +775,53 @@
     // === HANDLE REMOVE ALL ===
     if (result.action === "removeAll") {
         const allEffects = actor.effects.contents;
-        if (allEffects.length === 0) {
+        const hasAnyEffects = allEffects.length > 0 || totalVisualEffects > 0;
+
+        if (!hasAnyEffects) {
             ui.notifications.info("Aucun effet à supprimer.");
             return;
         }
 
         try {
-            await actor.deleteEmbeddedDocuments("ActiveEffect", allEffects.map(e => e.id));
-            ui.notifications.info(`🗑️ Tous les effets supprimés ! (${allEffects.length})`);
+            let removedCount = 0;
+            const operationResults = [];
+
+            // Remove all active effects
+            if (allEffects.length > 0) {
+                await actor.deleteEmbeddedDocuments("ActiveEffect", allEffects.map(e => e.id));
+                removedCount += allEffects.length;
+                operationResults.push(`${allEffects.length} effet(s) actif(s)`);
+            }
+
+            // Remove all visual effects if we have a current token
+            if (currentToken && totalVisualEffects > 0) {
+                // Remove Sequencer animations
+                if (hasVisualEffects.sequencerAnimations.length > 0) {
+                    const sequencerResult = await removeSequencerAnimations(currentToken);
+                    if (sequencerResult.success) {
+                        removedCount += hasVisualEffects.sequencerAnimations.length;
+                        operationResults.push(`${hasVisualEffects.sequencerAnimations.length} animation(s) Sequencer`);
+                    }
+                }
+
+                // Remove Token Magic FX filters
+                if (hasVisualEffects.tokenMagicFilters.length > 0) {
+                    const tmfxResult = await removeTokenMagicFilters(currentToken);
+                    if (tmfxResult.success) {
+                        removedCount += hasVisualEffects.tokenMagicFilters.length;
+                        operationResults.push(`${hasVisualEffects.tokenMagicFilters.length} filtre(s) Token Magic FX`);
+                    }
+                }
+            }
+
+            const resultMessage = operationResults.length > 0 ?
+                `🗑️ Nettoyage complet effectué ! Supprimés: ${operationResults.join(', ')} (Total: ${removedCount})` :
+                `🗑️ Tous les effets supprimés ! (${removedCount})`;
+
+            ui.notifications.info(resultMessage);
         } catch (error) {
-            console.error("Erreur lors de la suppression:", error);
-            ui.notifications.error("❌ Erreur lors de la suppression !");
+            console.error("Erreur lors de la suppression complète:", error);
+            ui.notifications.error("❌ Erreur lors de la suppression complète !");
         }
         return;
     }
@@ -780,6 +1037,56 @@
                             effectsToRemove.push(externalEffect.id);
                             operationLog.push(`🗑️ Effet externe "${externalEffect.name}" supprimé`);
                         }
+                    }
+                    break;
+
+                case 'visual':
+                    // Handle visual effects removal (Sequencer animations and Token Magic FX filters)
+                    if (currentToken) {
+                        if (action === 'removeSequencerAnimation') {
+                            // Remove specific Sequencer animation
+                            const result = await removeSequencerAnimations(currentToken, [effectKey]);
+                            if (result.success) {
+                                const animationName = hasVisualEffects.sequencerAnimations.find(a => a.id === effectKey)?.name || effectKey;
+                                operationLog.push(`🎬 Animation "${animationName}" supprimée`);
+                            } else {
+                                operationLog.push(`❌ Échec suppression animation "${effectKey}": ${result.error || result.reason}`);
+                            }
+                        } else if (action === 'removeTokenMagicFilter') {
+                            // Remove specific Token Magic FX filter
+                            const result = await removeTokenMagicFilters(currentToken, [effectKey]);
+                            if (result.success) {
+                                const filterName = hasVisualEffects.tokenMagicFilters.find(f => f.id === effectKey)?.name || effectKey;
+                                operationLog.push(`✨ Filtre "${filterName}" supprimé`);
+                            } else {
+                                operationLog.push(`❌ Échec suppression filtre "${effectKey}": ${result.error || result.reason}`);
+                            }
+                        } else if (action === 'removeAllVisualEffects') {
+                            // Remove all visual effects
+                            let visualRemoved = 0;
+
+                            if (hasVisualEffects.sequencerAnimations.length > 0) {
+                                const sequencerResult = await removeSequencerAnimations(currentToken);
+                                if (sequencerResult.success) {
+                                    visualRemoved += hasVisualEffects.sequencerAnimations.length;
+                                    operationLog.push(`🎬 ${hasVisualEffects.sequencerAnimations.length} animation(s) Sequencer supprimée(s)`);
+                                }
+                            }
+
+                            if (hasVisualEffects.tokenMagicFilters.length > 0) {
+                                const tmfxResult = await removeTokenMagicFilters(currentToken);
+                                if (tmfxResult.success) {
+                                    visualRemoved += hasVisualEffects.tokenMagicFilters.length;
+                                    operationLog.push(`✨ ${hasVisualEffects.tokenMagicFilters.length} filtre(s) Token Magic FX supprimé(s)`);
+                                }
+                            }
+
+                            if (visualRemoved > 0) {
+                                operationLog.push(`🧹 ${visualRemoved} effet(s) visuel(s) supprimé(s) au total`);
+                            }
+                        }
+                    } else {
+                        operationLog.push(`❌ Aucun token sélectionné pour supprimer les effets visuels`);
                     }
                     break;
             }
