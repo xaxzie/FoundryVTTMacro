@@ -560,10 +560,14 @@
     // ===== ADD ACTIVE EFFECTS =====
     const allTargets = [...processedTargets, ...extensionTargets];
 
-    // Calcul du nombre total de flammes (existantes + nouvelles)
-    const finalTotalFlames = flameCount + allTargets.length;
+    // Calcul du nombre total de sources (existantes + nouvelles sources initiales)
+    const finalTotalSources = flameCount + processedTargets.length;
 
     for (const target of allTargets) {
+        // Déterminer si c'est une source initiale ou une extension
+        const isInitialSource = processedTargets.some(pt => pt.token.id === target.token.id);
+        const flameType = isInitialSource ? "source" : "extension";
+
         // Effet sur la cible
         const targetEffectData = {
             name: SPELL_CONFIG.flameEffect.name,
@@ -575,6 +579,7 @@
                     darkFlameCaster: caster.id,
                     darkFlameTarget: target.token.id,
                     darkFlameSequenceName: `dark-flame-${caster.id}-${target.token.id}`,
+                    darkFlameType: flameType, // "source" ou "extension"
                     spellName: SPELL_CONFIG.name,
                     maintenanceCost: SPELL_CONFIG.maintenanceCost,
                     damagePerTurn: continuousDamage
@@ -596,49 +601,64 @@
     const existingControlEffect = actor.effects.find(e => e.name === SPELL_CONFIG.casterEffect.name);
 
     if (existingControlEffect) {
-        // Mettre à jour l'effet existant
-        const currentTargets = existingControlEffect.flags?.world?.darkFlameTargets || [];
-        const newTargets = [...currentTargets, ...allTargets.map(t => t.token.id)];
-        const totalFlameCount = newTargets.length;
+        // Mettre à jour l'effet existant - ne compter que les sources initiales
+        const currentSources = existingControlEffect.flags?.world?.darkFlameInitialSources || [];
+        const currentExtensions = existingControlEffect.flags?.world?.darkFlameExtensions || [];
+        const newInitialSources = processedTargets.map(t => t.token.id);
+        const newExtensions = extensionTargets.map(t => t.token.id);
+
+        const updatedSources = [...currentSources, ...newInitialSources];
+        const updatedExtensions = [...currentExtensions, ...newExtensions];
+        const allAffectedTargets = [...updatedSources, ...updatedExtensions];
 
         const updateData = {
-            description: `${SPELL_CONFIG.casterEffect.description} - ${totalFlameCount} flamme(s) active(s)`,
+            description: `${SPELL_CONFIG.casterEffect.description} - ${updatedSources.length} source(s) active(s)`,
             flags: {
                 ...existingControlEffect.flags,
                 world: {
                     ...existingControlEffect.flags.world,
-                    darkFlameTargets: newTargets
+                    darkFlameInitialSources: updatedSources,
+                    darkFlameExtensions: updatedExtensions,
+                    darkFlameTargets: allAffectedTargets, // Pour compatibilité avec endMocteiEffect
+                    spellName: SPELL_CONFIG.name,
+                    maintenanceCost: SPELL_CONFIG.maintenanceCost
                 },
-                statuscounter: { value: totalFlameCount, visible: true }
+                statuscounter: { value: updatedSources.length, visible: true } // Ne compter que les sources
             }
         };
 
         try {
             await existingControlEffect.update(updateData);
-            console.log(`[Moctei] Updated existing dark flame control effect: ${totalFlameCount} flames`);
+            console.log(`[Moctei] Updated existing dark flame control effect: ${updatedSources.length} sources, ${updatedExtensions.length} extensions`);
         } catch (error) {
             console.error(`[Moctei] Error updating control effect:`, error);
         }
     } else {
-        // Créer un nouvel effet de contrôle
+        // Créer un nouvel effet de contrôle - ne compter que les sources initiales
+        const initialSources = processedTargets.map(t => t.token.id);
+        const extensions = extensionTargets.map(t => t.token.id);
+        const allAffectedTargets = [...initialSources, ...extensions];
+
         const casterEffectData = {
             name: SPELL_CONFIG.casterEffect.name,
             icon: SPELL_CONFIG.casterEffect.icon,
-            description: `${SPELL_CONFIG.casterEffect.description} - ${allTargets.length} flamme(s) active(s)`,
+            description: `${SPELL_CONFIG.casterEffect.description} - ${initialSources.length} source(s) active(s)`,
             duration: { seconds: 86400 },
             flags: {
                 world: {
-                    darkFlameTargets: allTargets.map(t => t.token.id),
+                    darkFlameInitialSources: initialSources,
+                    darkFlameExtensions: extensions,
+                    darkFlameTargets: allAffectedTargets, // Pour compatibilité avec endMocteiEffect
                     spellName: SPELL_CONFIG.name,
                     maintenanceCost: SPELL_CONFIG.maintenanceCost
                 },
-                statuscounter: { value: allTargets.length, visible: true }
+                statuscounter: { value: initialSources.length, visible: true } // Ne compter que les sources
             }
         };
 
         try {
             await actor.createEmbeddedDocuments("ActiveEffect", [casterEffectData]);
-            console.log(`[Moctei] Applied new dark flame control effect`);
+            console.log(`[Moctei] Applied new dark flame control effect: ${initialSources.length} sources, ${extensions.length} extensions`);
         } catch (error) {
             console.error(`[Moctei] Error applying control effect:`, error);
         }
@@ -702,7 +722,8 @@
         const flameInfo = flameCount > 0 ? `
             <div style="margin: 8px 0; padding: 8px; background: #fce4ec; border-radius: 4px;">
                 <div style="font-size: 0.9em; color: #ad1457;">
-                    🔥 Flammes noires totales actives : ${finalTotalFlames}
+                    🔥 Sources de feu obscur actives : ${finalTotalSources}
+                    <br><small>(${allTargets.length} cible(s) touchée(s) au total)</small>
                 </div>
             </div>
         ` : '';
@@ -755,6 +776,6 @@
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
     const extensionInfo = extensionTargets.length > 0 ? ` + ${extensionTargets.length} extension(s)` : '';
 
-    ui.notifications.info(`🔥 ${SPELL_CONFIG.name} lancé !${stanceInfo} ${processedTargets.length} cible(s) initiale(s)${extensionInfo}. Attaque: ${attackRoll.total}, Dégâts: ${initialDamage}. Flammes actives: ${continuousDamage}/tour ! (${SPELL_CONFIG.maintenanceCost} mana/tour) [${finalTotalFlames} flamme(s) active(s)]`);
+    ui.notifications.info(`🔥 ${SPELL_CONFIG.name} lancé !${stanceInfo} ${processedTargets.length} source(s) initiale(s)${extensionInfo}. Attaque: ${attackRoll.total}, Dégâts: ${initialDamage}. Flammes actives: ${continuousDamage}/tour ! (${SPELL_CONFIG.maintenanceCost} mana/tour) [${finalTotalSources} source(s) active(s)]`);
 
 })();

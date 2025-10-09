@@ -368,28 +368,73 @@
 
                     for (const controlEffect of controlEffects) {
                         try {
+                            const currentSources = controlEffect.flags?.world?.darkFlameInitialSources || [];
+                            const currentExtensions = controlEffect.flags?.world?.darkFlameExtensions || [];
                             const currentTargets = controlEffect.flags?.world?.darkFlameTargets || [];
-                            const updatedTargets = currentTargets.filter(id => id !== targetId);
 
-                            if (updatedTargets.length === 0) {
-                                // Plus de cibles, supprimer l'effet de contrôle
-                                if (casterToken.actor.isOwner) {
-                                    await controlEffect.delete();
+                            // Vérifier si la cible supprimée est une source initiale ou une extension
+                            // D'abord vérifier le flag directement sur l'effet supprimé
+                            const flameType = effect.flags?.world?.darkFlameType;
+                            const isInitialSource = flameType === "source" || currentSources.includes(targetId);
+                            const isExtension = flameType === "extension" || currentExtensions.includes(targetId);
+
+                            if (isInitialSource) {
+                                // C'est une source initiale - retirer toutes les extensions associées et décrémenter le compteur
+                                const updatedSources = currentSources.filter(id => id !== targetId);
+
+                                // TODO: Pour une implémentation complète, il faudrait identifier et supprimer
+                                // les extensions liées à cette source spécifique
+                                // Pour l'instant, on garde toutes les extensions (comportement simplifié)
+                                const updatedExtensions = currentExtensions;
+                                const updatedTargets = [...updatedSources, ...updatedExtensions];
+
+                                if (updatedSources.length === 0) {
+                                    // Plus de sources, supprimer l'effet de contrôle
+                                    if (casterToken.actor.isOwner) {
+                                        await controlEffect.delete();
+                                    } else {
+                                        await removeEffectWithGMDelegation(casterToken.actor, controlEffect.id);
+                                    }
+                                    console.log(`[Moctei] Removed dark flame control effect from ${casterToken.name} (no more sources)`);
                                 } else {
-                                    await removeEffectWithGMDelegation(casterToken.actor, controlEffect.id);
+                                    // Mettre à jour l'effet de contrôle - seul le compteur des sources change
+                                    const updateData = {
+                                        description: `Contrôle des flammes noires actives - ${updatedSources.length} source(s) active(s)`,
+                                        flags: {
+                                            ...controlEffect.flags,
+                                            world: {
+                                                ...controlEffect.flags.world,
+                                                darkFlameInitialSources: updatedSources,
+                                                darkFlameExtensions: updatedExtensions,
+                                                darkFlameTargets: updatedTargets
+                                            },
+                                            statuscounter: { value: updatedSources.length, visible: true }
+                                        }
+                                    };
+
+                                    if (casterToken.actor.isOwner) {
+                                        await controlEffect.update(updateData);
+                                    } else {
+                                        await updateEffectWithGMDelegation(casterToken.actor, controlEffect.id, updateData);
+                                    }
+                                    console.log(`[Moctei] Updated dark flame control effect on ${casterToken.name}: ${updatedSources.length} sources remaining`);
                                 }
-                                console.log(`[Moctei] Removed dark flame control effect from ${casterToken.name}`);
-                            } else {
-                                // Mettre à jour l'effet de contrôle
+                            } else if (isExtension) {
+                                // C'est une extension - retirer seulement de la liste des extensions, ne pas toucher au compteur
+                                const updatedExtensions = currentExtensions.filter(id => id !== targetId);
+                                const updatedTargets = [...currentSources, ...updatedExtensions];
+
                                 const updateData = {
-                                    description: `Contrôle des flammes noires actives - ${updatedTargets.length} flamme(s) active(s)`,
+                                    description: `Contrôle des flammes noires actives - ${currentSources.length} source(s) active(s)`,
                                     flags: {
                                         ...controlEffect.flags,
                                         world: {
                                             ...controlEffect.flags.world,
+                                            darkFlameInitialSources: currentSources,
+                                            darkFlameExtensions: updatedExtensions,
                                             darkFlameTargets: updatedTargets
                                         },
-                                        statuscounter: { value: updatedTargets.length }
+                                        statuscounter: { value: currentSources.length, visible: true } // Le compteur ne change pas
                                     }
                                 };
 
@@ -398,7 +443,18 @@
                                 } else {
                                     await updateEffectWithGMDelegation(casterToken.actor, controlEffect.id, updateData);
                                 }
-                                console.log(`[Moctei] Updated dark flame control effect on ${casterToken.name}`);
+                                console.log(`[Moctei] Removed extension flame from control effect on ${casterToken.name}: ${currentSources.length} sources still active`);
+                            } else {
+                                // Cas de fallback - ancienne logique pour compatibilité
+                                const updatedTargets = currentTargets.filter(id => id !== targetId);
+                                if (updatedTargets.length === 0) {
+                                    if (casterToken.actor.isOwner) {
+                                        await controlEffect.delete();
+                                    } else {
+                                        await removeEffectWithGMDelegation(casterToken.actor, controlEffect.id);
+                                    }
+                                    console.log(`[Moctei] Removed dark flame control effect from ${casterToken.name} (fallback)`);
+                                }
                             }
                         } catch (error) {
                             console.error(`[Moctei] Error updating control effect:`, error);
