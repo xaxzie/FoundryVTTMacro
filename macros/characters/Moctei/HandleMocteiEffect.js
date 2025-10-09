@@ -82,7 +82,7 @@
             flags: [
                 { key: "movement", value: 6 }
             ],
-            description: "Moctei peut voler, ses ailes l'aident à dissimuler ses alliés lorsqu'il faut être discret - Coût: 2 mana (focusable) + 1 mana par usage (non focusable) - Sort lvl 2 - Donne +6 cases de déplacement",
+            description: "Moctei peut voler, ses ailes l'aident à dissimuler ses alliés lorsqu'il faut être discret - Donne +6 cases de déplacement",
             category: "custom",
             increasable: false,
             hasAnimation: true,
@@ -210,7 +210,9 @@
                 .file(animConfig.effectFile)
                 .attachTo(token)
                 .scale(animConfig.scale || 0.8)
-                .duration(animConfig.duration || 2000);
+            if (animConfig.duration) {
+                effect.duration(animConfig.duration);
+            }
 
             // Apply tint if specified
             if (animConfig.tint) {
