@@ -57,6 +57,36 @@
             mechanicType: "shadowManipulation"
         },
 
+        // Flamme Noire - Effet de feu obscur
+        "Flamme Noire": {
+            displayName: "Flamme Noire",
+            icon: "icons/magic/fire/flame-burning-skull-purple.webp",
+            description: "Brûlé par les flammes noires de Moctei",
+            sectionTitle: "🔥 Flammes Noires",
+            sectionIcon: "🔥",
+            cssClass: "dark-flame-effect",
+            borderColor: "#1a0033",
+            bgColor: "#f3e5f5",
+            detectFlags: [
+                { path: "flags.world.darkFlameCaster", matchValue: "CASTER_ID" },
+                { path: "flags.world.spellName", matchValue: "Feu obscur" }
+            ],
+            cleanup: {
+                sequencerNames: [
+                    "darkFlameSequenceName" // Flamme noire persistante
+                ]
+            },
+            mechanicType: "darkFlame",
+            // Données supplémentaires pour l'affichage
+            getExtraData: (effect) => ({
+                damagePerTurn: effect.flags?.statuscounter?.value || 0
+            }),
+            getDynamicDescription: (effect) => {
+                const damage = effect.flags?.statuscounter?.value || 0;
+                return `Flamme noire - ${damage} dégâts/tour`;
+            }
+        },
+
         // TODO: Add more Moctei's specific shadow effects here
         // Future effects like shadow teleportation, darkness manipulation, etc.
     };
@@ -277,6 +307,119 @@
 
         } catch (error) {
             console.error(`[Moctei] Error removing shadow manipulation from ${token.name}:`, error);
+            results.failed.push({
+                target: token.name,
+                effect: effectType,
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Traite la suppression d'un effet de flamme noire
+     */
+    async function handleDarkFlameRemoval(effectInfo, results) {
+        const { token, effect, effectType, config } = effectInfo;
+
+        try {
+            // Récupérer les informations du lanceur pour mettre à jour l'effet de contrôle
+            const casterId = effect.flags?.world?.darkFlameCaster;
+            const targetId = effect.flags?.world?.darkFlameTarget;
+
+            // Cleanup des animations Sequencer spécifiques
+            if (config.cleanup?.sequencerNames) {
+                for (const sequencerKey of config.cleanup.sequencerNames) {
+                    const sequenceName = getProperty(effect, `flags.world.${sequencerKey}`);
+                    if (sequenceName) {
+                        try {
+                            Sequencer.EffectManager.endEffects({ name: sequenceName });
+                            console.log(`[Moctei] Cleaned up sequencer effect: ${sequenceName}`);
+                        } catch (seqError) {
+                            console.warn(`[Moctei] Could not clean up sequencer effect ${sequenceName}:`, seqError);
+                        }
+                    }
+                }
+            }
+
+            // Animation d'extinction de la flamme
+            if (config.removeAnimation) {
+                const seq = new Sequence();
+                seq.effect()
+                    .file(config.removeAnimation.file)
+                    .attachTo(token)
+                    .scale(config.removeAnimation.scale || 1.0)
+                    .duration(config.removeAnimation.duration || 2000)
+                    .fadeOut(config.removeAnimation.fadeOut || 1000)
+                    .tint(config.removeAnimation.tint || "#1a0033");
+
+                await seq.play();
+            }
+
+            // Suppression de l'effet sur la cible
+            if (token.actor.isOwner) {
+                await effect.delete();
+            } else {
+                await removeEffectWithGMDelegation(token.actor, effect.id);
+            }
+
+            // Mettre à jour l'effet de contrôle correspondant sur le lanceur
+            if (casterId) {
+                const casterToken = canvas.tokens.get(casterId);
+                if (casterToken?.actor) {
+                    const controlEffects = casterToken.actor.effects.contents.filter(e =>
+                        e.name === "Feu obscur (Contrôle)" &&
+                        e.flags?.world?.darkFlameTargets?.includes(targetId)
+                    );
+
+                    for (const controlEffect of controlEffects) {
+                        try {
+                            const currentTargets = controlEffect.flags?.world?.darkFlameTargets || [];
+                            const updatedTargets = currentTargets.filter(id => id !== targetId);
+
+                            if (updatedTargets.length === 0) {
+                                // Plus de cibles, supprimer l'effet de contrôle
+                                if (casterToken.actor.isOwner) {
+                                    await controlEffect.delete();
+                                } else {
+                                    await removeEffectWithGMDelegation(casterToken.actor, controlEffect.id);
+                                }
+                                console.log(`[Moctei] Removed dark flame control effect from ${casterToken.name}`);
+                            } else {
+                                // Mettre à jour l'effet de contrôle
+                                const updateData = {
+                                    description: `Contrôle des flammes noires actives - ${updatedTargets.length} flamme(s) active(s)`,
+                                    flags: {
+                                        ...controlEffect.flags,
+                                        world: {
+                                            ...controlEffect.flags.world,
+                                            darkFlameTargets: updatedTargets
+                                        },
+                                        statuscounter: { value: updatedTargets.length }
+                                    }
+                                };
+
+                                if (casterToken.actor.isOwner) {
+                                    await controlEffect.update(updateData);
+                                } else {
+                                    await updateEffectWithGMDelegation(casterToken.actor, controlEffect.id, updateData);
+                                }
+                                console.log(`[Moctei] Updated dark flame control effect on ${casterToken.name}`);
+                            }
+                        } catch (error) {
+                            console.error(`[Moctei] Error updating control effect:`, error);
+                        }
+                    }
+                }
+            }
+
+            results.darkFlames.push({
+                target: token.name,
+                effect: effectType
+            });
+            console.log(`[Moctei] Removed dark flame from ${token.name}`);
+
+        } catch (error) {
+            console.error(`[Moctei] Error removing dark flame from ${token.name}:`, error);
             results.failed.push({
                 target: token.name,
                 effect: effectType,
@@ -506,6 +649,7 @@
     const removedEffects = {
         simple: [],
         shadowEffects: [],
+        darkFlames: [],
         casterEffects: [],
         failed: []
     };
@@ -518,6 +662,9 @@
             switch (config.mechanicType) {
                 case "shadowManipulation":
                     await handleShadowManipulationRemoval(effectInfo, removedEffects);
+                    break;
+                case "darkFlame":
+                    await handleDarkFlameRemoval(effectInfo, removedEffects);
                     break;
                 case "simple":
                 default:
@@ -597,6 +744,11 @@
                     categoryColor = "#2e0054";
                     categoryBg = "#f3e5f5";
                     break;
+                case 'darkFlames':
+                    categoryTitle = "🔥 Flammes Noires Éteintes";
+                    categoryColor = "#1a0033";
+                    categoryBg = "#f3e5f5";
+                    break;
                 default:
                     categoryTitle = `${categoryKey} Supprimés`;
                     break;
@@ -650,6 +802,7 @@
 
         if (removedEffects.simple.length > 0) parts.push(`${removedEffects.simple.length} effet(s) simple(s)`);
         if (removedEffects.shadowEffects.length > 0) parts.push(`${removedEffects.shadowEffects.length} effet(s) d'ombre`);
+        if (removedEffects.darkFlames.length > 0) parts.push(`${removedEffects.darkFlames.length} flamme(s) noire(s)`);
 
         notificationText += parts.join(', ');
 
