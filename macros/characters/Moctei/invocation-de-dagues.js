@@ -59,7 +59,7 @@
         },
 
         // Distance pour différencier proche/loin
-        maxCloseRange: 2, // En cases de grille
+        maxCloseRange: 1.9, // En cases de grille
 
         // Dégâts selon la distance
         damage: {
@@ -473,7 +473,8 @@
                 // Animation de mêlée sur la cible
                 seq.effect()
                     .file(attackAnim)
-                    .atLocation(target)
+                    .attachTo(caster)
+                    .stretchTo(target)
                     .scale(0.8)
                     .duration(2000);
             } else {
