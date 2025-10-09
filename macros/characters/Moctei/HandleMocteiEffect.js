@@ -99,7 +99,7 @@
         },
         "Substitution d'ombre": {
             name: "Substitution d'ombre",
-            icon: "icons/magic/holy/barrier-shield-winged-cross.webp",
+            icon: "icons/creatures/unholy/shadow-spirit-purple.webp",
             flags: [],
             description: "Compteur d'utilisations pour le sort Substitution d'ombre - Coûts croissants (3→5→8→12 mana, non focusable)",
             category: "custom",
@@ -506,15 +506,16 @@
                         </div>
                     </div>
                     <div class="button-group">
-                        <button type="button" class="btn ${isActive ? 'btn-remove' : 'btn-add'}" data-action="${isActive ? 'remove' : 'add'}" data-effect="${key}" data-category="custom">
-                            ${isActive ? '➖ Désactiver' : '➕ Activer'}
-                        </button>
                         ${effectData.increasable ? `
                         <label>${effectData.counterName || 'Valeur'}: <input type="number" id="customCount-${getSafeId(key)}" value="${currentValue}" min="0" max="${effectData.maxValue || 10}" style="width: 60px; margin: 0 8px;" data-original-key="${key}"></label>
                         <button type="button" class="btn btn-add" data-action="setCustomCount" data-effect="${key}" data-category="custom">
                             📊 Appliquer
                         </button>
-                        ` : ''}
+                        ` : `
+                        <button type="button" class="btn ${isActive ? 'btn-remove' : 'btn-add'}" data-action="${isActive ? 'remove' : 'add'}" data-effect="${key}" data-category="custom">
+                            ${isActive ? '➖ Désactiver' : '➕ Activer'}
+                        </button>
+                        `}
                     </div>
                 </div>
             `;
@@ -858,8 +859,7 @@
                     if (currentCustomEffect) {
                         // Update existing
                         await currentCustomEffect.update({
-                            "flags.statuscounter.value": newValue,
-                            "flags.statuscounter.visible": true
+                            "flags.statuscounter.value": newValue
                         });
                         modifiedEffects.push(`${customData.name} (${newValue})`);
                         console.log(`[Moctei] Updated increasable effect: ${customData.name} to ${newValue}`);
@@ -871,7 +871,7 @@
                             origin: actor.uuid,
                             duration: { seconds: 86400 },
                             flags: {
-                                statuscounter: { value: newValue, visible : true }
+                                statuscounter: { value: newValue }
                             }
                         };
 
@@ -933,8 +933,7 @@
                     if (currentInjuryEffect) {
                         // Update existing
                         await currentInjuryEffect.update({
-                            "flags.statuscounter.value": newValue,
-                            "flags.statuscounter.visible": true
+                            "flags.statuscounter.value": newValue
                         });
                         modifiedEffects.push(`${injuryData.name || injuryData.label} (${newValue})`);
                         console.log(`[Moctei] Updated injury: ${injuryData.name || injuryData.label} to ${newValue}`);
@@ -945,7 +944,7 @@
                             origin: actor.uuid,
                             duration: { seconds: 86400 },
                             flags: {
-                                statuscounter: { value: newValue, visible: true }
+                                statuscounter: { value: newValue }
                             },
                             statuses: [injuryData.id] // Add status ID to statuses array
                         };
