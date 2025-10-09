@@ -53,7 +53,7 @@
                 name: "Longue Durée",
                 manaCost: 2,
                 description: "Crée l'effet 'Dagues d'ombre' - Attaques gratuites jusqu'à usage à distance",
-                createsPersistentEffect: false,
+                createsPersistentEffect: true,
                 effectName: "Dagues d'ombre"
             }
         },
@@ -505,43 +505,74 @@
 
     await playAnimation();
 
-    // ===== ATTACK RESOLUTION =====
-    const baseAttackDice = characteristicInfo.final + attackBonus;
-    const finalAttackDice = Math.max(1, baseAttackDice);
+    // ===== DAMAGE CALCULATION WITH STANCE SYSTEM =====
+    async function calculateDamage() {
+        const damageConfig = isCloseRange ? SPELL_CONFIG.damage.close : SPELL_CONFIG.damage.ranged;
+        const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
+        const totalDamageBonus = characteristicInfo.final + (damageBonus || 0) + effectDamageBonus;
+
+        if (currentStance === 'offensif') {
+            // Offensive stance: main damage is maximized
+            const diceMax = damageConfig.dice === '2d4' ? 8 : 4; // 2d4 max = 8, 1d4 max = 4
+            const maxDamage = diceMax + totalDamageBonus;
+
+            console.log(`[DEBUG] Maximized damage: ${maxDamage} (${diceMax} + ${totalDamageBonus})`);
+
+            return {
+                total: maxDamage,
+                formula: `${diceMax} + ${totalDamageBonus}`,
+                result: maxDamage,
+                isMaximized: true
+            };
+        } else {
+            // Normal dice rolling
+            const damage = new Roll(`${damageConfig.dice} + @totalBonus`, { totalBonus: totalDamageBonus });
+            await damage.evaluate({ async: true });
+
+            console.log(`[DEBUG] Rolled damage: ${damage.total} (formula: ${damage.formula})`);
+            return damage;
+        }
+    }
+
+    const damageResult = await calculateDamage();
+
+    // ===== COMBINED ROLL SYSTEM WITH STANCE SUPPORT =====
+    const totalAttackDice = characteristicInfo.final + (attackBonus || 0);
     const levelBonus = 2 * SPELL_CONFIG.spellLevel;
 
-    const attackRoll = new Roll(`${finalAttackDice}d7 + ${levelBonus}`);
-    await attackRoll.evaluate({ async: true });
+    // Build combined roll formula
+    let combinedRollParts = [`${totalAttackDice}d7 + ${levelBonus}`];
 
-    // ===== DAMAGE CALCULATION =====
-    const damageConfig = isCloseRange ? SPELL_CONFIG.damage.close : SPELL_CONFIG.damage.ranged;
-    const effectDamageBonus = getActiveEffectBonus(actor, "damage");
-    const totalDamageBonus = characteristicInfo.final + damageBonus + effectDamageBonus;
+    // Add damage roll (only if not maximized)
+    if (currentStance !== 'offensif') {
+        const damageConfig = isCloseRange ? SPELL_CONFIG.damage.close : SPELL_CONFIG.damage.ranged;
+        const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
+        const totalDamageBonus = characteristicInfo.final + (damageBonus || 0) + effectDamageBonus;
+        combinedRollParts.push(`${damageConfig.dice} + ${totalDamageBonus}`);
+    }
 
-    let finalDamageResult;
+    // Create and evaluate combined roll
+    const combinedRoll = new Roll(`{${combinedRollParts.join(', ')}}`);
+    await combinedRoll.evaluate({ async: true });
 
-    if (currentStance === 'offensif') {
-        // Offensive stance: damage is maximized
-        const diceMax = damageConfig.dice === '2d4' ? 8 : 4; // 1d4 max = 4, 2d4 max = 8
-        const maxDamage = diceMax + totalDamageBonus;
+    // Extract results
+    const attackResult = combinedRoll.terms[0].results[0];
+    let finalDamageResult = damageResult;
+
+    if (currentStance !== 'offensif') {
+        const damageRollResult = combinedRoll.terms[0].results[1];
+        const damageConfig = isCloseRange ? SPELL_CONFIG.damage.close : SPELL_CONFIG.damage.ranged;
+        const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
+        const totalDamageBonus = characteristicInfo.final + (damageBonus || 0) + effectDamageBonus;
+        const damageFormulaString = `${damageConfig.dice} + ${totalDamageBonus}`;
         finalDamageResult = {
-            total: maxDamage,
-            formula: `${diceMax} + ${totalDamageBonus}`,
-            result: maxDamage
-        };
-    } else {
-        // Normal dice rolling
-        const damageRoll = new Roll(`${damageConfig.dice} + ${totalDamageBonus}`);
-        await damageRoll.evaluate({ async: true });
-        finalDamageResult = {
-            total: damageRoll.total,
-            formula: damageRoll.formula,
-            result: damageRoll.total
+            total: damageRollResult?.result ?? damageRollResult?.total ?? (typeof damageResult === 'object' ? damageResult.total : null),
+            formula: damageFormulaString,
+            result: damageRollResult?.result ?? damageRollResult?.total ?? (typeof damageResult === 'object' ? damageResult.total : null)
         };
     }
 
-    // Create a simple display roll for the chat (attack only, damage shown in flavor)
-    const displayRoll = attackRoll;
+    const totalDamage = finalDamageResult.total;
 
     // ===== GESTION DE L'EFFET LONGUE DURÉE =====
     let effectMessage = "";
@@ -568,45 +599,53 @@
         }
 
     } else if (modeConfig && modeConfig.createsPersistentEffect) {
-        // Mode longue durée - créer l'effet
-        try {
-            const effectData = {
-                ...SPELL_CONFIG.persistentEffect,
-                duration: { seconds: 86400 }, // 24h
-                flags: {
-                    ...SPELL_CONFIG.persistentEffect.flags,
-                    world: {
-                        ...SPELL_CONFIG.persistentEffect.flags.world,
-                        shadowDaggerCaster: actor.id
+        // Mode longue durée - créer l'effet SEULEMENT si attaque rapprochée
+        if (isCloseRange) {
+            try {
+                const effectData = {
+                    ...SPELL_CONFIG.persistentEffect,
+                    duration: { seconds: 86400 }, // 24h
+                    flags: {
+                        ...SPELL_CONFIG.persistentEffect.flags,
+                        world: {
+                            ...SPELL_CONFIG.persistentEffect.flags.world,
+                            shadowDaggerCaster: actor.id
+                        }
                     }
+                };
+
+                await actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+
+                // Démarrer l'animation persistante
+                if (SPELL_CONFIG.animations.longDurationEffect) {
+                    const persistentSeq = new Sequence();
+                    persistentSeq.effect()
+                        .file(SPELL_CONFIG.animations.longDurationEffect.file)
+                        .attachTo(caster)
+                        .scale(SPELL_CONFIG.animations.longDurationEffect.scale)
+                        .fadeOut(SPELL_CONFIG.animations.longDurationEffect.fadeOut)
+                        .name(SPELL_CONFIG.animations.longDurationEffect.sequencerName);
+
+                    await persistentSeq.play();
                 }
-            };
 
-            await actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+                effectMessage = "🌑 Effet 'Dagues d'ombre' créé - Attaques gratuites disponibles !";
 
-            // Démarrer l'animation persistante
-            if (SPELL_CONFIG.animations.longDurationEffect) {
-                const persistentSeq = new Sequence();
-                persistentSeq.effect()
-                    .file(SPELL_CONFIG.animations.longDurationEffect.file)
-                    .attachTo(caster)
-                    .scale(SPELL_CONFIG.animations.longDurationEffect.scale)
-                    .fadeOut(SPELL_CONFIG.animations.longDurationEffect.fadeOut)
-                    .name(SPELL_CONFIG.animations.longDurationEffect.sequencerName);
-
-                await persistentSeq.play();
+            } catch (error) {
+                console.error("[Moctei] Error creating persistent effect:", error);
+                effectMessage = "⚠️ Erreur lors de la création de l'effet persistant";
             }
-
-            effectMessage = "🌑 Effet 'Dagues d'ombre' créé - Attaques gratuites disponibles !";
-
-        } catch (error) {
-            console.error("[Moctei] Error creating persistent effect:", error);
-            effectMessage = "⚠️ Erreur lors de la création de l'effet persistant";
+        } else {
+            // Attaque à distance avec mode longue durée - pas d'effet créé
+            effectMessage = "⚠️ Attaque à distance : L'effet 'Dagues d'ombre' ne peut être créé qu'avec une attaque rapprochée";
         }
     }
 
-    // ===== CHAT MESSAGE =====
-    function createFlavor() {
+    // ===== CREATE ENHANCED CHAT MESSAGE =====
+    function createChatFlavor() {
+        const actualManaCostDisplay = actualManaCost === 0 ? '0 mana (Gratuit)' : `${actualManaCost} mana`;
+        const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
+
         const distanceInfo = isCloseRange ?
             `🗡️ Attaque Rapprochée (${distanceInCells} case${distanceInCells > 1 ? 's' : ''})` :
             `🎯 Attaque à Distance (${distanceInCells} case${distanceInCells > 1 ? 's' : ''})`;
@@ -616,32 +655,40 @@
                 <i>⚠️ Ajusté pour blessures: Base ${characteristicInfo.base} - ${characteristicInfo.injuries} = ${characteristicInfo.injuryAdjusted}</i>
             </div>` : '';
 
-        const effectInfo = characteristicInfo.effectBonus !== 0 ?
+        const effectInfo = (characteristicInfo.effectBonus !== 0 || effectDamageBonus !== 0) ?
             `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
-                <div>✨ Bonus de Dextérité: +${characteristicInfo.effectBonus}</div>
+                ${characteristicInfo.effectBonus !== 0 ? `<div>✨ Bonus de ${SPELL_CONFIG.characteristicDisplay}: +${characteristicInfo.effectBonus}</div>` : ''}
+                ${effectDamageBonus !== 0 ? `<div>🗡️ Bonus de Dégâts: +${effectDamageBonus}</div>` : ''}
             </div>` : '';
 
-        const effectDamageBonus = getActiveEffectBonus(actor, "damage");
-        const bonusInfo = (attackBonus !== 0 || damageBonus !== 0 || effectDamageBonus !== 0) ?
+        const bonusInfo = (damageBonus > 0 || attackBonus > 0) ?
             `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
-                ${attackBonus !== 0 ? `<div>⚡ Bonus Manuel d'Attaque: ${attackBonus > 0 ? '+' : ''}${attackBonus} dés</div>` : ''}
-                ${damageBonus !== 0 ? `<div>🔧 Bonus Manuel de Dégâts: ${damageBonus > 0 ? '+' : ''}${damageBonus} points</div>` : ''}
-                ${effectDamageBonus !== 0 ? `<div>🗡️ Bonus de Dégâts d'Effets: +${effectDamageBonus} points</div>` : ''}
+                ${damageBonus > 0 ? `<div>🔧 Bonus Manuel de Dégâts: +${damageBonus}</div>` : ''}
+                ${attackBonus > 0 ? `<div>⚡ Bonus Manuel d'Attaque: +${attackBonus} dés</div>` : ''}
             </div>` : '';
 
         const attackDisplay = `
             <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff8e1; border-radius: 4px;">
-                <div style="font-size: 1.4em; color: #f57f17; font-weight: bold;">🎯 ATTAQUE: ${attackRoll.total}</div>
+                <div style="font-size: 1.4em; color: #f57f17; font-weight: bold;">🎯 ATTAQUE: ${attackResult.result}</div>
                 <div style="font-size: 0.9em; color: #666; margin-top: 4px;">${distanceInfo}</div>
             </div>
         `;
 
         const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
+        const damageConfig = isCloseRange ? SPELL_CONFIG.damage.close : SPELL_CONFIG.damage.ranged;
+        const totalDamageBonus = characteristicInfo.final + (damageBonus || 0) + effectDamageBonus;
+
         const damageDisplay = `
-            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #ffebee; border-radius: 4px;">
-                <div style="font-size: 1.1em; color: #c62828; margin-bottom: 6px;"><strong>⚔️ ${SPELL_CONFIG.name}${stanceNote}</strong></div>
-                <div style="font-size: 1.4em; color: #c62828; font-weight: bold;">💥 DÉGÂTS: ${finalDamageResult.total}</div>
-                <div style="font-size: 0.9em; color: #666; margin-top: 4px;">${damageConfig.description} (${damageConfig.dice} + ${totalDamageBonus})</div>
+            <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                <div style="font-size: 1.1em; color: #424242; margin-bottom: 6px;"><strong>🌑 ${SPELL_CONFIG.name}${stanceNote}</strong></div>
+                <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cible:</strong> ${targetName}</div>
+                <div style="font-size: 1.4em; color: #4a148c; font-weight: bold;">💥 DÉGÂTS: ${totalDamage}</div>
+                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">
+                    (${damageConfig.dice} + ${SPELL_CONFIG.characteristicDisplay} + bonus)
+                </div>
+                <div style="font-size: 0.8em; color: #666;">
+                    ${damageConfig.description}: ${totalDamage}
+                </div>
             </div>
         `;
 
@@ -656,10 +703,8 @@
                 <div style="text-align: center; margin-bottom: 8px;">
                     <h3 style="margin: 0; color: #4a148c;">🌑 ${SPELL_CONFIG.name}</h3>
                     <div style="margin-top: 3px; font-size: 0.9em;">
-                        <strong>Moctei:</strong> ${actor.name} | <strong>Mode:</strong> ${modeDescription} | <strong>Coût:</strong> ${actualManaCost} mana
-                    </div>
-                    <div style="font-size: 0.9em; color: #666;">
-                        <strong>Cible:</strong> ${targetName}
+                        <strong>Lanceur:</strong> ${actor.name} | <strong>Coût:</strong> ${actualManaCostDisplay}
+                        ${currentStance ? ` | <strong>Position:</strong> ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)}` : ''}
                     </div>
                 </div>
                 ${injuryInfo}
@@ -672,11 +717,11 @@
         `;
     }
 
-    // Send the attack roll to chat with enhanced flavor
-    await displayRoll.toMessage({
+    // Send the combined roll to chat
+    await combinedRoll.toMessage({
         speaker: ChatMessage.getSpeaker({ token: caster }),
-        flavor: createFlavor(),
-        rollMode: game.settings.get("core", "rollMode")
+        flavor: createChatFlavor(),
+        rollMode: game.settings.get('core', 'rollMode')
     });
 
     // ===== FINAL NOTIFICATION =====
@@ -684,9 +729,6 @@
     const rangeInfo = isCloseRange ? "rapprochée" : "à distance";
     const maximizedInfo = currentStance === 'offensif' ? ' MAXIMISÉ' : '';
 
-    ui.notifications.info(
-        `🌑 ${SPELL_CONFIG.name} lancé !${stanceInfo} Cible: ${targetName} (${rangeInfo}). ` +
-        `Attaque: ${attackRoll.total}, Dégâts: ${finalDamageResult.total}${maximizedInfo}. ${actualManaCost} mana utilisé.`
-    );
+    ui.notifications.info(`🌑 ${SPELL_CONFIG.name} lancé !${stanceInfo} Cible: ${targetName} (${rangeInfo}). Attaque: ${attackResult.result}, Dégâts: ${totalDamage}${maximizedInfo}.`);
 
 })();
