@@ -35,8 +35,8 @@
         hasNoDamage: true, // Pas de dégâts, juste un test de toucher
 
         animations: {
-            cast: "jb2a.markers.chain.standard.complete.02.blue",
-            chainKingdom: "jaamod.spells_effects.chain2", // Animation persistante de chaînes complexes
+            cast: "jb2a.divine_smite.caster.reversed.blueyellow",
+            chainKingdom: "jb2a.markers.chain.standard.loop.01.red", // Animation persistante de chaînes complexes
             connection: "jaamod.spells_effects.chain2", // Chaîne de connexion
             sound: null
         },
@@ -353,6 +353,7 @@
     // ===== ADD ACTIVE EFFECTS =====
     if (targetActor?.actor) {
         // Effet principal sur la cible : Agilité -4
+        console.log("[ROYAUME DES CHAINES] Application des effets sur la cible:", targetActor.token);
         const agilityEffectData = {
             name: SPELL_CONFIG.targetEffects.agility.name,
             icon: SPELL_CONFIG.targetEffects.agility.icon,
