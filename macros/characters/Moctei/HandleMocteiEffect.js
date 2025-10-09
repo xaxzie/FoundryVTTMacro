@@ -50,36 +50,13 @@
             description: "Dagues d'ombre invoquées - Attaques gratuites disponibles",
             category: "custom",
             increasable: false,
-            hasFilters: true,
-            filters: {
-                filterId: "shadowDaggers",
-                filterConfigs: [
-                    {
-                        filterType: "shadow",
-                        blur: 2,
-                        quality: 5,
-                        distance: 0.3,
-                        alpha: 0.8,
-                        padding: 100,
-                        color: 0x4a148c,
-                        animated: {
-                            blur: {
-                                active: true,
-                                loopDuration: 1000,
-                                animType: "syncCosOscillation",
-                                val1: 1,
-                                val2: 3
-                            }
-                        }
-                    }
-                ]
-            },
+            hasFilters: false,
             hasAnimation: true,
             animation: {
-                effectFile: "jb2a.darkness.black",
+                effectFile: "jb2a_patreon.extras.tmfx.runes.circle.simple.conjuration",
                 scale: 0.8,
                 fadeOut: 2000,
-                persistent: true,
+                persistent: false,
                 sequencerName: "MocteiShadowDaggers"
             }
         }
@@ -437,29 +414,17 @@
                     </div>
             `;
 
-            if (effectData.increasable) {
-                const currentValue = actor.effects?.contents?.find(e => e.name === effectData.name)?.flags?.statuscounter?.value || 0;
-                dialogContent += `
-                    <div style="margin: 8px 0; padding: 8px; background: #f0f0f0; border-radius: 4px;">
-                        <label style="display: flex; align-items: center; gap: 8px;">
-                            <span>Valeur:</span>
-                            <input type="number" id="customCount-${key}" value="${currentValue}" min="0" max="10" style="width: 80px;">
-                        </label>
-                    </div>
-                `;
-            }
+
 
             dialogContent += `
                     <div class="button-group">
-                        <button type="button" class="btn ${isActive ? 'btn-disabled' : 'btn-add'}" data-action="add" data-effect="${key}" data-category="custom" ${isActive ? 'disabled' : ''}>
-                            ➕ Activer
-                        </button>
-                        <button type="button" class="btn ${!isActive ? 'btn-disabled' : 'btn-remove'}" data-action="remove" data-effect="${key}" data-category="custom" ${!isActive ? 'disabled' : ''}>
-                            ➖ Désactiver
+                        <button type="button" class="btn ${isActive ? 'btn-remove' : 'btn-add'}" data-action="${isActive ? 'remove' : 'add'}" data-effect="${key}" data-category="custom">
+                            ${isActive ? '➖ Désactiver' : '➕ Activer'}
                         </button>
                         ${effectData.increasable ? `
+                        <label>Valeur: <input type="number" id="customCount-${key}" value="${currentValue}" min="0" max="10" style="width: 60px; margin: 0 8px;"></label>
                         <button type="button" class="btn btn-add" data-action="setCustomCount" data-effect="${key}" data-category="custom">
-                            📊 Définir Valeur
+                            📊 Appliquer
                         </button>
                         ` : ''}
                     </div>
@@ -532,8 +497,8 @@
                     </div>
                 </div>
                 <div class="button-group">
-                    <button type="button" class="btn ${isActive ? 'btn-disabled' : 'btn-add'}" data-action="add" data-effect="${key}" data-category="posture" ${isActive ? 'disabled' : ''}>
-                        ➕ Activer
+                    <button type="button" class="btn btn-add" data-action="setPosture" data-effect="${key}" data-category="posture" ${isActive ? 'disabled' : ''}>
+                        ⚔️ Activer
                     </button>
                 </div>
             </div>
@@ -569,19 +534,10 @@
                             ${statusIcon} ${statusText}
                         </div>
                     </div>
-                    <div style="margin: 8px 0; padding: 8px; background: #ffebee; border-radius: 4px;">
-                        <label style="display: flex; align-items: center; gap: 8px;">
-                            <span>Ajouter/Retirer:</span>
-                            <input type="number" id="injuryValue-${key}" value="1" min="1" max="5" style="width: 80px;">
-                            <span>blessure(s)</span>
-                        </label>
-                    </div>
                     <div class="button-group">
-                        <button type="button" class="btn btn-add" data-action="add" data-effect="${key}" data-category="injury">
-                            ➕ Ajouter
-                        </button>
-                        <button type="button" class="btn ${!isActive ? 'btn-disabled' : 'btn-remove'}" data-action="remove" data-effect="${key}" data-category="injury" ${!isActive ? 'disabled' : ''}>
-                            ➖ Retirer
+                        <label>Nombre: <input type="number" id="injuryCount-${key}" value="${currentCount}" min="0" max="10" style="width: 60px; margin: 0 8px;"></label>
+                        <button type="button" class="btn btn-add" data-action="setInjuries" data-effect="${key}" data-category="injury">
+                            🩸 Appliquer
                         </button>
                     </div>
                 </div>
@@ -618,11 +574,8 @@
                         </div>
                     </div>
                     <div class="button-group">
-                        <button type="button" class="btn ${isActive ? 'btn-disabled' : 'btn-add'}" data-action="add" data-effect="${key}" data-category="status" ${isActive ? 'disabled' : ''}>
-                            ➕ Activer
-                        </button>
-                        <button type="button" class="btn ${!isActive ? 'btn-disabled' : 'btn-remove'}" data-action="remove" data-effect="${key}" data-category="status" ${!isActive ? 'disabled' : ''}>
-                            ➖ Désactiver
+                        <button type="button" class="btn ${isActive ? 'btn-remove' : 'btn-add'}" data-action="${isActive ? 'remove' : 'add'}" data-effect="${key}" data-category="status">
+                            ${isActive ? '➖ Désactiver' : '➕ Activer'}
                         </button>
                     </div>
                 </div>
@@ -637,42 +590,27 @@
             title: "🌑 Gestionnaire d'Effets - Moctei",
             content: dialogContent,
             buttons: {
-                removeAll: {
-                    icon: '<i class="fas fa-trash-alt"></i>',
-                    label: "🗑️ Tout Supprimer",
-                    callback: () => resolve({ action: "removeAll" })
-                },
-                apply: {
-                    icon: '<i class="fas fa-check"></i>',
-                    label: "✅ Appliquer Changements",
+                save: {
+                    icon: '<i class="fas fa-save"></i>',
+                    label: "� Sauvegarder",
                     callback: (html) => {
                         const injuryValues = {};
-                        const customCountValues = {};
-
-                        // Collect injury values
                         for (const key of Object.keys(INJURY_EFFECTS)) {
-                            const input = html.find(`#injuryValue-${key}`)[0];
-                            if (input) {
-                                injuryValues[key] = parseInt(input.value) || 1;
-                            }
+                            injuryValues[key] = parseInt(html.find(`#injuryCount-${key}`).val()) || 0;
                         }
-
-                        // Collect custom count values
+                        const customCountValues = {};
                         for (const key of Object.keys(CUSTOM_EFFECTS)) {
                             if (CUSTOM_EFFECTS[key].increasable) {
-                                const input = html.find(`#customCount-${key}`)[0];
-                                if (input) {
-                                    customCountValues[key] = parseInt(input.value) || 0;
-                                }
+                                customCountValues[key] = parseInt(html.find(`#customCount-${key}`).val()) || 0;
                             }
                         }
-
-                        resolve({
-                            pendingChanges,
-                            injuryValues,
-                            customCountValues
-                        });
+                        resolve({ pendingChanges, injuryValues, customCountValues });
                     }
+                },
+                removeAll: {
+                    icon: '<i class="fas fa-trash-alt"></i>',
+                    label: "🗑️ Supprimer Tout",
+                    callback: () => resolve({ action: "removeAll" })
                 },
                 cancel: {
                     icon: '<i class="fas fa-times"></i>',
@@ -680,33 +618,61 @@
                     callback: () => resolve(null)
                 }
             },
-            default: "apply",
+            default: "save",
             render: (html) => {
-                // Add click handlers for all buttons
-                html.find('button[data-action]').on('click', function(event) {
-                    event.preventDefault();
+                // Styling
+                html.find('.dialog-content').css({
+                    'max-height': '80vh',
+                    'overflow-y': 'auto',
+                    'width': '600px'
+                });
+
+                // Button click handlers
+                html.find('button[data-action]').click(function () {
                     const action = $(this).data('action');
-                    const effect = $(this).data('effect');
+                    const effectKey = $(this).data('effect');
                     const category = $(this).data('category');
 
-                    if ($(this).prop('disabled')) return;
+                    if (action === 'setInjuries' || action === 'setCustomCount' || action === 'removeExternal') {
+                        // Handle injury/custom/external count setting directly
+                        return;
+                    }
 
-                    console.log(`[Moctei] Button clicked: ${action} ${effect} ${category}`);
+                    // Handle other effects
+                    const isAlreadySelected = $(this).hasClass('pending-change');
+                    const statusDiv = $(this).closest('.effect-item').find('.status-indicator');
 
-                    // Store the change
-                    pendingChanges[`${category}-${effect}`] = { action, effect, category };
+                    if (isAlreadySelected) {
+                        // Cancel pending change
+                        delete pendingChanges[effectKey];
+                        $(this).removeClass('pending-change');
 
-                    // Visual feedback
-                    const effectItem = $(this).closest('.effect-item');
-                    effectItem.addClass('pending-change');
+                        // Reset status display
+                        const originalState = category === 'posture' ?
+                            (currentState.currentPosture === effectKey) :
+                            (category === 'custom' ? currentState.customEffects[effectKey] !== null : currentState.statusEffects[effectKey] !== null);
 
-                    // Update button states
-                    if (action === 'add') {
-                        effectItem.find('[data-action="add"]').prop('disabled', true).addClass('btn-disabled');
-                        effectItem.find('[data-action="remove"]').prop('disabled', false).removeClass('btn-disabled');
-                    } else if (action === 'remove') {
-                        effectItem.find('[data-action="remove"]').prop('disabled', true).addClass('btn-disabled');
-                        effectItem.find('[data-action="add"]').prop('disabled', false).removeClass('btn-disabled');
+                        const originalIcon = originalState ? "✅" : "❌";
+                        const originalText = originalState ? "ACTIF" : "INACTIF";
+                        const originalColor = originalState ? "#2e7d32" : "#d32f2f";
+                        statusDiv.html(`${originalIcon} ${originalText}`).css('color', originalColor);
+                    } else {
+                        // Set pending change
+                        pendingChanges[effectKey] = { action, category };
+
+                        // Clear other buttons in this group
+                        $(this).closest('.button-group').find('button').removeClass('pending-change');
+                        $(this).addClass('pending-change');
+
+                        // Update status display
+                        let pendingText = '';
+                        switch (action) {
+                            case 'add': pendingText = '📝 À AJOUTER'; break;
+                            case 'remove': pendingText = '📝 À SUPPRIMER'; break;
+                            case 'setPosture': pendingText = '📝 À ACTIVER'; break;
+                            case 'removePostures': pendingText = '📝 À SUPPRIMER'; break;
+                        }
+                        statusDiv.html(`<strong style="color: #2196f3;">${pendingText}</strong>`);
                     }
                 });
             }
@@ -875,7 +841,7 @@
                 }
 
             } else if (category === 'posture') {
-                if (action === 'add') {
+                if (action === 'setPosture') {
                     // Remove any existing posture first
                     const existingPostures = actor.effects.contents.filter(e =>
                         Object.values(POSTURES).some(p => (p.name || p.label) === e.name)
@@ -917,52 +883,41 @@
                 const injuryData = INJURY_EFFECTS[effect];
                 if (!injuryData) continue;
 
-                const existingEffect = actor.effects.contents.find(e => e.name === (injuryData.name || injuryData.label));
-                const changeAmount = injuryValues[effect] || 1;
+                if (action === 'setInjuries') {
+                    const targetValue = injuryValues[effect] || 0;
+                    const existingEffect = actor.effects.contents.find(e => e.name === (injuryData.name || injuryData.label));
 
-                if (action === 'add') {
-                    if (existingEffect) {
-                        const currentValue = existingEffect.flags?.statuscounter?.value || 0;
-                        const newValue = currentValue + changeAmount;
-                        await existingEffect.update({
-                            "flags.statuscounter.value": newValue
-                        });
-                        modifiedEffects.push(`${injuryData.name || injuryData.label} (+${changeAmount} = ${newValue})`);
-                    } else {
-                        // Create new injury effect
-                        const effectData = {
-                            name: injuryData.name || injuryData.label,
-                            icon: injuryData.icon || injuryData.img,
-                            description: `Blessures: ${changeAmount}`,
-                            duration: { seconds: 86400 },
-                            flags: {
-                                ...injuryData.flags,
-                                statuscounter: { active: true, value: changeAmount }
-                            },
-                            visible: true
-                        };
-
-                        await actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
-                        addedEffects.push(`${injuryData.name || injuryData.label} (${changeAmount})`);
-                    }
-                    console.log(`[Moctei] Added ${changeAmount} injuries`);
-
-                } else if (action === 'remove') {
-                    if (existingEffect) {
-                        const currentValue = existingEffect.flags?.statuscounter?.value || 0;
-                        const newValue = Math.max(0, currentValue - changeAmount);
-
-                        if (newValue > 0) {
+                    if (targetValue > 0) {
+                        if (existingEffect) {
+                            // Update existing effect
                             await existingEffect.update({
-                                "flags.statuscounter.value": newValue
+                                "flags.statuscounter.value": targetValue
                             });
-                            modifiedEffects.push(`${injuryData.name || injuryData.label} (-${changeAmount} = ${newValue})`);
+                            modifiedEffects.push(`${injuryData.name || injuryData.label} (${targetValue})`);
                         } else {
+                            // Create new effect
+                            const effectData = {
+                                name: injuryData.name || injuryData.label,
+                                icon: injuryData.icon || injuryData.img,
+                                description: `Blessures: ${targetValue}`,
+                                duration: { seconds: 86400 },
+                                flags: {
+                                    ...injuryData.flags,
+                                    statuscounter: { active: true, value: targetValue }
+                                },
+                                visible: true
+                            };
+                            await actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+                            addedEffects.push(`${injuryData.name || injuryData.label} (${targetValue})`);
+                        }
+                    } else {
+                        // Remove effect if value is 0
+                        if (existingEffect) {
                             await existingEffect.delete();
                             removedEffects.push(injuryData.name || injuryData.label);
                         }
                     }
-                    console.log(`[Moctei] Removed ${changeAmount} injuries`);
+                    console.log(`[Moctei] Set injuries to ${targetValue}`);
                 }
 
             } else if (category === 'status') {

@@ -90,7 +90,6 @@
                 file: "jb2a_patreon.extras.tmfx.runes.circle.simple.conjuration",
                 scale: 0.4,
                 fadeOut: 2000,
-                persistent: true,
                 sequencerName: "MocteiShadowDaggers"
             }
         },
