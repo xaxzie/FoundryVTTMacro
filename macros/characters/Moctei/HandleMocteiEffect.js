@@ -399,6 +399,10 @@
             const manaCostDisplay = effectData.manaCost ?
                 `<div style="color: #3f51b5; font-size: 0.8em;">Coût: ${effectData.manaCost} mana${effectData.isPerTurn ? '/tour' : ''}</div>` : '';
 
+            // Get current value for increasable effects
+            const currentValue = effectData.increasable ?
+                (actor.effects?.contents?.find(e => e.name === effectData.name)?.flags?.statuscounter?.value || 0) : 0;
+
             dialogContent += `
                 <div class="effect-item" id="effect-${key}">
                     <div style="display: flex; align-items: center; margin-bottom: 8px;">
@@ -412,11 +416,6 @@
                             ${statusIcon} ${statusText}
                         </div>
                     </div>
-            `;
-
-
-
-            dialogContent += `
                     <div class="button-group">
                         <button type="button" class="btn ${isActive ? 'btn-remove' : 'btn-add'}" data-action="${isActive ? 'remove' : 'add'}" data-effect="${key}" data-category="custom">
                             ${isActive ? '➖ Désactiver' : '➕ Activer'}
@@ -650,7 +649,7 @@
                         // Reset status display
                         const originalState = category === 'posture' ?
                             (currentState.currentPosture === effectKey) :
-                            (category === 'custom' ? currentState.customEffects[effectKey] !== null : currentState.statusEffects[effectKey] !== null);
+                            (category === 'custom' ? currentState.customEffects[effectKey] : currentState.statusEffects[effectKey]);
 
                         const originalIcon = originalState ? "✅" : "❌";
                         const originalText = originalState ? "ACTIF" : "INACTIF";
