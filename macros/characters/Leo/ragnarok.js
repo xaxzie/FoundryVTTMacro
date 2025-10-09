@@ -408,9 +408,8 @@
                 .effect()
                 .file(SPELL_CONFIG.animations.portal)
                 .atLocation({ x: launch.startX, y: launch.startY })
-                .scale(0.8)
+                .scale(0.5)
                 .delay(cumulativeDelay - 200) // Portal opens 200ms before projectile launch
-                .duration(1000)
                 .fadeOut(300)
 
             // Weapon projectile coming through the portal
