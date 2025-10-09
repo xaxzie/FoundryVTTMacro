@@ -428,6 +428,12 @@
 
     let pendingChanges = {};
 
+    // === UTILITY FUNCTIONS ===
+    // Generate safe ID for HTML elements (remove problematic characters)
+    function getSafeId(key) {
+        return key.replace(/[^a-zA-Z0-9-_]/g, '_');
+    }
+
     // === CUSTOM OUTSIDE EFFECTS SECTION ===
     if (outsideEffects.length > 0) {
         dialogContent += `
@@ -504,7 +510,7 @@
                             ${isActive ? '➖ Désactiver' : '➕ Activer'}
                         </button>
                         ${effectData.increasable ? `
-                        <label>${effectData.counterName || 'Valeur'}: <input type="number" id="customCount-${key}" value="${currentValue}" min="0" max="${effectData.maxValue || 10}" style="width: 60px; margin: 0 8px;"></label>
+                        <label>${effectData.counterName || 'Valeur'}: <input type="number" id="customCount-${getSafeId(key)}" value="${currentValue}" min="0" max="${effectData.maxValue || 10}" style="width: 60px; margin: 0 8px;"></label>
                         <button type="button" class="btn btn-add" data-action="setCustomCount" data-effect="${key}" data-category="custom">
                             📊 Appliquer
                         </button>
@@ -618,7 +624,7 @@
                         </div>
                     </div>
                     <div class="button-group">
-                        <label>Nombre: <input type="number" id="injuryCount-${key}" value="${currentCount}" min="0" max="10" style="width: 60px; margin: 0 8px;"></label>
+                        <label>Nombre: <input type="number" id="injuryCount-${getSafeId(key)}" value="${currentCount}" min="0" max="10" style="width: 60px; margin: 0 8px;"></label>
                         <button type="button" class="btn btn-add" data-action="setInjuries" data-effect="${key}" data-category="injury">
                             🩸 Appliquer
                         </button>
@@ -679,12 +685,12 @@
                     callback: (html) => {
                         const injuryValues = {};
                         for (const key of Object.keys(INJURY_EFFECTS)) {
-                            injuryValues[key] = parseInt(html.find(`#injuryCount-${key}`).val()) || 0;
+                            injuryValues[key] = parseInt(html.find(`#injuryCount-${getSafeId(key)}`).val()) || 0;
                         }
                         const customCountValues = {};
                         for (const key of Object.keys(CUSTOM_EFFECTS)) {
                             if (CUSTOM_EFFECTS[key].increasable) {
-                                customCountValues[key] = parseInt(html.find(`#customCount-${key}`).val()) || 0;
+                                customCountValues[key] = parseInt(html.find(`#customCount-${getSafeId(key)}`).val()) || 0;
                             }
                         }
                         resolve({ pendingChanges, injuryValues, customCountValues });

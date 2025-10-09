@@ -46,12 +46,12 @@
             fadeOut: 500,
             offsetDistance: 0.5, // Cases de décalage
             tint: "#8A2BE2", // Tinte violette
-            opacity: 0.7,
-            scale: 1.0
+            opacity: 0.6,
+            scale: 10.2
         },
 
         animations: {
-            cast: "jb2a.misty_step.01.purple", // Animation d'invocation
+            cast: "jb2a_patreon.misty_step.01.purple", // Animation d'invocation
             sound: null
         }
     };
