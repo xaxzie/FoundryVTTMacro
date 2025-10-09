@@ -68,17 +68,26 @@
             borderColor: "#1a0033",
             bgColor: "#f3e5f5",
             detectFlags: [
-                { path: "flags.world.darkFlameCaster", matchValue: "CASTER_ID" },
-                { path: "flags.world.spellName", matchValue: "Feu obscur" }
+                { path: "flags.world.darkFlameCaster", matchValue: "CASTER_ID" }
+                // Note: Pas de vérification spellName pour permettre "Feu obscur", "Feu obscur (Combo)", etc.
             ],
             mechanicType: "darkFlame",
             // Données supplémentaires pour l'affichage
             getExtraData: (effect) => ({
-                damagePerTurn: effect.flags?.statuscounter?.value || 0
+                damagePerTurn: effect.flags?.statuscounter?.value || 0,
+                isComboFlame: effect.flags?.world?.isComboFlame || false,
+                sourceSpell: effect.flags?.world?.spellName || "Feu obscur"
             }),
             getDynamicDescription: (effect) => {
                 const damage = effect.flags?.statuscounter?.value || 0;
-                return `Flamme noire - ${damage} dégâts/tour`;
+                const isCombo = effect.flags?.world?.isComboFlame || false;
+                const sourceSpell = effect.flags?.world?.spellName || "Feu obscur";
+
+                if (isCombo) {
+                    return `Flamme noire (${sourceSpell}) - ${damage} dégâts/tour`;
+                } else {
+                    return `Flamme noire - ${damage} dégâts/tour`;
+                }
             }
         },
 
