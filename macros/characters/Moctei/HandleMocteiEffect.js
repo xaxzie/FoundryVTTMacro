@@ -99,7 +99,7 @@
         },
         "Substitution d'ombre": {
             name: "Substitution d'ombre",
-            icon: "icons/creatures/unholy/shadow-spirit-purple.webp",
+            icon: "icons/magic/holy/barrier-shield-winged-cross.webp",
             flags: [],
             description: "Compteur d'utilisations pour le sort Substitution d'ombre - Coûts croissants (3→5→8→12 mana, non focusable)",
             category: "custom",
