@@ -232,7 +232,7 @@
         return;
     }
 
-    // Get actor at target location (Portal compatible)
+    // Get actor at target location (grid-aware detection with visibility filtering)
     function getActorAtLocation(x, y) {
         const gridSize = canvas.grid.size;
 
@@ -248,8 +248,8 @@
                 const tokenGridY = Math.floor(token.y / gridSize);
 
                 // Handle multi-grid tokens (width/height > 1)
-                const tokenWidth = Math.ceil(token.width * gridSize / gridSize);
-                const tokenHeight = Math.ceil(token.height * gridSize / gridSize);
+                const tokenWidth = Math.ceil(token.document.width);
+                const tokenHeight = Math.ceil(token.document.height);
 
                 // Check if target grid position intersects with token's grid area
                 const intersects = targetGridX >= tokenGridX &&
@@ -273,8 +273,8 @@
             // No grid: use circular tolerance detection (original behavior)
             const tolerance = gridSize;
             const tokensAtLocation = canvas.tokens.placeables.filter(token => {
-                const tokenCenterX = token.x + (token.width * gridSize) / 2;
-                const tokenCenterY = token.y + (token.height * gridSize) / 2;
+                const tokenCenterX = token.x + (token.document.width * gridSize) / 2;
+                const tokenCenterY = token.y + (token.document.height * gridSize) / 2;
 
                 const distance = Math.sqrt(
                     Math.pow(tokenCenterX - x, 2) +
@@ -294,9 +294,7 @@
             // Return appropriate name based on visibility (tokens are already filtered for visibility)
             return { name: targetToken.name, token: targetToken, actor: targetActor };
         }
-    }
-
-    const targetActor = getActorAtLocation(target.x, target.y);
+    } const targetActor = getActorAtLocation(target.x, target.y);
     const targetName = targetActor ? targetActor.name : 'position';
 
     // Check if target already has a shadow manipulation
@@ -366,7 +364,12 @@
     // ===== DAMAGE CALCULATION (FIXED, NO DICE) =====
     const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
     const baseDamage = Math.floor(characteristicInfo.final / SPELL_CONFIG.dexterityDivisor);
-    const totalDamage = baseDamage + (damageBonus || 0) + effectDamageBonus;
+
+    // Dégâts initiaux (avec bonus d'effets)
+    const initialDamage = baseDamage + (damageBonus || 0) + effectDamageBonus;
+
+    // Dégâts continus (SANS bonus d'effets, uniquement base + bonus manuel)
+    const continuousDamage = baseDamage + (damageBonus || 0);
 
     // ===== ADD ACTIVE EFFECTS =====
     if (targetActor?.actor) {
@@ -384,12 +387,12 @@
                     immobilizationSequenceName: `shadow-immobilization-${targetActor.token.id}`,
                     spellName: SPELL_CONFIG.name,
                     maintenanceCost: SPELL_CONFIG.maintenanceCost,
-                    damagePerTurn: totalDamage
+                    damagePerTurn: continuousDamage
                 },
                 // Immobilisation: empêche le mouvement
                 immobilized: { value: true },
                 // Pas de malus de stats, juste l'immobilisation
-                statuscounter: { value: totalDamage }
+                statuscounter: { value: continuousDamage }
             }
         };
 
@@ -451,8 +454,8 @@
 
         const damageDisplay = `
             <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f3e5f5; border-radius: 4px;">
-                <div style="font-size: 1.2em; color: #4a148c; font-weight: bold;">💀 DÉGÂTS: ${totalDamage} (fixes)</div>
-                <div style="font-size: 0.9em; color: #666;">Dextérité/2: ${baseDamage} + Bonus: ${(damageBonus || 0) + effectDamageBonus}</div>
+                <div style="font-size: 1.2em; color: #4a148c; font-weight: bold;">💀 DÉGÂTS INITIAUX: ${initialDamage} (fixes)</div>
+                <div style="font-size: 0.9em; color: #666;">Base: ${baseDamage} + Bonus Manuel: ${damageBonus || 0} + Bonus Effets: ${effectDamageBonus}</div>
             </div>
         `;
 
@@ -467,7 +470,7 @@
                 <div style="font-weight: bold; color: #1976d2;">🌑 Effets appliqués :</div>
                 <div style="font-size: 0.9em; margin: 5px 0;">
                     <div>🚫 <strong>Immobilisation totale</strong> - ${targetName} ne peut pas se déplacer</div>
-                    <div>💜 <strong>Dégâts continus</strong> - ${totalDamage} points par tour (fixes)</div>
+                    <div>💜 <strong>Dégâts continus</strong> - ${continuousDamage} points par tour (fixes, sans bonus d'effets)</div>
                     <div>🎲 <strong>Jet de libération</strong> - Volonté opposé (manuel chaque tour)</div>
                 </div>
             </div>
@@ -525,6 +528,6 @@
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
     const totalManipulations = manipulationCount + 1;
 
-    ui.notifications.info(`🌑 ${SPELL_CONFIG.name} lancée !${stanceInfo} Cible: ${targetName}. Attaque: ${attackRoll.total}, Dégâts: ${totalDamage}. Immobilisé ! (${SPELL_CONFIG.maintenanceCost} mana/tour) [${totalManipulations} manipulation(s) active(s)]`);
+    ui.notifications.info(`🌑 ${SPELL_CONFIG.name} lancée !${stanceInfo} Cible: ${targetName}. Attaque: ${attackRoll.total}, Dégâts initiaux: ${initialDamage}, Continus: ${continuousDamage}/tour. Immobilisé ! (${SPELL_CONFIG.maintenanceCost} mana/tour) [${totalManipulations} manipulation(s) active(s)]`);
 
 })();
