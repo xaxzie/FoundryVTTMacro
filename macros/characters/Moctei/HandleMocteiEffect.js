@@ -14,8 +14,14 @@
  * - Status counter values
  * - Shadow magic specific effects
  *
- * Features:
- * - Unified interface for all effect types
+ * Fe                        // Reset status display
+                        const originalState = category === 'posture' ?
+                            (currentState.currentPosture === effectKey) :
+                            (category === 'custom' ? currentState.customEffects[effectKey] !== null : currentState.statusEffects[effectKey] !== null);
+
+                        const originalIcon = originalState ? "✅" : "❌";
+                        const originalText = originalState ? "ACTIVE" : "INACTIVE";
+                        const originalColor = originalState ? "#2e7d32" : "#d32f2f"; * - Unified interface for all effect types
  * - Posture management (only one active at a time)
  * - Injury stacking with configurable amounts
  * - Integration with FoundryVTT's status effect system
@@ -266,35 +272,46 @@
             statusEffects: {}
         };
 
-        // Check custom effects
+        // Check custom effects - Store the actual effect object or null
         for (const [key, effectData] of Object.entries(CUSTOM_EFFECTS)) {
-            state.customEffects[key] = actor.effects?.contents?.some(e => e.name === effectData.name) || false;
+            const existingEffect = actor.effects.find(e => e.name === effectData.name);
+            state.customEffects[key] = existingEffect || null;
         }
 
         // Check postures (mutually exclusive)
         for (const [key, postureData] of Object.entries(POSTURES)) {
-            const effectName = postureData.name || postureData.label;
-            if (actor.effects?.contents?.some(e => e.name === effectName)) {
+            const existingPosture = actor.effects.find(e =>
+                e.statuses?.has(postureData.id) ||
+                e.name.toLowerCase() === (postureData.name || postureData.label).toLowerCase()
+            );
+            if (existingPosture) {
                 state.currentPosture = key;
                 break; // Only one posture can be active
             }
         }
 
-        // Check injuries from CONFIG
+        // Check injuries from CONFIG - Store the actual effect object or null
         state.injuries = {};
         for (const [key, injuryData] of Object.entries(INJURY_EFFECTS)) {
-            const effectName = injuryData.name || injuryData.label;
-            const injuryEffect = actor.effects?.contents?.find(e => e.name === effectName);
-            if (injuryEffect) {
-                state.injuries[key] = injuryEffect.flags?.statuscounter?.value || 1;
-                state.injuryCount += state.injuries[key];
+            const existingInjury = actor.effects.find(e =>
+                e.statuses?.has(injuryData.id) ||
+                e.name.toLowerCase() === (injuryData.name || injuryData.label).toLowerCase()
+            );
+            if (existingInjury) {
+                state.injuries[key] = existingInjury;
+                state.injuryCount += existingInjury.flags?.statuscounter?.value || 1;
+            } else {
+                state.injuries[key] = null;
             }
         }
 
-        // Check other config status effects
+        // Check other config status effects - Store the actual effect object or null
         for (const [key, effectData] of Object.entries(configStatusEffects.other)) {
-            const effectName = effectData.name || effectData.label;
-            state.statusEffects[key] = actor.effects?.contents?.some(e => e.name === effectName) || false;
+            const existingEffect = actor.effects.find(e =>
+                e.statuses?.has(effectData.id) ||
+                e.name === (effectData.name || effectData.label)
+            );
+            state.statusEffects[key] = existingEffect || null;
         }
 
         return state;
@@ -389,7 +406,8 @@
         `;
 
         for (const [key, effectData] of Object.entries(CUSTOM_EFFECTS)) {
-            const isActive = currentState.customEffects[key];
+            const existingEffect = currentState.customEffects[key];
+            const isActive = existingEffect !== null;
             const statusIcon = isActive ? "✅" : "❌";
             const statusText = isActive ? "ACTIVE" : "INACTIVE";
             const statusColor = isActive ? "#2e7d32" : "#d32f2f";
@@ -401,7 +419,7 @@
 
             // Get current value for increasable effects
             const currentValue = effectData.increasable ?
-                (actor.effects?.contents?.find(e => e.name === effectData.name)?.flags?.statuscounter?.value || 0) : 0;
+                (existingEffect?.flags?.statuscounter?.value || 0) : 0;
 
             dialogContent += `
                 <div class="effect-item" id="effect-${key}">
@@ -513,7 +531,8 @@
         `;
 
         for (const [key, injuryData] of Object.entries(INJURY_EFFECTS)) {
-            const currentCount = currentState.injuries[key] || 0;
+            const existingInjury = currentState.injuries[key];
+            const currentCount = existingInjury ? (existingInjury.flags?.statuscounter?.value || 1) : 0;
             const isActive = currentCount > 0;
             const statusIcon = isActive ? "✅" : "❌";
             const statusText = isActive ? `ACTIVE (${currentCount})` : "INACTIVE";
@@ -553,7 +572,7 @@
         `;
 
         for (const [key, effectData] of Object.entries(configStatusEffects.other)) {
-            const isActive = currentState.statusEffects[key];
+            const isActive = currentState.statusEffects[key] !== null;
             const statusIcon = isActive ? "✅" : "❌";
             const statusText = isActive ? "ACTIVE" : "INACTIVE";
             const statusColor = isActive ? "#2e7d32" : "#d32f2f";
@@ -712,235 +731,311 @@
         let removedEffects = [];
         let modifiedEffects = [];
 
-        // Process each pending change
-        for (const changeKey in changes) {
-            const change = changes[changeKey];
-            const { action, effect, category } = change;
+        // Handle custom count effects updates (increasable effects)
+        for (const [customKey, newValue] of Object.entries(customCountValues || {})) {
+            const customData = CUSTOM_EFFECTS[customKey];
+            if (!customData || !customData.increasable) continue;
 
-            console.log(`[Moctei] Processing: ${action} ${effect} in ${category}`);
+            const currentCustomEffect = currentState.customEffects[customKey];
+            const currentValue = currentCustomEffect ? (currentCustomEffect.flags?.statuscounter?.value || 0) : 0;
 
-            if (category === 'custom') {
-                const effectData = CUSTOM_EFFECTS[effect];
-                if (!effectData) continue;
+            if (newValue !== currentValue) {
+                if (newValue === 0 && currentCustomEffect) {
+                    await currentCustomEffect.delete();
+                    removedEffects.push(customData.name);
+                    console.log(`[Moctei] Removed increasable effect: ${customData.name}`);
 
-                if (action === 'add') {
-                    // Create effect data
-                    const newEffectData = {
-                        name: effectData.name,
-                        icon: effectData.icon,
-                        description: effectData.description,
-                        duration: { seconds: 86400 }, // 24 hours default
-                        flags: {},
-                        visible: true
-                    };
+                    // Handle special effects removal for increasable effects
+                    if (canvas.tokens.controlled.length > 0) {
+                        const token = canvas.tokens.controlled[0];
 
-                    // Add flags
-                    if (effectData.flags) {
-                        for (const flag of effectData.flags) {
-                            newEffectData.flags[flag.key] = { value: flag.value };
+                        // Handle transformation removal
+                        if (customData.hasTransformation) {
+                            if (customData.hasAnimation) {
+                                await playTransformationAnimation(token, customData.animation, false);
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                            }
+                            await applyTokenTransformation(token, customData.transformation, false);
+                        }
+
+                        // Handle filter removal
+                        if (customData.hasFilters) {
+                            if (customData.hasAnimation) {
+                                await playPersistentAnimation(token, customData.animation, false);
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                            }
+                            await applyTokenFilters(token, customData.filters, false);
                         }
                     }
 
-                    // Add increasable support
-                    if (effectData.increasable) {
-                        newEffectData.flags.statuscounter = {
-                            active: true,
-                            value: customCountValues[effect] || 0
+                } else if (newValue > 0) {
+                    if (currentCustomEffect) {
+                        // Update existing
+                        await currentCustomEffect.update({
+                            "flags.statuscounter.value": newValue
+                        });
+                        modifiedEffects.push(`${customData.name} (${newValue})`);
+                        console.log(`[Moctei] Updated increasable effect: ${customData.name} to ${newValue}`);
+                    } else {
+                        // Create new with statuscounter
+                        const customEffect = {
+                            name: customData.name,
+                            icon: customData.icon,
+                            origin: actor.uuid,
+                            duration: { seconds: 86400 },
+                            flags: {
+                                statuscounter: { value: newValue }
+                            }
                         };
-                    }
 
-                    // Add mana cost tracking
-                    if (effectData.manaCost) {
-                        newEffectData.flags.manaCost = {
-                            value: effectData.manaCost,
-                            isPerTurn: effectData.isPerTurn || false
-                        };
-                    }
+                        await actor.createEmbeddedDocuments("ActiveEffect", [customEffect]);
+                        addedEffects.push(`${customData.name} (${newValue})`);
+                        console.log(`[Moctei] Added increasable effect: ${customData.name} with ${newValue}`);
 
-                    // Add status counter value
-                    if (effectData.statusCounterValue) {
-                        newEffectData.flags.statuscounter = {
-                            ...newEffectData.flags.statuscounter,
-                            value: effectData.statusCounterValue
-                        };
-                    }
+                        // Handle special effects addition for increasable effects (only when creating new)
+                        if (canvas.tokens.controlled.length > 0) {
+                            const token = canvas.tokens.controlled[0];
 
-                    // Create the effect
-                    const createdEffect = await actor.createEmbeddedDocuments("ActiveEffect", [newEffectData]);
-                    const effect = createdEffect[0];
+                            // Handle transformation addition
+                            if (customData.hasTransformation) {
+                                if (customData.hasAnimation) {
+                                    await playTransformationAnimation(token, customData.animation, true);
+                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                }
+                                await applyTokenTransformation(token, customData.transformation, true);
+                            }
 
-                    console.log(`[Moctei] Created effect: ${effectData.name}`);
-
-                    // Apply special effects after creation
-                    await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
-
-                    // Apply transformation
-                    if (effectData.hasTransformation && effectData.transformation) {
-                        const token = canvas.tokens.get(actor.token?.id) || canvas.tokens.controlled[0];
-                        if (token) {
-                            await applyTokenTransformation(token, effectData.transformation, true);
-                        }
-                    }
-
-                    // Apply filters
-                    if (effectData.hasFilters && effectData.filters) {
-                        const token = canvas.tokens.get(actor.token?.id) || canvas.tokens.controlled[0];
-                        if (token) {
-                            await applyTokenFilters(token, effectData.filters, true);
-                        }
-                    }
-
-                    // Play animation
-                    if (effectData.hasAnimation && effectData.animation) {
-                        const token = canvas.tokens.get(actor.token?.id) || canvas.tokens.controlled[0];
-                        if (token) {
-                            if (effectData.animation.persistent) {
-                                await playPersistentAnimation(token, effectData.animation, true);
-                            } else {
-                                await playTransformationAnimation(token, effectData.animation, true);
+                            // Handle filter addition
+                            if (customData.hasFilters) {
+                                if (customData.hasAnimation) {
+                                    await playPersistentAnimation(token, customData.animation, true);
+                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                }
+                                await applyTokenFilters(token, customData.filters, true);
                             }
                         }
                     }
+                }
+            }
+        }
 
-                    addedEffects.push(effectData.name);
+        // Handle injury updates
+        for (const [injuryKey, newValue] of Object.entries(injuryValues)) {
+            const injuryData = INJURY_EFFECTS[injuryKey];
+            if (!injuryData) continue;
 
-                } else if (action === 'remove') {
-                    const existingEffect = actor.effects.contents.find(e => e.name === effectData.name);
-                    if (existingEffect) {
-                        // Clean up special effects before removal
-                        const token = canvas.tokens.get(actor.token?.id) || canvas.tokens.controlled[0];
+            const currentInjuryEffect = currentState.injuries[injuryKey];
+            const currentValue = currentInjuryEffect ? (currentInjuryEffect.flags?.statuscounter?.value || 1) : 0;
 
-                        if (token && effectData.hasTransformation && effectData.transformation) {
-                            await applyTokenTransformation(token, effectData.transformation, false);
-                        }
-
-                        if (token && effectData.hasFilters && effectData.filters) {
-                            await applyTokenFilters(token, effectData.filters, false);
-                        }
-
-                        if (token && effectData.hasAnimation && effectData.animation && effectData.animation.persistent) {
-                            await playPersistentAnimation(token, effectData.animation, false);
-                        }
-
-                        await existingEffect.delete();
-                        removedEffects.push(effectData.name);
-                        console.log(`[Moctei] Removed effect: ${effectData.name}`);
-                    }
-
-                } else if (action === 'setCustomCount') {
-                    const existingEffect = actor.effects.contents.find(e => e.name === effectData.name);
-                    if (existingEffect && effectData.increasable) {
-                        const newValue = customCountValues[effect] || 0;
-                        await existingEffect.update({
+            if (newValue !== currentValue) {
+                if (newValue === 0 && currentInjuryEffect) {
+                    await currentInjuryEffect.delete();
+                    removedEffects.push(injuryData.name || injuryData.label);
+                    console.log(`[Moctei] Removed injury: ${injuryData.name || injuryData.label}`);
+                } else if (newValue > 0) {
+                    if (currentInjuryEffect) {
+                        // Update existing
+                        await currentInjuryEffect.update({
                             "flags.statuscounter.value": newValue
                         });
-                        modifiedEffects.push(`${effectData.name} (${newValue})`);
-                        console.log(`[Moctei] Updated counter for ${effectData.name}: ${newValue}`);
+                        modifiedEffects.push(`${injuryData.name || injuryData.label} (${newValue})`);
+                        console.log(`[Moctei] Updated injury: ${injuryData.name || injuryData.label} to ${newValue}`);
+                    } else {
+                        // Create new using exact CONFIG object structure
+                        const injuryEffect = {
+                            ...injuryData, // Copy all CONFIG properties
+                            origin: actor.uuid,
+                            duration: { seconds: 86400 },
+                            flags: {
+                                statuscounter: { value: newValue }
+                            },
+                            statuses: [injuryData.id] // Add status ID to statuses array
+                        };
+                        // Remove our custom properties that aren't part of the effect
+                        delete injuryEffect.category;
+                        delete injuryEffect.description;
+
+                        await actor.createEmbeddedDocuments("ActiveEffect", [injuryEffect]);
+                        addedEffects.push(`${injuryData.name || injuryData.label} (${newValue})`);
+                        console.log(`[Moctei] Added injury: ${injuryData.name || injuryData.label} with ${newValue}`);
+                    }
+                }
+            }
+        }
+
+        // Process each pending change
+        for (const [effectKey, changeData] of Object.entries(changes)) {
+            const { action, category } = changeData;
+
+            console.log(`[Moctei] Processing: ${action} ${effectKey} in ${category}`);
+
+            if (category === 'custom') {
+                const effectData = CUSTOM_EFFECTS[effectKey];
+                if (!effectData) continue;
+
+                // Skip increasable effects - they're handled separately
+                if (effectData.increasable) continue;
+
+                if (action === 'add') {
+                    const flagsObject = {};
+                    if (effectData.flags) {
+                        effectData.flags.forEach(flag => {
+                            flagsObject[flag.key] = { value: flag.value };
+                        });
+                    }
+
+                    const newEffectData = {
+                        name: effectData.name,
+                        icon: effectData.icon,
+                        origin: actor.uuid,
+                        duration: { seconds: 86400 },
+                        flags: flagsObject
+                    };
+
+                    await actor.createEmbeddedDocuments("ActiveEffect", [newEffectData]);
+                    addedEffects.push(effectData.name);
+                    console.log(`[Moctei] Added effect: ${effectData.name}`);
+
+                    // Handle special effects (transformations, filters, animations)
+                    if (canvas.tokens.controlled.length > 0) {
+                        const token = canvas.tokens.controlled[0];
+
+                        // Handle transformation effects
+                        if (effectData.hasTransformation) {
+                            // Play animation first
+                            if (effectData.hasAnimation) {
+                                await playTransformationAnimation(token, effectData.animation, true);
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                            }
+
+                            // Apply transformation
+                            await applyTokenTransformation(token, effectData.transformation, true);
+                            console.log(`[Moctei] Applied transformation for ${effectData.name}`);
+                        }
+
+                        // Handle filter effects
+                        if (effectData.hasFilters) {
+                            // Play persistent animation first
+                            if (effectData.hasAnimation) {
+                                await playPersistentAnimation(token, effectData.animation, true);
+                                await new Promise(resolve => setTimeout(resolve, 200));
+                            }
+
+                            // Apply filters
+                            await applyTokenFilters(token, effectData.filters, true);
+                            console.log(`[Moctei] Applied filters for ${effectData.name}`);
+                        }
+                    }
+
+                } else if (action === 'remove') {
+                    const existing = currentState.customEffects[effectKey];
+                    if (existing) {
+                        // Handle special effects removal
+                        if (canvas.tokens.controlled.length > 0) {
+                            const token = canvas.tokens.controlled[0];
+
+                            // Handle transformation removal
+                            if (effectData.hasTransformation) {
+                                // Play animation first
+                                if (effectData.hasAnimation) {
+                                    await playTransformationAnimation(token, effectData.animation, false);
+                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                }
+
+                                // Revert transformation
+                                await applyTokenTransformation(token, effectData.transformation, false);
+                                console.log(`[Moctei] Removed transformation for ${effectData.name}`);
+                            }
+
+                            // Handle filter removal
+                            if (effectData.hasFilters) {
+                                // End persistent animation first
+                                if (effectData.hasAnimation) {
+                                    await playPersistentAnimation(token, effectData.animation, false);
+                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                }
+
+                                // Remove filters
+                                await applyTokenFilters(token, effectData.filters, false);
+                                console.log(`[Moctei] Removed filters for ${effectData.name}`);
+                            }
+                        }
+
+                        await existing.delete();
+                        removedEffects.push(effectData.name);
+                        console.log(`[Moctei] Removed effect: ${effectData.name}`);
                     }
                 }
 
             } else if (category === 'posture') {
                 if (action === 'setPosture') {
-                    // Remove any existing posture first
-                    const existingPostures = actor.effects.contents.filter(e =>
-                        Object.values(POSTURES).some(p => (p.name || p.label) === e.name)
-                    );
-                    for (const existingPosture of existingPostures) {
-                        await existingPosture.delete();
-                        removedEffects.push(existingPosture.name);
+                    // Remove current posture first
+                    if (currentState.currentPosture) {
+                        const currentPostureEffect = actor.effects.find(e =>
+                            e.name.toLowerCase() === (POSTURES[currentState.currentPosture].name || POSTURES[currentState.currentPosture].label).toLowerCase()
+                        );
+                        if (currentPostureEffect) {
+                            await currentPostureEffect.delete();
+                            removedEffects.push(currentPostureEffect.name);
+                        }
                     }
 
                     // Add new posture
-                    const postureData = POSTURES[effect];
+                    const postureData = POSTURES[effectKey];
                     if (postureData) {
-                        const effectData = {
-                            name: postureData.name || postureData.label,
-                            icon: postureData.icon || postureData.img,
-                            description: `Posture: ${postureData.name || postureData.label}`,
+                        // Create effect using exact CONFIG object structure
+                        const postureEffect = {
+                            ...postureData, // Copy all CONFIG properties
+                            origin: actor.uuid,
                             duration: { seconds: 86400 },
-                            flags: postureData.flags || {},
-                            visible: true
+                            statuses: [postureData.id] // Add status ID to statuses array
                         };
+                        // Remove our custom properties that aren't part of the effect
+                        delete postureEffect.category;
+                        delete postureEffect.description;
 
-                        await actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+                        await actor.createEmbeddedDocuments("ActiveEffect", [postureEffect]);
                         addedEffects.push(postureData.name || postureData.label);
                         console.log(`[Moctei] Added posture: ${postureData.name || postureData.label}`);
                     }
 
                 } else if (action === 'removePostures') {
-                    const existingPostures = actor.effects.contents.filter(e =>
-                        Object.values(POSTURES).some(p => (p.name || p.label) === e.name)
-                    );
-                    for (const existingPosture of existingPostures) {
-                        await existingPosture.delete();
-                        removedEffects.push(existingPosture.name);
+                    if (currentState.currentPosture) {
+                        const currentPostureEffect = actor.effects.find(e =>
+                            e.name.toLowerCase() === (POSTURES[currentState.currentPosture].name || POSTURES[currentState.currentPosture].label).toLowerCase()
+                        );
+                        if (currentPostureEffect) {
+                            await currentPostureEffect.delete();
+                            removedEffects.push(currentPostureEffect.name);
+                        }
                     }
                     console.log(`[Moctei] Removed all postures`);
                 }
 
-            } else if (category === 'injury') {
-                const injuryData = INJURY_EFFECTS[effect];
-                if (!injuryData) continue;
-
-                if (action === 'setInjuries') {
-                    const targetValue = injuryValues[effect] || 0;
-                    const existingEffect = actor.effects.contents.find(e => e.name === (injuryData.name || injuryData.label));
-
-                    if (targetValue > 0) {
-                        if (existingEffect) {
-                            // Update existing effect
-                            await existingEffect.update({
-                                "flags.statuscounter.value": targetValue
-                            });
-                            modifiedEffects.push(`${injuryData.name || injuryData.label} (${targetValue})`);
-                        } else {
-                            // Create new effect
-                            const effectData = {
-                                name: injuryData.name || injuryData.label,
-                                icon: injuryData.icon || injuryData.img,
-                                description: `Blessures: ${targetValue}`,
-                                duration: { seconds: 86400 },
-                                flags: {
-                                    ...injuryData.flags,
-                                    statuscounter: { active: true, value: targetValue }
-                                },
-                                visible: true
-                            };
-                            await actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
-                            addedEffects.push(`${injuryData.name || injuryData.label} (${targetValue})`);
-                        }
-                    } else {
-                        // Remove effect if value is 0
-                        if (existingEffect) {
-                            await existingEffect.delete();
-                            removedEffects.push(injuryData.name || injuryData.label);
-                        }
-                    }
-                    console.log(`[Moctei] Set injuries to ${targetValue}`);
-                }
-
             } else if (category === 'status') {
-                const statusData = configStatusEffects.other[effect];
+                const statusData = configStatusEffects.other[effectKey];
                 if (!statusData) continue;
 
                 if (action === 'add') {
-                    const effectData = {
-                        name: statusData.name || statusData.label,
-                        icon: statusData.icon || statusData.img,
-                        description: `Effet: ${statusData.name || statusData.label}`,
+                    // Create effect using exact CONFIG object structure
+                    const statusEffect = {
+                        ...statusData, // Copy all CONFIG properties
+                        origin: actor.uuid,
                         duration: { seconds: 86400 },
-                        flags: statusData.flags || {},
-                        visible: true
+                        statuses: [statusData.id] // Add status ID to statuses array
                     };
+                    // Remove our custom properties that aren't part of the effect
+                    delete statusEffect.category;
+                    delete statusEffect.description;
 
-                    await actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+                    await actor.createEmbeddedDocuments("ActiveEffect", [statusEffect]);
                     addedEffects.push(statusData.name || statusData.label);
                     console.log(`[Moctei] Added status effect: ${statusData.name || statusData.label}`);
 
                 } else if (action === 'remove') {
-                    const existingEffect = actor.effects.contents.find(e => e.name === (statusData.name || statusData.label));
-                    if (existingEffect) {
-                        await existingEffect.delete();
+                    const existing = currentState.statusEffects[effectKey];
+                    if (existing) {
+                        await existing.delete();
                         removedEffects.push(statusData.name || statusData.label);
                         console.log(`[Moctei] Removed status effect: ${statusData.name || statusData.label}`);
                     }
@@ -948,7 +1043,8 @@
 
             } else if (category === 'external') {
                 if (action === 'removeExternal') {
-                    const externalEffect = actor.effects.contents.find(e => e.id === effect);
+                    // Find the external effect by ID
+                    const externalEffect = actor.effects.get(effectKey);
                     if (externalEffect) {
                         await externalEffect.delete();
                         removedEffects.push(externalEffect.name);
