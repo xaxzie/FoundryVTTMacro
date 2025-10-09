@@ -105,7 +105,7 @@
             category: "custom",
             increasable: true,
             counterName: "Utilisations",
-            defaultValue: 1,
+            defaultValue: 0,
             maxValue: 4,
             hasAnimation: false // Pas d'animation depuis le HandleEffect
         }

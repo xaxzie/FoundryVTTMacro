@@ -113,24 +113,25 @@
 
     // ===== CHECK EXISTING SUBSTITUTION EFFECT =====
     const existingSubstitution = actor.effects.find(e => e.name === SPELL_CONFIG.trackingEffect.name);
-    const currentUsageLevel = existingSubstitution ? (existingSubstitution.flags?.statuscounter?.value || 1) : 1;
+    const currentUsagesCount = existingSubstitution ? (existingSubstitution.flags?.statuscounter?.value || 0) : 0;
+    const nextUsageLevel = currentUsagesCount + 1;
 
     // Vérifier si on a atteint la limite
-    if (currentUsageLevel > SPELL_CONFIG.manaCosts.length) {
+    if (currentUsagesCount >= SPELL_CONFIG.manaCosts.length) {
         ui.notifications.error(`Vous avez déjà utilisé ${SPELL_CONFIG.name} ${SPELL_CONFIG.manaCosts.length} fois ! Impossible de l'utiliser à nouveau.`);
         return;
     }
 
     // ===== DIALOG DE CONFIGURATION =====
     async function showConfigDialog() {
-        const currentCost = SPELL_CONFIG.manaCosts[currentUsageLevel - 1];
-        const nextCost = currentUsageLevel < SPELL_CONFIG.manaCosts.length ?
-            SPELL_CONFIG.manaCosts[currentUsageLevel] : "Aucune";
+        const currentCost = SPELL_CONFIG.manaCosts[nextUsageLevel - 1];
+        const nextCost = nextUsageLevel < SPELL_CONFIG.manaCosts.length ?
+            SPELL_CONFIG.manaCosts[nextUsageLevel] : "Aucune";
 
         const usageInfo = existingSubstitution ?
             `<div style="color: #4a148c; font-weight: bold; margin: 10px 0; padding: 8px; background: #f3e5f5; border-radius: 4px;">
-                📊 Utilisations précédentes : ${currentUsageLevel - 1}
-                <br><small>Cette utilisation sera la ${currentUsageLevel}ème</small>
+                📊 Utilisations précédentes : ${currentUsagesCount}
+                <br><small>Cette utilisation sera la ${nextUsageLevel}ème</small>
             </div>` :
             `<div style="color: #2e7d32; font-weight: bold; margin: 10px 0; padding: 8px; background: #e8f5e8; border-radius: 4px;">
                 ✨ Première utilisation du sort !
@@ -140,10 +141,10 @@
             <div style="margin: 10px 0; padding: 10px; background: #fff3e0; border-radius: 4px;">
                 <strong>💰 Coûts du sort :</strong>
                 <div style="font-size: 0.9em; margin-top: 5px;">
-                    <div style="color: ${currentUsageLevel === 1 ? '#d32f2f' : '#666'}; ${currentUsageLevel === 1 ? 'font-weight: bold;' : ''}">1ère utilisation : 3 mana</div>
-                    <div style="color: ${currentUsageLevel === 2 ? '#d32f2f' : '#666'}; ${currentUsageLevel === 2 ? 'font-weight: bold;' : ''}">2ème utilisation : 5 mana</div>
-                    <div style="color: ${currentUsageLevel === 3 ? '#d32f2f' : '#666'}; ${currentUsageLevel === 3 ? 'font-weight: bold;' : ''}">3ème utilisation : 8 mana</div>
-                    <div style="color: ${currentUsageLevel === 4 ? '#d32f2f' : '#666'}; ${currentUsageLevel === 4 ? 'font-weight: bold;' : ''}">4ème utilisation : 12 mana</div>
+                    <div style="color: ${nextUsageLevel === 1 ? '#d32f2f' : '#666'}; ${nextUsageLevel === 1 ? 'font-weight: bold;' : ''}">1ère utilisation : 3 mana</div>
+                    <div style="color: ${nextUsageLevel === 2 ? '#d32f2f' : '#666'}; ${nextUsageLevel === 2 ? 'font-weight: bold;' : ''}">2ème utilisation : 5 mana</div>
+                    <div style="color: ${nextUsageLevel === 3 ? '#d32f2f' : '#666'}; ${nextUsageLevel === 3 ? 'font-weight: bold;' : ''}">3ème utilisation : 8 mana</div>
+                    <div style="color: ${nextUsageLevel === 4 ? '#d32f2f' : '#666'}; ${nextUsageLevel === 4 ? 'font-weight: bold;' : ''}">4ème utilisation : 12 mana</div>
                 </div>
             </div>
         `;
@@ -231,14 +232,14 @@
     const { dodgeBonus, timing } = userConfig;
 
     // ===== CALCULATE FINAL COST AND USAGE LEVEL =====
-    let finalCost, finalUsageLevel;
+    let finalCost, newUsagesCount;
 
     if (timing === "before") {
-        finalCost = SPELL_CONFIG.manaCosts[currentUsageLevel - 1];
-        finalUsageLevel = currentUsageLevel + 1;
+        finalCost = SPELL_CONFIG.manaCosts[nextUsageLevel - 1];
+        newUsagesCount = currentUsagesCount + 1;
     } else { // after
-        finalCost = SPELL_CONFIG.manaCosts[currentUsageLevel]; // Coût suivant
-        finalUsageLevel = currentUsageLevel + 1; // Mais ne compte que +1
+        finalCost = SPELL_CONFIG.manaCosts[nextUsageLevel]; // Coût suivant
+        newUsagesCount = currentUsagesCount + 1; // Mais ne compte que +1
     }
 
     // ===== ANIMATIONS (Clone d'ombre) =====
@@ -297,32 +298,32 @@
         const updateData = {
             flags: {
                 ...existingSubstitution.flags,
-                statuscounter: { value: finalUsageLevel, visible: true }
+                statuscounter: { value: newUsagesCount, visible: true }
             },
-            description: `${SPELL_CONFIG.trackingEffect.description} - Prochaine utilisation : ${finalUsageLevel}/${SPELL_CONFIG.manaCosts.length}`
+            description: `${SPELL_CONFIG.trackingEffect.description} - Utilisations : ${newUsagesCount}/${SPELL_CONFIG.manaCosts.length}`
         };
 
         await existingSubstitution.update(updateData);
-        console.log(`[Moctei] Updated substitution tracking effect to level ${finalUsageLevel}`);
+        console.log(`[Moctei] Updated substitution tracking effect to ${newUsagesCount} usages`);
     } else {
         // Créer un nouvel effet de suivi
         const trackingEffectData = {
             name: SPELL_CONFIG.trackingEffect.name,
             icon: SPELL_CONFIG.trackingEffect.icon,
-            description: `${SPELL_CONFIG.trackingEffect.description} - Prochaine utilisation : ${finalUsageLevel}/${SPELL_CONFIG.manaCosts.length}`,
+            description: `${SPELL_CONFIG.trackingEffect.description} - Utilisations : ${newUsagesCount}/${SPELL_CONFIG.manaCosts.length}`,
             duration: { seconds: 86400 }, // 24h
             flags: {
                 world: {
-                    shadowSubstitutionLevel: finalUsageLevel,
+                    shadowSubstitutionUsages: newUsagesCount,
                     spellName: SPELL_CONFIG.name
                 },
-                statuscounter: { value: finalUsageLevel, visible: true }
+                statuscounter: { value: newUsagesCount, visible: true }
             }
         };
 
         try {
             await actor.createEmbeddedDocuments("ActiveEffect", [trackingEffectData]);
-            console.log(`[Moctei] Created substitution tracking effect at level ${finalUsageLevel}`);
+            console.log(`[Moctei] Created substitution tracking effect with ${newUsagesCount} usages`);
         } catch (error) {
             console.error(`[Moctei] Error creating tracking effect:`, error);
             ui.notifications.error("Erreur lors de la création de l'effet de suivi !");
@@ -363,12 +364,16 @@
             </div>
         `;
 
+        const nextUsageCost = newUsagesCount < SPELL_CONFIG.manaCosts.length ?
+            SPELL_CONFIG.manaCosts[newUsagesCount] + " mana" : "Aucune";
+
         const usageDisplay = `
             <div style="margin: 8px 0; padding: 8px; background: #e3f2fd; border-radius: 4px;">
                 <div style="font-weight: bold; color: #1976d2;">📊 Suivi des utilisations :</div>
                 <div style="font-size: 0.9em; margin: 5px 0;">
                     <div>👤 <strong>Clone d'ombre invoqué</strong> - Prend le coup à la place de Moctei</div>
-                    <div>📈 <strong>Prochaine utilisation :</strong> ${finalUsageLevel}/${SPELL_CONFIG.manaCosts.length} (${finalUsageLevel <= SPELL_CONFIG.manaCosts.length ? SPELL_CONFIG.manaCosts[finalUsageLevel - 1] + " mana" : "Aucune"})</div>
+                    <div>📈 <strong>Utilisations totales :</strong> ${newUsagesCount}/${SPELL_CONFIG.manaCosts.length}</div>
+                    <div>🔮 <strong>Prochaine utilisation :</strong> ${nextUsageCost}</div>
                 </div>
             </div>
         `;
@@ -380,7 +385,7 @@
                         🌑 ${SPELL_CONFIG.name}
                     </h3>
                     <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
-                        <strong>Lanceur:</strong> ${actor.name} | <strong>Utilisation:</strong> ${currentUsageLevel}/${SPELL_CONFIG.manaCosts.length}
+                        <strong>Lanceur:</strong> ${actor.name} | <strong>Utilisation:</strong> ${nextUsageLevel}/${SPELL_CONFIG.manaCosts.length}
                     </div>
                 </div>
 
@@ -415,9 +420,9 @@
     // ===== FINAL NOTIFICATION =====
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
     const timingText = timing === "before" ? "avant" : "après";
-    const nextUsageText = finalUsageLevel <= SPELL_CONFIG.manaCosts.length ?
-        ` Prochaine: ${SPELL_CONFIG.manaCosts[finalUsageLevel - 1]} mana` : " (Dernière utilisation)";
+    const nextUsageText = newUsagesCount < SPELL_CONFIG.manaCosts.length ?
+        ` Prochaine: ${SPELL_CONFIG.manaCosts[newUsagesCount]} mana` : " (Dernière utilisation)";
 
-    ui.notifications.info(`🌑 ${SPELL_CONFIG.name} lancée !${stanceInfo} Clone d'ombre invoqué ${timingText} l'attaque. Esquive: ${dodgeRoll.total}. Coût: ${finalCost} mana.${nextUsageText}`);
+    ui.notifications.info(`🌑 ${SPELL_CONFIG.name} lancée !${stanceInfo} Clone d'ombre invoqué ${timingText} l'attaque. Esquive: ${dodgeRoll.total}. Coût: ${finalCost} mana. Utilisations: ${newUsagesCount}/${SPELL_CONFIG.manaCosts.length}.${nextUsageText}`);
 
 })();
