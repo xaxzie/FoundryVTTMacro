@@ -341,16 +341,20 @@
 
     // ===== CALCUL DE DISTANCE =====
     function calculateDistance(casterToken, targetPos) {
-        const casterX = casterToken.x + (casterToken.width * canvas.grid.size) / 2;
-        const casterY = casterToken.y + (casterToken.height * canvas.grid.size) / 2;
+        const gridSize = canvas.grid.size;
 
-        const deltaX = Math.abs(targetPos.x - casterX);
-        const deltaY = Math.abs(targetPos.y - casterY);
+        // Convert caster token position to grid coordinates (center of token)
+        const casterGridX = Math.floor(casterToken.x / gridSize) + Math.floor(casterToken.document.width / 2);
+        const casterGridY = Math.floor(casterToken.y / gridSize) + Math.floor(casterToken.document.height / 2);
 
-        // Distance en cases de grille
+        // Convert target position to grid coordinates
+        const targetGridX = Math.floor(targetPos.x / gridSize);
+        const targetGridY = Math.floor(targetPos.y / gridSize);
+
+        // Calculate grid distance using Chebyshev distance (D&D style)
         const distanceInCells = Math.max(
-            Math.floor(deltaX / canvas.grid.size),
-            Math.floor(deltaY / canvas.grid.size)
+            Math.abs(targetGridX - casterGridX),
+            Math.abs(targetGridY - casterGridY)
         );
 
         return distanceInCells;
@@ -500,50 +504,43 @@
 
     await playAnimation();
 
-    // ===== COMBINED ATTACK AND DAMAGE RESOLUTION =====
+    // ===== ATTACK RESOLUTION =====
     const baseAttackDice = characteristicInfo.final + attackBonus;
     const finalAttackDice = Math.max(1, baseAttackDice);
     const levelBonus = 2 * SPELL_CONFIG.spellLevel;
 
-    // Damage configuration based on range
+    const attackRoll = new Roll(`${finalAttackDice}d7 + ${levelBonus}`);
+    await attackRoll.evaluate({ async: true });
+
+    // ===== DAMAGE CALCULATION =====
     const damageConfig = isCloseRange ? SPELL_CONFIG.damage.close : SPELL_CONFIG.damage.ranged;
-    const dexterityBonus = characteristicInfo.final;
-    const totalDamageBonus = dexterityBonus + damageBonus;
+    const effectDamageBonus = getActiveEffectBonus(actor, "damage");
+    const totalDamageBonus = characteristicInfo.final + damageBonus + effectDamageBonus;
 
-    // Build combined roll formula: attack roll + damage roll
-    let combinedRollParts = [`${finalAttackDice}d7 + ${levelBonus}`];
-
-    // Add damage roll to the combined formula (only if not maximized)
-    if (currentStance !== 'offensif') {
-        combinedRollParts.push(`${damageConfig.dice} + ${totalDamageBonus}`);
-    }
-
-    const combinedRoll = new Roll(`{${combinedRollParts.join(', ')}}`);
-    await combinedRoll.evaluate({ async: true });
-
-    // Extract results from the combined roll
-    const attackResult = combinedRoll.terms[0].results[0];
     let finalDamageResult;
 
     if (currentStance === 'offensif') {
-        // Calculate maximized damage for offensive stance
-        const damageRoll = new Roll(damageConfig.dice);
-        await damageRoll.evaluate({ async: true });
-        const maxPossibleDamage = damageRoll.terms[0].faces * damageRoll.terms[0].number;
+        // Offensive stance: damage is maximized
+        const diceMax = damageConfig.dice === '2d4' ? 8 : 4; // 1d4 max = 4, 2d4 max = 8
+        const maxDamage = diceMax + totalDamageBonus;
         finalDamageResult = {
-            total: maxPossibleDamage + totalDamageBonus,
-            formula: `${damageConfig.dice} + ${totalDamageBonus} (MAXIMISÉ)`,
-            result: maxPossibleDamage + totalDamageBonus
+            total: maxDamage,
+            formula: `${diceMax} + ${totalDamageBonus}`,
+            result: maxDamage
         };
     } else {
-        // Extract damage result from dice roll
-        const damageRollResult = combinedRoll.terms[0].results[1];
+        // Normal dice rolling
+        const damageRoll = new Roll(`${damageConfig.dice} + ${totalDamageBonus}`);
+        await damageRoll.evaluate({ async: true });
         finalDamageResult = {
-            total: damageRollResult.result,
-            formula: damageRollResult.expression,
-            result: damageRollResult.result
+            total: damageRoll.total,
+            formula: damageRoll.formula,
+            result: damageRoll.total
         };
     }
+
+    // Create a simple display roll for the chat (attack only, damage shown in flavor)
+    const displayRoll = attackRoll;
 
     // ===== GESTION DE L'EFFET LONGUE DURÉE =====
     let effectMessage = "";
@@ -623,15 +620,17 @@
                 <div>✨ Bonus de Dextérité: +${characteristicInfo.effectBonus}</div>
             </div>` : '';
 
-        const bonusInfo = (attackBonus !== 0 || damageBonus !== 0) ?
+        const effectDamageBonus = getActiveEffectBonus(actor, "damage");
+        const bonusInfo = (attackBonus !== 0 || damageBonus !== 0 || effectDamageBonus !== 0) ?
             `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
                 ${attackBonus !== 0 ? `<div>⚡ Bonus Manuel d'Attaque: ${attackBonus > 0 ? '+' : ''}${attackBonus} dés</div>` : ''}
                 ${damageBonus !== 0 ? `<div>🔧 Bonus Manuel de Dégâts: ${damageBonus > 0 ? '+' : ''}${damageBonus} points</div>` : ''}
+                ${effectDamageBonus !== 0 ? `<div>🗡️ Bonus de Dégâts d'Effets: +${effectDamageBonus} points</div>` : ''}
             </div>` : '';
 
         const attackDisplay = `
             <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff8e1; border-radius: 4px;">
-                <div style="font-size: 1.4em; color: #f57f17; font-weight: bold;">🎯 ATTAQUE: ${attackResult.result}</div>
+                <div style="font-size: 1.4em; color: #f57f17; font-weight: bold;">🎯 ATTAQUE: ${attackRoll.total}</div>
                 <div style="font-size: 0.9em; color: #666; margin-top: 4px;">${distanceInfo}</div>
             </div>
         `;
@@ -672,8 +671,8 @@
         `;
     }
 
-    // Send the combined roll to chat with enhanced flavor
-    await combinedRoll.toMessage({
+    // Send the attack roll to chat with enhanced flavor
+    await displayRoll.toMessage({
         speaker: ChatMessage.getSpeaker({ token: caster }),
         flavor: createFlavor(),
         rollMode: game.settings.get("core", "rollMode")
@@ -686,7 +685,7 @@
 
     ui.notifications.info(
         `🌑 ${SPELL_CONFIG.name} lancé !${stanceInfo} Cible: ${targetName} (${rangeInfo}). ` +
-        `Attaque: ${attackResult.result}, Dégâts: ${finalDamageResult.total}${maximizedInfo}. ${actualManaCost} mana utilisé.`
+        `Attaque: ${attackRoll.total}, Dégâts: ${finalDamageResult.total}${maximizedInfo}. ${actualManaCost} mana utilisé.`
     );
 
 })();
