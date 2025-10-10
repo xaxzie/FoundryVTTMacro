@@ -299,7 +299,7 @@
                 for (const filterConf of filterConfig.filterConfigs) {
                     const params = [{
                         ...filterConf,
-                        filterId: `${filterConfig.filterId}_${filterConf.filterType}`
+                        filterId: filterConfig.filterId
                     }];
                     await TokenMagic.addUpdateFilters(token, params);
                 }
