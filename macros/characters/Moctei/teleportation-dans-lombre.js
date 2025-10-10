@@ -222,7 +222,13 @@
     // ===== DÉPLACEMENT DU TOKEN =====
     async function teleportToken() {
         try {
-            // Utiliser les outils natifs de FoundryVTT v13 pour déplacer le token
+            // Sauvegarder le mode de déplacement actuel
+            const originalMovementType = casterToken.document.movementType;
+
+            // Activer le mode de déplacement "Teleportation" de FoundryVTT v13
+            await casterToken.document.update({ movementType: CONST.TOKEN_MOVEMENT_TYPES.TELEPORT });
+
+            // Effectuer le déplacement avec le mode téléportation
             const updates = {
                 x: destinationPosition.x,
                 y: destinationPosition.y
@@ -230,6 +236,9 @@
 
             // Mettre à jour la position du token via le document
             await casterToken.document.update(updates);
+
+            // Restaurer le mode de déplacement original
+            await casterToken.document.update({ movementType: originalMovementType });
 
             console.log(`[Moctei] Token successfully teleported to (${destinationPosition.x}, ${destinationPosition.y})`);
             return true;
@@ -285,19 +294,12 @@
                     </div>
                 </div>
 
-                <div style="background: rgba(255,255,255,0.7); padding: 10px; border-radius: 4px; margin: 10px 0;">
-                    <strong>🌑 Téléportation :</strong><br>
-                    <strong>De :</strong> (${Math.round(originalPosition.x)}, ${Math.round(originalPosition.y)})<br>
-                    <strong>Vers :</strong> (${Math.round(destinationPosition.x)}, ${Math.round(destinationPosition.y)})<br>
-                    <small style="color: #666;">Distance parcourue : ${distanceInFeet} pieds</small>
-                </div>
-
                 <div style="background: #fff3e0; padding: 10px; border-radius: 4px; margin: 10px 0; font-size: 0.9em;">
                     <strong>⚡ Effet :</strong><br>
                     • <strong>Type :</strong> Téléportation instantanée<br>
                     • <strong>Méthode :</strong> Voyage par les ombres<br>
                     • <strong>Durée :</strong> Instantané<br>
-                    • <strong>Portée :</strong> Visuelle (Portal)
+                    • <strong>Portée :</strong> Visuelle
                 </div>
 
                 <div style="text-align: center; margin-top: 10px; padding: 8px; background: rgba(46, 0, 84, 0.1); border-radius: 4px;">
