@@ -112,7 +112,7 @@
         },
         "Ombre totale": {
             name: "Ombre totale",
-            icon: "icons/magic/perception/eye-ringed-glow-black.webp",
+            icon: "icons/magic/control/buff-flight-wings-blue.webp",
             flags: [],
             description: "Lorsqu'il est activé, Moctei devient invisible",
             category: "custom",
@@ -126,9 +126,12 @@
                     {
                         filterType: "adjustment",
                         filterId: "Invisible",
-                        brightness: 0.2,
-                        contrast: 0.2,
-                        saturate: 0.2,
+                        brightness: 1,
+                        contrast: 1,
+                        saturate: 1,
+                        red: 0.2,
+                        green: 0.2,
+                        blue: 0.2,
                         animated: {
                             alpha: {
                                 active: true,
