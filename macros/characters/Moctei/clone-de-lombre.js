@@ -221,9 +221,14 @@
 
         // Animation d'apparition du clone
         if (SPELL_CONFIG.animation.clone) {
+            // Centrer l'animation au milieu de la case (comme pour les autres sorts)
+            const gridSize = canvas.grid.size;
+            const centerX = clonePosition.x + (gridSize / 2);
+            const centerY = clonePosition.y + (gridSize / 2);
+
             seq.effect()
                 .file(SPELL_CONFIG.animation.clone)
-                .atLocation(clonePosition)
+                .atLocation({ x: centerX, y: centerY })
                 .scale(0.8)
                 .duration(1500)
                 .fadeIn(300)
