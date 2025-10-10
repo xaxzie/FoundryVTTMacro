@@ -654,7 +654,15 @@
         };
 
         try {
-            await targetActorInfo.actor.createEmbeddedDocuments("ActiveEffect", [darkFlameEffectData]);
+            // Use GM delegation for effect application if available
+            if (globalThis.gmSocket) {
+                console.log(`[Moctei] Applying combo dark flame to ${targetName} via GM socket`);
+                await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActorInfo.actor.id, darkFlameEffectData);
+            } else {
+                // Fallback: direct application if GM socket not available
+                console.log(`[Moctei] GM Socket not available, applying effect directly to ${targetName}`);
+                await targetActorInfo.actor.createEmbeddedDocuments("ActiveEffect", [darkFlameEffectData]);
+            }
             console.log(`[Moctei] Applied combo dark flame to ${targetName}`);
 
             // Gérer l'effet de contrôle Feu Obscur sur Moctei

@@ -589,7 +589,15 @@
         };
 
         try {
-            await target.actor.createEmbeddedDocuments("ActiveEffect", [targetEffectData]);
+            // Use GM delegation for effect application if available
+            if (globalThis.gmSocket) {
+                console.log(`[Moctei] Applying dark flame to ${target.name} via GM socket`);
+                await globalThis.gmSocket.executeAsGM("applyEffectToActor", target.actor.id, targetEffectData);
+            } else {
+                // Fallback: direct application if GM socket not available
+                console.log(`[Moctei] GM Socket not available, applying effect directly to ${target.name}`);
+                await target.actor.createEmbeddedDocuments("ActiveEffect", [targetEffectData]);
+            }
             console.log(`[Moctei] Applied dark flame to ${target.name}`);
         } catch (error) {
             console.error(`[Moctei] Error applying effect to ${target.name}:`, error);
