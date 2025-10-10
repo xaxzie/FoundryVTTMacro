@@ -132,7 +132,7 @@
         // Rune de détection d'ombre - Animation persistante au sol
         "Rune de détection d'ombre": {
             displayName: "Rune de détection d'ombre",
-            icon: "icons/magic/symbols/rune-sigil-black-purple.webp",
+            icon: "icons/magic/control/hypnosis-mesmerism-eye.webp",
             description: "Rune d'ombre surveillant une zone pour la détection",
             sectionTitle: "🔮 Runes de Détection",
             sectionIcon: "🔮",
@@ -610,7 +610,7 @@
             if (runeData.position) {
                 const dissipationSeq = new Sequence();
                 dissipationSeq.effect()
-                    .file("jb2a_patreon.magic_signs.rune.abjuration.outro.purple")
+                    .file("jb2a.magic_signs.rune.illusion.outro.purple")
                     .atLocation(runeData.position)
                     .scale(0.5)
                     .duration(2000)
@@ -629,7 +629,7 @@
             results.runesRemoved.push({
                 target: `Position (${Math.round(runeData.position.x)}, ${Math.round(runeData.position.y)})`,
                 effect: effectType,
-                extraInfo: `${runeData.manaCost} mana récupérés`
+                extraInfo: `${runeData.manaCost} mana récupérés si Moctei est à portée`
             });
             console.log(`[Moctei] Removed shadow detection rune: ${runeData.id}`);
 

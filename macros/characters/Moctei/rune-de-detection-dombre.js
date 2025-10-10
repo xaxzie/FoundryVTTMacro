@@ -43,8 +43,8 @@
 
             // Marque visuelle persistante
             visualMarker: {
-                file: "jb2a_patreon.magic_signs.rune.abjuration.intro.purple",
-                scale: 0.4,
+                file: "jb2a.magic_signs.rune.illusion.loop.purple",
+                scale: 0.5,
                 opacity: 0.6,
                 tint: "#2e0054",
                 persistent: true
@@ -53,14 +53,13 @@
 
         // Animation du projectile (caillou)
         projectile: {
-            file: "jb2a.rock.throw.01", // Animation de caillou lancé
+            file: "jb2a.throwable.launch.cannon_ball.01.black", // Animation de caillou lancé
             scale: 0.8,
-            speed: 1200, // Vitesse du projectile
             tint: "#2e0054",
             impact: {
-                file: "jb2a_patreon.impact.ground_crack.purple.01", // Impact au sol
+                file: "jb2a.magic_signs.rune.illusion.intro.purple", // Impact au sol
                 scale: 0.5,
-                duration: 1500,
+                duration: 2167,
                 fadeOut: 800
             }
         },
@@ -168,7 +167,6 @@
             .stretchTo(centeredPosition, { onlyX: false })
             .scale(SPELL_CONFIG.projectile.scale)
             .tint(SPELL_CONFIG.projectile.tint)
-            .speed(SPELL_CONFIG.projectile.speed)
             .waitUntilFinished(-200); // Continue avant la fin pour enchaîner
 
         // 2. Animation d'impact au sol
