@@ -1,19 +1,22 @@
 /**
- * Test Advanced Macros - executeAsGM
+ * Test Advanced Macros - Système de Queries
  *
  * Utilitaire de test pour vérifier le fonctionnement d'Advanced Macros
- * et de sa fonction executeAsGM.
+ * et de son système de queries pour l'exécution de macros avec privilèges.
+ *
+ * IMPORTANT: Advanced Macros N'A PAS d'API executeAsGM !
+ * Il utilise un système de queries et de configuration de macros.
  *
  * UTILISATION :
  * 1. S'assurer qu'Advanced Macros est installé et activé
- * 2. Lancer cette macro depuis n'importe quel joueur
- * 3. Observer les messages dans le chat pour confirmer le fonctionnement
+ * 2. Créer une macro de test configurée pour s'exécuter en tant que GM
+ * 3. Lancer cette macro pour tester le système de queries
  *
  * TESTS INCLUS :
  * - Vérification de la disponibilité d'Advanced Macros
- * - Test de base avec message de chat via executeAsGM
- * - Test de manipulation de token (si applicable)
- * - Test d'accès aux données de jeu
+ * - Test du système de queries
+ * - Création dynamique d'une macro de test
+ * - Test d'exécution avec privilèges GM via user.query
  */
 
 (async () => {
@@ -31,20 +34,20 @@
             return { available: false, reason: "Module non activé" };
         }
 
-        if (!advancedMacros.api) {
-            return { available: false, reason: "API non disponible" };
-        }
-
-        // Vérifier les méthodes disponibles
-        const capabilities = {
-            executeAsGM: typeof advancedMacros.api.executeAsGM === 'function',
-            runAsGM: typeof advancedMacros.api.runAsGM === 'function'
-        };
+        // Vérifier les queries disponibles
+        const hasExecuteMacroQuery = CONFIG.queries && CONFIG.queries["advanced-macros.executeMacro"];
 
         return {
             available: true,
-            capabilities,
-            version: advancedMacros.version || "Version inconnue"
+            version: advancedMacros.version || "Version inconnue",
+            hasQueries: !!hasExecuteMacroQuery,
+            userCanQuery: typeof game.user.query === 'function',
+            currentUser: {
+                name: game.user.name,
+                isGM: game.user.isGM,
+                id: game.user.id
+            },
+            activeGM: game.users.activeGM?.name || "Aucun GM actif"
         };
     }
 
@@ -58,222 +61,221 @@
         return;
     }
 
-    ui.notifications.info("🧪 Test Advanced Macros - Début des tests...");
-    console.log("[AdvancedMacros Test] Advanced Macros available:", macroCheck);
+    // Message d'information initial
+    const initialMessage = {
+        content: `<div style='border: 2px solid #1976d2; padding: 15px; border-radius: 5px; background: #e3f2fd;'>
+                     <h3 style='color: #1976d2; margin: 0 0 10px 0;'>🧪 Test Advanced Macros - Début</h3>
+                     <p><strong>Module:</strong> Advanced Macros v${macroCheck.version}</p>
+                     <p><strong>Testeur:</strong> ${macroCheck.currentUser.name} ${macroCheck.currentUser.isGM ? '(GM)' : '(Joueur)'}</p>
+                     <p><strong>GM Actif:</strong> ${macroCheck.activeGM}</p>
+                     <p><strong>Système de queries:</strong> ${macroCheck.hasQueries ? '✅ Disponible' : '❌ Non disponible'}</p>
+                     <p><strong>API user.query:</strong> ${macroCheck.userCanQuery ? '✅ Disponible' : '❌ Non disponible'}</p>
+                     <hr style='margin: 10px 0;'>
+                     <p style='font-style: italic;'>⚠️ Note: Advanced Macros n'a PAS d'API executeAsGM direct.<br>
+                     Il utilise un système de configuration de macros et de queries.</p>
+                  </div>`,
+        type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+        speaker: { alias: "Advanced Macros Test" }
+    };
 
-    // ===== TEST 1: MESSAGE DE CHAT BASIQUE =====
-    console.log("[AdvancedMacros Test] Running Test 1: Basic Chat Message");
+    await ChatMessage.create(initialMessage);
+    ui.notifications.info("🧪 Test Advanced Macros - Analyse en cours...");
+    console.log("[AdvancedMacros Test] Advanced Macros check:", macroCheck);
 
+    // ===== TEST 1: CRÉATION D'UNE MACRO DE TEST =====
+    console.log("[AdvancedMacros Test] Running Test 1: Creating Test Macro");
+
+    let testMacro = null;
     try {
-        const chatTestScript = `
-            const testMessage = {
-                content: "<div style='border: 2px solid #4a148c; padding: 10px; border-radius: 5px; background: #f3e5f5;'>" +
-                         "<h3 style='color: #4a148c; margin: 0;'>🧪 Test Advanced Macros - executeAsGM</h3>" +
-                         "<p><strong>Statut:</strong> ✅ Succès</p>" +
-                         "<p><strong>Utilisateur:</strong> ${game.user.name}</p>" +
-                         "<p><strong>Timestamp:</strong> ${new Date().toLocaleString()}</p>" +
-                         "<p><strong>Privilèges:</strong> Exécuté en tant que GM</p>" +
-                         "</div>",
-                type: CONST.CHAT_MESSAGE_TYPES.OTHER,
-                speaker: { alias: "Advanced Macros Test" }
+        // Chercher d'abord si une macro de test existe déjà
+        testMacro = game.macros.getName("Test Advanced Macros GM");
+
+        if (!testMacro) {
+            // Créer une nouvelle macro de test
+            const macroData = {
+                name: "Test Advanced Macros GM",
+                type: "script",
+                command: `
+                    const testResult = {
+                        success: true,
+                        executedBy: game.user.name,
+                        isGM: game.user.isGM,
+                        timestamp: new Date().toLocaleString(),
+                        message: "Macro exécutée avec succès"
+                    };
+
+                    const resultMessage = {
+                        content: "<div style='border: 2px solid #4caf50; padding: 10px; border-radius: 5px; background: #e8f5e8;'>" +
+                                 "<h3 style='color: #4caf50; margin: 0;'>✅ Macro Test - Succès</h3>" +
+                                 "<p><strong>Exécutée par:</strong> " + testResult.executedBy + "</p>" +
+                                 "<p><strong>Privilèges GM:</strong> " + (testResult.isGM ? "✅ Oui" : "❌ Non") + "</p>" +
+                                 "<p><strong>Timestamp:</strong> " + testResult.timestamp + "</p>" +
+                                 "</div>",
+                        type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+                        speaker: { alias: "Test Macro GM" }
+                    };
+
+                    await ChatMessage.create(resultMessage);
+                    return testResult;
+                `,
+                folder: null,
+                sort: 0,
+                ownership: {
+                    default: CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
+                },
+                flags: {}
             };
 
-            await ChatMessage.create(testMessage);
-
-            return {
-                success: true,
-                message: "Message de chat créé avec succès",
-                user: game.user.name,
-                isGM: game.user.isGM
-            };
-        `;
-
-        const result1 = await game.modules.get("advanced-macros").api.executeAsGM(chatTestScript);
-
-        if (result1.success) {
-            ui.notifications.success("✅ Test 1 réussi: Message de chat via executeAsGM");
-            console.log("[AdvancedMacros Test] Test 1 Success:", result1);
-        } else {
-            throw new Error("Test 1 failed: " + result1.message);
-        }
-
-    } catch (error) {
-        const errorMsg = `❌ Test 1 échoué: ${error.message}`;
-        ui.notifications.error(errorMsg);
-        console.error("[AdvancedMacros Test] Test 1 Error:", error);
-    }
-
-    // ===== TEST 2: ACCÈS AUX DONNÉES DE JEU =====
-    console.log("[AdvancedMacros Test] Running Test 2: Game Data Access");
-
-    try {
-        const gameDataScript = `
-            const gameInfo = {
-                worldTitle: game.world.title,
-                systemId: game.system.id,
-                systemVersion: game.system.version,
-                foundryVersion: game.version,
-                userCount: game.users.size,
-                sceneCount: game.scenes.size,
-                actorCount: game.actors.size,
-                tokenCount: canvas.tokens.placeables.length
-            };
-
-            const detailedMessage = {
-                content: "<div style='border: 2px solid #2e7d32; padding: 15px; border-radius: 5px; background: #e8f5e8;'>" +
-                         "<h3 style='color: #2e7d32; margin: 0 0 10px 0;'>🎮 Test Advanced Macros - Données de Jeu</h3>" +
-                         "<div style='display: grid; grid-template-columns: 1fr 1fr; gap: 10px;'>" +
-                         "<div><strong>Monde:</strong> " + gameInfo.worldTitle + "</div>" +
-                         "<div><strong>Système:</strong> " + gameInfo.systemId + " v" + gameInfo.systemVersion + "</div>" +
-                         "<div><strong>FoundryVTT:</strong> v" + gameInfo.foundryVersion + "</div>" +
-                         "<div><strong>Utilisateurs:</strong> " + gameInfo.userCount + "</div>" +
-                         "<div><strong>Scènes:</strong> " + gameInfo.sceneCount + "</div>" +
-                         "<div><strong>Acteurs:</strong> " + gameInfo.actorCount + "</div>" +
-                         "<div><strong>Tokens visibles:</strong> " + gameInfo.tokenCount + "</div>" +
-                         "<div><strong>Exécuteur:</strong> ${game.user.name}</div>" +
-                         "</div>" +
-                         "<p style='margin-top: 10px; font-style: italic; color: #666;'>✅ Accès complet aux données de jeu confirmé</p>" +
-                         "</div>",
-                type: CONST.CHAT_MESSAGE_TYPES.OTHER,
-                speaker: { alias: "Advanced Macros Test - Game Data" }
-            };
-
-            await ChatMessage.create(detailedMessage);
-
-            return {
-                success: true,
-                message: "Accès aux données de jeu réussi",
-                gameInfo: gameInfo
-            };
-        `;
-
-        const result2 = await game.modules.get("advanced-macros").api.executeAsGM(gameDataScript);
-
-        if (result2.success) {
-            ui.notifications.success("✅ Test 2 réussi: Accès aux données de jeu");
-            console.log("[AdvancedMacros Test] Test 2 Success:", result2);
-        } else {
-            throw new Error("Test 2 failed: " + result2.message);
-        }
-
-    } catch (error) {
-        const errorMsg = `❌ Test 2 échoué: ${error.message}`;
-        ui.notifications.error(errorMsg);
-        console.error("[AdvancedMacros Test] Test 2 Error:", error);
-    }
-
-    // ===== TEST 3: MANIPULATION DE TOKEN (SI TOKENS DISPONIBLES) =====
-    console.log("[AdvancedMacros Test] Running Test 3: Token Manipulation");
-
-    try {
-        const tokenTestScript = `
-            const tokens = canvas.tokens.placeables;
-            let testResult = {
-                success: false,
-                message: "Aucun token disponible pour le test",
-                tokenCount: tokens.length
-            };
-
-            if (tokens.length > 0) {
-                const testToken = tokens[0];
-                const originalName = testToken.name;
-                const testName = originalName + " [TEST]";
-
-                // Sauvegarder le nom original
-                const originalTokenName = testToken.document.name;
-
-                // Changer temporairement le nom
-                await testToken.document.update({ name: testName });
-
-                // Attendre un peu
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                // Restaurer le nom original
-                await testToken.document.update({ name: originalTokenName });
-
-                testResult = {
-                    success: true,
-                    message: "Token manipulé avec succès",
-                    tokenName: originalName,
-                    tokenId: testToken.id,
-                    operation: "Changement temporaire de nom"
+            // Si on est GM, configurer la macro pour s'exécuter en tant que GM
+            if (game.user.isGM) {
+                macroData.flags["advanced-macros"] = {
+                    runForSpecificUser: "GM"
                 };
+                macroData.ownership.default = CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED;
             }
 
-            const tokenMessage = {
-                content: "<div style='border: 2px solid #f57c00; padding: 15px; border-radius: 5px; background: #fff8e1;'>" +
-                         "<h3 style='color: #f57c00; margin: 0 0 10px 0;'>🎭 Test Advanced Macros - Manipulation Token</h3>" +
-                         "<p><strong>Statut:</strong> " + (testResult.success ? "✅ Succès" : "⚠️ Aucun token") + "</p>" +
-                         "<p><strong>Tokens sur la scène:</strong> " + testResult.tokenCount + "</p>" +
-                         (testResult.success ?
-                            "<p><strong>Token testé:</strong> " + testResult.tokenName + "</p>" +
-                            "<p><strong>Opération:</strong> " + testResult.operation + "</p>"
-                            : "<p><strong>Note:</strong> Placez un token sur la scène pour tester la manipulation</p>") +
-                         "<p><strong>Exécuteur:</strong> ${game.user.name}</p>" +
-                         "</div>",
-                type: CONST.CHAT_MESSAGE_TYPES.OTHER,
-                speaker: { alias: "Advanced Macros Test - Token" }
-            };
+            testMacro = await Macro.create(macroData);
 
-            await ChatMessage.create(tokenMessage);
-
-            return testResult;
-        `;
-
-        const result3 = await game.modules.get("advanced-macros").api.executeAsGM(tokenTestScript);
-
-        if (result3.success) {
-            ui.notifications.success("✅ Test 3 réussi: Manipulation de token");
-            console.log("[AdvancedMacros Test] Test 3 Success:", result3);
+            ui.notifications.success("✅ Macro de test créée");
+            console.log("[AdvancedMacros Test] Created test macro:", testMacro);
         } else {
-            ui.notifications.info("ℹ️ Test 3: " + result3.message);
-            console.log("[AdvancedMacros Test] Test 3 Info:", result3);
+            ui.notifications.info("ℹ️ Macro de test trouvée (existante)");
+            console.log("[AdvancedMacros Test] Found existing test macro:", testMacro);
         }
 
     } catch (error) {
-        const errorMsg = `❌ Test 3 échoué: ${error.message}`;
+        const errorMsg = `❌ Erreur création macro: ${error.message}`;
         ui.notifications.error(errorMsg);
-        console.error("[AdvancedMacros Test] Test 3 Error:", error);
+        console.error("[AdvancedMacros Test] Macro creation error:", error);
+    }
+
+    // ===== TEST 2: SYSTÈME DE QUERIES =====
+    console.log("[AdvancedMacros Test] Running Test 2: Query System Test");
+
+    try {
+        if (!macroCheck.hasQueries) {
+            throw new Error("Système de queries non disponible");
+        }
+
+        if (!macroCheck.userCanQuery) {
+            throw new Error("API user.query non disponible");
+        }
+
+        // Test direct du système de queries
+        const queryData = {
+            macro: testMacro ? testMacro.id : "test-id",
+            scope: { testParam: "valeur de test" }
+        };
+
+        let queryResult;
+        if (game.users.activeGM && !game.users.activeGM.isSelf) {
+            // Envoyer query au GM actif
+            queryResult = await game.users.activeGM.query("advanced-macros.executeMacro", queryData, { timeout: 10000 });
+            ui.notifications.success("✅ Query envoyée au GM avec succès");
+        } else if (testMacro) {
+            // Exécuter directement la macro si on est GM ou pas de GM actif
+            queryResult = await testMacro.execute({ testParam: "valeur de test" });
+            ui.notifications.success("✅ Macro exécutée directement");
+        } else {
+            throw new Error("Aucune macro de test disponible");
+        }
+
+        console.log("[AdvancedMacros Test] Query result:", queryResult);
+
+    } catch (error) {
+        const errorMsg = `❌ Erreur système queries: ${error.message}`;
+        ui.notifications.error(errorMsg);
+        console.error("[AdvancedMacros Test] Query system error:", error);
+
+        // Message d'erreur détaillé
+        const errorMessage = {
+            content: `<div style='border: 2px solid #f44336; padding: 15px; border-radius: 5px; background: #ffebee;'>
+                         <h3 style='color: #f44336; margin: 0 0 10px 0;'>❌ Erreur Système Queries</h3>
+                         <p><strong>Erreur:</strong> ${error.message}</p>
+                         <p><strong>Cause possible:</strong> Système de queries non configuré correctement</p>
+                         <hr style='margin: 10px 0;'>
+                         <p><strong>Solutions:</strong></p>
+                         <ul>
+                            <li>Vérifier qu'un GM est connecté et actif</li>
+                            <li>Vérifier que les macros sont créées par un GM</li>
+                            <li>Configurer les permissions appropriées</li>
+                         </ul>
+                      </div>`,
+            type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+            speaker: { alias: "Advanced Macros Test - Error" }
+        };
+
+        await ChatMessage.create(errorMessage);
+    }
+
+    // ===== TEST 3: VÉRIFICATION DES MACROS EXISTANTES =====
+    console.log("[AdvancedMacros Test] Running Test 3: Existing Macros Check");
+
+    try {
+        const allMacros = game.macros.contents;
+        const advancedMacrosConfigured = allMacros.filter(macro =>
+            macro.getFlag("advanced-macros", "runForSpecificUser")
+        );
+
+        const macroDetails = advancedMacrosConfigured.map(macro => ({
+            name: macro.name,
+            runFor: macro.getFlag("advanced-macros", "runForSpecificUser"),
+            canRunAsGM: macro.canRunAsGM,
+            author: game.users.get(macro.author?.id)?.name || "Inconnu"
+        }));
+
+        const macroListMessage = {
+            content: `<div style='border: 2px solid #ff9800; padding: 15px; border-radius: 5px; background: #fff3e0;'>
+                         <h3 style='color: #ff9800; margin: 0 0 10px 0;'>📋 Macros Advanced Macros Configurées</h3>
+                         <p><strong>Total macros:</strong> ${allMacros.length}</p>
+                         <p><strong>Macros Advanced Macros:</strong> ${advancedMacrosConfigured.length}</p>
+                         ${macroDetails.length > 0 ?
+                    `<hr style='margin: 10px 0;'><strong>Détails:</strong><ul>` +
+                    macroDetails.map(m =>
+                        `<li><strong>${m.name}</strong> - ${m.runFor} (Auteur: ${m.author}) ${m.canRunAsGM ? '✅' : '❌'}</li>`
+                    ).join('') +
+                    `</ul>`
+                    : '<p><em>Aucune macro Advanced Macros configurée</em></p>'
+                }
+                      </div>`,
+            type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+            speaker: { alias: "Advanced Macros Test - Macros" }
+        };
+
+        await ChatMessage.create(macroListMessage);
+        ui.notifications.info(`ℹ️ ${advancedMacrosConfigured.length} macros Advanced Macros trouvées`);
+        console.log("[AdvancedMacros Test] Advanced Macros configured:", macroDetails);
+
+    } catch (error) {
+        console.error("[AdvancedMacros Test] Macros check error:", error);
     }
 
     // ===== RÉSUMÉ FINAL =====
-    const summaryScript = `
-        const finalMessage = {
-            content: "<div style='border: 3px solid #4a148c; padding: 20px; border-radius: 10px; background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);'>" +
-                     "<h2 style='color: #4a148c; margin: 0 0 15px 0; text-align: center;'>🧪 Advanced Macros - Résumé des Tests</h2>" +
-                     "<div style='text-align: center; margin-bottom: 15px;'>" +
-                     "<p><strong>Module:</strong> Advanced Macros v" + "${macroCheck.version}" + "</p>" +
-                     "<p><strong>Testeur:</strong> ${game.user.name}</p>" +
-                     "<p><strong>Date:</strong> ${new Date().toLocaleString()}</p>" +
-                     "</div>" +
-                     "<div style='background: rgba(255,255,255,0.7); padding: 15px; border-radius: 5px;'>" +
-                     "<h3 style='color: #4a148c; margin: 0 0 10px 0;'>📋 Résultats:</h3>" +
-                     "<p>✅ <strong>Test 1:</strong> Message de chat via executeAsGM</p>" +
-                     "<p>✅ <strong>Test 2:</strong> Accès aux données de jeu</p>" +
-                     "<p>ℹ️ <strong>Test 3:</strong> Manipulation de token (selon disponibilité)</p>" +
-                     "</div>" +
-                     "<div style='text-align: center; margin-top: 15px; padding: 10px; background: rgba(46, 125, 50, 0.1); border-radius: 5px;'>" +
-                     "<strong style='color: #2e7d32;'>🎉 Advanced Macros fonctionne correctement !</strong>" +
-                     "</div>" +
-                     "</div>",
-            type: CONST.CHAT_MESSAGE_TYPES.OTHER,
-            speaker: { alias: "Advanced Macros Test - Final" }
-        };
+    const finalMessage = {
+        content: `<div style='border: 3px solid #9c27b0; padding: 20px; border-radius: 10px; background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);'>
+                     <h2 style='color: #9c27b0; margin: 0 0 15px 0; text-align: center;'>🧪 Advanced Macros - Résumé Final</h2>
+                     <div style='text-align: center; margin-bottom: 15px;'>
+                        <p><strong>Module:</strong> Advanced Macros v${macroCheck.version}</p>
+                        <p><strong>Testeur:</strong> ${macroCheck.currentUser.name}</p>
+                        <p><strong>Date:</strong> ${new Date().toLocaleString()}</p>
+                     </div>
+                     <div style='background: rgba(255,255,255,0.7); padding: 15px; border-radius: 5px;'>
+                        <h3 style='color: #9c27b0; margin: 0 0 10px 0;'>📋 Découvertes importantes:</h3>
+                        <p>⚠️ <strong>Pas d'API executeAsGM:</strong> Advanced Macros n'expose pas cette fonction</p>
+                        <p>✅ <strong>Système de queries:</strong> Utilise user.query("advanced-macros.executeMacro")</p>
+                        <p>⚙️ <strong>Configuration required:</strong> Les macros doivent être configurées par un GM</p>
+                        <p>🔒 <strong>Sécurité:</strong> Seules les macros créées par GM peuvent s'exécuter avec privilèges</p>
+                     </div>
+                     <div style='text-align: center; margin-top: 15px; padding: 10px; background: rgba(156, 39, 176, 0.1); border-radius: 5px;'>
+                        <strong style='color: #9c27b0;'>📖 Utiliser le système de macros configurées plutôt qu'une API directe</strong>
+                     </div>
+                  </div>`,
+        type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+        speaker: { alias: "Advanced Macros Test - Final" }
+    };
 
-        await ChatMessage.create(finalMessage);
-
-        return {
-            success: true,
-            message: "Tous les tests Advanced Macros terminés"
-        };
-    `;
-
-    try {
-        await game.modules.get("advanced-macros").api.executeAsGM(summaryScript);
-        ui.notifications.success("🎉 Tests Advanced Macros terminés - Vérifiez le chat !");
-        console.log("[AdvancedMacros Test] All tests completed successfully");
-    } catch (error) {
-        console.error("[AdvancedMacros Test] Summary error:", error);
-    }
+    await ChatMessage.create(finalMessage);
+    ui.notifications.success("🎉 Test Advanced Macros terminé - Vérifiez le chat pour les détails");
+    console.log("[AdvancedMacros Test] All tests completed. No direct executeAsGM API available.");
 
 })();
