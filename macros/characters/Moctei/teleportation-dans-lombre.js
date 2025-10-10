@@ -222,10 +222,10 @@
     async function teleportToken() {
         try {
             // Sauvegarder le mode de déplacement actuel
-            const originalMovementType = casterToken.document.movementType;
+            const originalMovementType = casterToken.document.movementAction;
 
             // Activer le mode de déplacement "Teleportation" de FoundryVTT v13
-            await casterToken.document.update({ movementType: CONST.TOKEN_MOVEMENT_TYPES.TELEPORT });
+            await casterToken.document.update({ movementAction: 'blink' });
 
             // Effectuer le déplacement avec le mode téléportation
             const updates = {
@@ -237,7 +237,7 @@
             await casterToken.document.update(updates);
 
             // Restaurer le mode de déplacement original
-            await casterToken.document.update({ movementType: originalMovementType });
+            await casterToken.document.update({ movementAction: originalMovementType });
 
             console.log(`[Moctei] Token successfully teleported to (${destinationPosition.x}, ${destinationPosition.y})`);
             return true;
