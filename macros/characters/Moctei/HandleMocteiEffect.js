@@ -1032,7 +1032,7 @@
 
                         // Handle filter removal
                         if (customData.hasFilters) {
-                            if (customData.hasAnimation) {
+                            if (customData.hasAnimation && customData.animation.persistent) {
                                 await playPersistentAnimation(token, customData.animation, false);
                                 await new Promise(resolve => setTimeout(resolve, 200));
                             }
@@ -1090,7 +1090,11 @@
                             // Handle filter addition
                             if (customData.hasFilters) {
                                 if (customData.hasAnimation) {
-                                    await playPersistentAnimation(token, customData.animation, true);
+                                    if (customData.animation.persistent) {
+                                        await playPersistentAnimation(token, customData.animation, true);
+                                    } else {
+                                        await playTransformationAnimation(token, customData.animation, true);
+                                    }
                                     await new Promise(resolve => setTimeout(resolve, 200));
                                 }
                                 await applyTokenFilters(token, customData.filters, true);
@@ -1208,9 +1212,13 @@
 
                         // Handle filter effects
                         if (effectData.hasFilters) {
-                            // Play persistent animation first
+                            // Play animation first (persistent or non-persistent)
                             if (effectData.hasAnimation) {
-                                await playPersistentAnimation(token, effectData.animation, true);
+                                if (effectData.animation.persistent) {
+                                    await playPersistentAnimation(token, effectData.animation, true);
+                                } else {
+                                    await playTransformationAnimation(token, effectData.animation, true);
+                                }
                                 await new Promise(resolve => setTimeout(resolve, 200));
                             }
 
@@ -1252,8 +1260,8 @@
 
                             // Handle filter removal
                             if (effectData.hasFilters) {
-                                // End persistent animation first
-                                if (effectData.hasAnimation) {
+                                // End animation first (only persistent animations need cleanup)
+                                if (effectData.hasAnimation && effectData.animation.persistent) {
                                     await playPersistentAnimation(token, effectData.animation, false);
                                     await new Promise(resolve => setTimeout(resolve, 200));
                                 }
