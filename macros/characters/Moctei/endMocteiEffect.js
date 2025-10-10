@@ -97,6 +97,40 @@
             }
         },
 
+        // Brume d'ombre - Effet de brume affaiblissante
+        "Brume d'ombre": {
+            displayName: "Brume d'ombre",
+            icon: "icons/magic/fire/projectile-fireball-smoke-blue.webp",
+            description: "Entouré par une brume d'ombre affaiblissante de Moctei",
+            sectionTitle: "🌫️ Brume d'Ombre",
+            sectionIcon: "🌫️",
+            cssClass: "shadow-mist-effect",
+            borderColor: "#4a148c",
+            bgColor: "#f3e5f5",
+            detectFlags: [
+                { path: "name", matchValue: "Brume d'ombre" },
+                { path: "flags.world.shadowMistCaster", matchValue: "CASTER_ID" }
+            ],
+            cleanup: {
+                sequencerNames: [
+                    "shadowMistSequenceName" // Animation de brume persistante
+                ]
+            },
+            mechanicType: "shadowMist",
+            // Données supplémentaires pour l'affichage
+            getExtraData: (effect) => ({
+                targetId: effect.flags?.world?.shadowMistTarget || null,
+                sourceSpell: effect.flags?.world?.spellName || "Brume d'ombre"
+            }),
+            getDynamicDescription: (effect) => {
+                const sourceSpell = effect.flags?.world?.spellName || "Brume d'ombre";
+                return `Entouré par une brume d'ombre de ${sourceSpell}`;
+            },
+            // Configuration spéciale pour retirer les blessures associées
+            removeAssociatedWounds: true,
+            woundSource: "Brume d'ombre"
+        },
+
         // TODO: Add more Moctei's specific shadow effects here
         // Future effects like shadow teleportation, darkness manipulation, etc.
     };
@@ -501,6 +535,73 @@
         }
     }
 
+    /**
+     * Traite la suppression d'un effet de brume d'ombre
+     */
+    async function handleShadowMistRemoval(effectInfo, results) {
+        const { token, effect, effectType, config } = effectInfo;
+
+        try {
+            // Cleanup des animations Sequencer
+            cleanupSequencerAnimations(effect, config);
+
+            // Si cet effet a des blessures associées, les supprimer
+            if (config.removeAssociatedWounds && config.woundSource) {
+                const woundEffects = token.actor.effects.contents.filter(e =>
+                    e.name?.toLowerCase() === 'blessures' &&
+                    e.flags?.world?.woundSource === config.woundSource
+                );
+
+                for (const woundEffect of woundEffects) {
+                    try {
+                        if (token.actor.isOwner) {
+                            await woundEffect.delete();
+                        } else {
+                            await removeEffectWithGMDelegation(token.actor, woundEffect.id);
+                        }
+                        console.log(`[Moctei] Removed associated wound from ${token.name} (source: ${config.woundSource})`);
+                    } catch (woundError) {
+                        console.warn(`[Moctei] Could not remove associated wound from ${token.name}:`, woundError);
+                    }
+                }
+            }
+
+            // Animation de libération de la brume
+            const liberationSeq = new Sequence();
+            liberationSeq.effect()
+                .file("jb2a_patreon.wind_stream.white")
+                .attachTo(token)
+                .scale(0.8)
+                .duration(2000)
+                .fadeOut(1000)
+                .tint("#4a148c");
+
+            await liberationSeq.play();
+
+            // Suppression de l'effet principal
+            if (token.actor.isOwner) {
+                await effect.delete();
+            } else {
+                await removeEffectWithGMDelegation(token.actor, effect.id);
+            }
+
+            results.simple.push({
+                target: token.name,
+                effect: effectType,
+                extraInfo: "Blessures associées supprimées"
+            });
+            console.log(`[Moctei] Removed ${effectType} and associated wounds from ${token.name}`);
+
+        } catch (error) {
+            console.error(`[Moctei] Error removing ${effectType} from ${token.name}:`, error);
+            results.failed.push({
+                target: token.name,
+                effect: effectType,
+                error: error.message
+            });
+        }
+    }
+
     // ===== VALIDATION INITIALE =====
     if (!canvas.tokens.controlled.length) {
         ui.notifications.error(`Veuillez d'abord sélectionner le jeton de ${CHARACTER_CONFIG.displayName} !`);
@@ -733,6 +834,9 @@
                     break;
                 case "darkFlame":
                     await handleDarkFlameRemoval(effectInfo, removedEffects);
+                    break;
+                case "shadowMist":
+                    await handleShadowMistRemoval(effectInfo, removedEffects);
                     break;
                 case "simple":
                 default:

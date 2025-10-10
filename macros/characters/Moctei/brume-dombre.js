@@ -145,7 +145,7 @@
                             • Inflige <strong>${SPELL_CONFIG.woundCount} blessure</strong> à la cible<br>
                             • <strong>Jet de sauvegarde :</strong> Volonté de l'adversaire<br>
                             • <strong>Portée :</strong> ${SPELL_CONFIG.targeting.range} cases<br>
-                            • <strong>Durée visuelle :</strong> ${SPELL_CONFIG.targetEffect.duration} secondes
+                            • <strong>Effet visuel :</strong> Brume persistante sur la cible
                         </div>
 
                         <div style="margin: 10px 0; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #fafafa;">
@@ -381,7 +381,15 @@
                     description: `Blessures subies - Niveau : ${newWoundCount}`
                 };
 
-                await injuryEffect.update(updateData);
+                // Use GM delegation for effect update if available
+                if (globalThis.gmSocket) {
+                    console.log(`[Moctei] Updating wound effect via GM socket`);
+                    await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetActorInfo.actor.id, injuryEffect.id, updateData);
+                } else {
+                    // Fallback: direct update if GM socket not available
+                    console.log(`[Moctei] GM Socket not available, updating effect directly`);
+                    await injuryEffect.update(updateData);
+                }
                 woundApplied = true;
                 effectMessage = `Blessures augmentées : ${currentWounds} → ${newWoundCount}`;
 
@@ -400,7 +408,15 @@
                     }
                 };
 
-                await targetActorInfo.actor.createEmbeddedDocuments("ActiveEffect", [woundEffectData]);
+                // Use GM delegation for effect creation if available
+                if (globalThis.gmSocket) {
+                    console.log(`[Moctei] Creating wound effect via GM socket`);
+                    await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActorInfo.actor.id, woundEffectData);
+                } else {
+                    // Fallback: direct creation if GM socket not available
+                    console.log(`[Moctei] GM Socket not available, creating effect directly`);
+                    await targetActorInfo.actor.createEmbeddedDocuments("ActiveEffect", [woundEffectData]);
+                }
                 woundApplied = true;
                 effectMessage = `${SPELL_CONFIG.woundCount} blessure infligée`;
             }
@@ -421,7 +437,15 @@
                 }
             };
 
-            await targetActorInfo.actor.createEmbeddedDocuments("ActiveEffect", [visualEffectData]);
+            // Use GM delegation for visual effect creation if available
+            if (globalThis.gmSocket) {
+                console.log(`[Moctei] Creating visual shadow mist effect via GM socket`);
+                await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActorInfo.actor.id, visualEffectData);
+            } else {
+                // Fallback: direct creation if GM socket not available
+                console.log(`[Moctei] GM Socket not available, creating visual effect directly`);
+                await targetActorInfo.actor.createEmbeddedDocuments("ActiveEffect", [visualEffectData]);
+            }
             console.log(`[Moctei] Applied visual shadow mist effect to ${targetName}`);
 
         } catch (error) {
@@ -461,7 +485,7 @@
             <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f3e5f5; border-radius: 4px;">
                 <div style="font-size: 1.2em; color: #4a148c; font-weight: bold;">🌫️ EFFET: ${effectMessage}</div>
                 <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
-                    Cible enveloppée par la brume d'ombre pendant ${SPELL_CONFIG.targetEffect.duration}s
+                    Cible enveloppée par la brume d'ombre
                 </div>
             </div>
         ` : `
