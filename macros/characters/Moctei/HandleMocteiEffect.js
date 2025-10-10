@@ -53,11 +53,12 @@
             name: "Dagues d'ombre",
             icon: "icons/weapons/daggers/dagger-curved-purple.webp",
             flags: [],
-            description: "Dagues d'ombre invoquées - coute 2 Mana -  Attaques gratuites disponibles",
+            description: "Dagues d'ombre invoquées -  Attaques gratuites disponibles",
             category: "custom",
             increasable: false,
             hasFilters: false,
             hasAnimation: true,
+            manaCost: "2 (focusable)",
             animation: {
                 effectFile: "jb2a_patreon.extras.tmfx.runes.circle.simple.conjuration",
                 scale: 0.4,
@@ -86,7 +87,7 @@
             category: "custom",
             increasable: false,
             hasAnimation: true,
-            manaCost: "2 (focusable) + 1/usage",
+            manaCost: "2 (focusable) + 1/usage en vol vertical",
             animation: {
                 effectFile: "animated-spell-effects.misc.wings.rectangle",
                 fadeOut: 2000,
@@ -108,6 +109,38 @@
             defaultValue: 0,
             maxValue: 4,
             hasAnimation: false // Pas d'animation depuis le HandleEffect
+        },
+        "Ombre totale": {
+            name: "Ombre totale",
+            icon: "icons/magic/perception/eye-ringed-glow-black.webp",
+            flags: [],
+            description: "Lorsqu'il est activé, Moctei devient invisible",
+            category: "custom",
+            increasable: false,
+            hasFilters: true,
+            hasAnimation: false,
+            manaCost: "3 (focusable)",
+            filters: {
+                filterId: "MocteiTotalShadow",
+                filterConfigs: [
+                    {
+                        filterType: "adjustment",
+                        filterId: "Invisible",
+                        brightness: 0.2,
+                        contrast: 0.2,
+                        saturate: 0.2,
+                        animated: {
+                            alpha: {
+                                active: true,
+                                animType: "syncCosOscillation",
+                                val1: 0.35,
+                                val2: 0.75,
+                                loopDuration: 2000
+                            }
+                        }
+                    }
+                ]
+            }
         }
 
         // TODO: Add more Moctei-specific shadow magic effects here
