@@ -144,6 +144,57 @@
                     }
                 ]
             }
+        },
+        "SO : Forme Astrale": {
+            name: "SO : Forme Astrale",
+            icon: "icons/magic/death/spirit-ghost-blue.webp",
+            flags: [],
+            description: "Moctei devient intangible mais son cœur arrête de battre",
+            category: "custom",
+            increasable: false,
+            hasFilters: true,
+            hasAnimation: true,
+            hasSpecialRemovalEffect: true,
+            animation: {
+                effectFile: "jb2a.energy_strands.range.standard.blue.blue",
+                scale: 0.8,
+                fadeOut: 3000,
+                persistent: false,
+                sequencerName: "MocteiAstralTransition"
+            },
+            filters: {
+                filterId: "MocteiAstralForm",
+                filterConfigs: [
+                    {
+                        filterType: "wave",
+                        time: 0,
+                        strength: 0.03,
+                        frequency: 15,
+                        animated: {
+                            time: {
+                                active: true,
+                                speed: 0.0015,
+                                animType: "move"
+                            }
+                        }
+                    },
+                    {
+                        filterType: "adjustment",
+                        brightness: 1.2,
+                        contrast: 0.8,
+                        saturate: 0.3,
+                        animated: {
+                            alpha: {
+                                active: true,
+                                animType: "syncCosOscillation",
+                                val1: 0.4,
+                                val2: 0.8,
+                                loopDuration: 3000
+                            }
+                        }
+                    }
+                ]
+            }
         }
 
         // TODO: Add more Moctei-specific shadow magic effects here
@@ -885,10 +936,53 @@
                 }
             }
 
+            // Check for special removal effects before deleting all effects
+            let formeAstraleWasActive = false;
+            for (const [effectKey, effectData] of Object.entries(CUSTOM_EFFECTS)) {
+                if (effectData.hasSpecialRemovalEffect && effectData.name === "SO : Forme Astrale") {
+                    const existingEffect = currentState.customEffects[effectKey];
+                    if (existingEffect) {
+                        formeAstraleWasActive = true;
+                        console.log(`[Moctei] Forme Astrale was active, will apply wounds after cleanup`);
+                        break;
+                    }
+                }
+            }
+
             // Now remove all effect documents
             const effectsToRemove = actor.effects.contents.slice();
             for (const effect of effectsToRemove) {
                 await effect.delete();
+            }
+
+            // Apply special removal effect for Forme Astrale if it was active
+            if (formeAstraleWasActive) {
+                console.log(`[Moctei] Applying Forme Astrale wounds after full cleanup`);
+
+                // Find the injury effect in CONFIG
+                const injuryKey = Object.keys(INJURY_EFFECTS)[0];
+                const injuryData = INJURY_EFFECTS[injuryKey];
+
+                if (injuryData) {
+                    // Since we deleted all effects, we need to create a new injury effect
+                    const injuryEffect = {
+                        ...injuryData,
+                        origin: actor.uuid,
+                        duration: { seconds: 86400 },
+                        flags: {
+                            statuscounter: { value: 3, visible: true }
+                        },
+                        statuses: [injuryData.id]
+                    };
+
+                    // Remove custom properties
+                    delete injuryEffect.category;
+                    delete injuryEffect.description;
+
+                    await actor.createEmbeddedDocuments("ActiveEffect", [injuryEffect]);
+                    ui.notifications.warn(`💀 Forme Astrale interrompue ! Moctei subit 3 blessures !`);
+                    console.log(`[Moctei] Applied 3 wounds due to Forme Astrale interruption during full cleanup`);
+                }
             }
 
             ui.notifications.success(`🌑 Tous les effets et animations de ${actor.name} ont été supprimés !`);
@@ -1181,6 +1275,58 @@
                         await existing.delete();
                         removedEffects.push(effectData.name);
                         console.log(`[Moctei] Removed effect: ${effectData.name}`);
+
+                        // Handle special removal effects
+                        if (effectData.hasSpecialRemovalEffect && effectData.name === "SO : Forme Astrale") {
+                            console.log(`[Moctei] Applying special removal effect for Forme Astrale`);
+
+                            // Find the injury effect in CONFIG
+                            const injuryKey = Object.keys(INJURY_EFFECTS)[0]; // Get first injury type
+                            const injuryData = INJURY_EFFECTS[injuryKey];
+
+                            if (injuryData) {
+                                // Check if there's already an injury effect
+                                let existingInjury = actor.effects.find(e =>
+                                    e.statuses?.has(injuryData.id) ||
+                                    e.name.toLowerCase() === (injuryData.name || injuryData.label).toLowerCase()
+                                );
+
+                                if (existingInjury) {
+                                    // Update existing injury by adding 3
+                                    const currentValue = existingInjury.flags?.statuscounter?.value || 1;
+                                    const newValue = currentValue + 3;
+
+                                    await existingInjury.update({
+                                        "flags.statuscounter.value": newValue,
+                                        "flags.statuscounter.visible": true
+                                    });
+
+                                    ui.notifications.warn(`💀 Forme Astrale terminée ! Moctei subit 3 blessures supplémentaires (total: ${newValue})`);
+                                    console.log(`[Moctei] Updated injury from ${currentValue} to ${newValue} due to Forme Astrale end`);
+                                } else {
+                                    // Create new injury effect with 3 wounds
+                                    const injuryEffect = {
+                                        ...injuryData,
+                                        origin: actor.uuid,
+                                        duration: { seconds: 86400 },
+                                        flags: {
+                                            statuscounter: { value: 3, visible: true }
+                                        },
+                                        statuses: [injuryData.id]
+                                    };
+
+                                    // Remove custom properties
+                                    delete injuryEffect.category;
+                                    delete injuryEffect.description;
+
+                                    await actor.createEmbeddedDocuments("ActiveEffect", [injuryEffect]);
+                                    ui.notifications.warn(`💀 Forme Astrale terminée ! Moctei subit 3 blessures !`);
+                                    console.log(`[Moctei] Created injury effect with 3 wounds due to Forme Astrale end`);
+                                }
+                            } else {
+                                console.warn(`[Moctei] No injury effect found in CONFIG for Forme Astrale special removal`);
+                            }
+                        }
                     }
                 }
 
