@@ -302,57 +302,151 @@
 
             console.log(`[Moctei] Applying filter to token: ${token.id}, document ID: ${token.document.id}`);
 
-            const filterConfig = SPELL_CONFIG.clone.visualFilter;
+            // ===== COPIER LES EFFETS VISUELS DE L'ORIGINAL =====
 
-            // Structure correcte pour Token Magic FX (doit être un tableau)
-            const filterParams = [{
-                filterType: filterConfig.filterType,
-                filterId: filterConfig.filterId,
-                brightness: filterConfig.brightness,
-                contrast: filterConfig.contrast,
-                saturate: filterConfig.saturate,
-                animated: filterConfig.animated
-            }];
-
-            // Essayer plusieurs approches pour Token Magic FX
-            let success = false;
-
-            // Approche 1: Utiliser le document du token
+            // 1. Copier les animations Sequencer persistantes
             try {
-                await TokenMagic.addFilters(token.document, filterParams);
-                success = true;
-                console.log(`[Moctei] Applied shadow clone filter to token document: ${token.document.id}`);
-            } catch (docError) {
-                console.warn("[Moctei] Document approach failed:", docError);
-            }
+                const originalSequencerEffects = Sequencer.EffectManager.getEffects({ object: originalToken });
+                if (originalSequencerEffects && originalSequencerEffects.length > 0) {
+                    console.log(`[Moctei] Found ${originalSequencerEffects.length} Sequencer effects on original token`);
 
-            // Approche 2: Utiliser le token directement si l'approche document échoue
-            if (!success) {
-                try {
-                    await TokenMagic.addFilters(token, filterParams);
-                    success = true;
-                    console.log(`[Moctei] Applied shadow clone filter to token object: ${token.id}`);
-                } catch (tokenError) {
-                    console.warn("[Moctei] Token object approach failed:", tokenError);
-                }
-            }
+                    for (const effect of originalSequencerEffects) {
+                        if (effect.data.persistent) {
+                            // Recréer l'effet persistant sur le clone avec une légère modification
+                            const cloneEffectSeq = new Sequence();
+                            cloneEffectSeq.effect()
+                                .file(effect.data.file)
+                                .attachTo(token)
+                                .scale(effect.data.scale || 1)
+                                .opacity((effect.data.opacity || 1) * 0.85) // Légèrement plus transparent
+                                .tint(effect.data.tint || "#010101")
+                                .duration(effect.data.duration || 0)
+                                .loops(effect.data.loops || -1)
+                                .persist(true)
+                                .name(`${effect.data.name || 'ClonedEffect'}_Clone`);
 
-            // Approche 3: Récupérer le token depuis le canvas si les autres échouent
-            if (!success) {
-                try {
-                    const canvasToken = canvas.tokens.get(token.id);
-                    if (canvasToken) {
-                        await TokenMagic.addFilters(canvasToken, filterParams);
-                        success = true;
-                        console.log(`[Moctei] Applied shadow clone filter to canvas token: ${token.id}`);
+                            await cloneEffectSeq.play();
+                            console.log(`[Moctei] Copied persistent animation to clone: ${effect.data.name}`);
+                        }
                     }
-                } catch (canvasError) {
-                    console.warn("[Moctei] Canvas token approach failed:", canvasError);
                 }
+            } catch (sequencerError) {
+                console.warn("[Moctei] Could not copy Sequencer effects:", sequencerError);
             }
 
-            if (!success) {
-                throw new Error("All filter application approaches failed");
+            // 2. Copier et modifier les filtres Token Magic FX existants
+            let existingFilters = [];
+            let hasExistingFilters = false;
+
+            try {
+                existingFilters = TokenMagic.getFilters(originalToken) || [];
+                hasExistingFilters = existingFilters.length > 0;
+
+                if (hasExistingFilters) {
+                    console.log(`[Moctei] Found ${existingFilters.length} existing filters on original token`);
+
+                    // Modifier légèrement les filtres existants pour le clone
+                    const modifiedFilters = existingFilters.map(filter => {
+                        const modifiedFilter = { ...filter };
+
+                        // Ajouter un identifiant unique pour le clone
+                        if (modifiedFilter.filterId) {
+                            modifiedFilter.filterId = `${modifiedFilter.filterId}_Clone`;
+                        }
+
+                        // Modifications légères selon le type de filtre
+                        switch (modifiedFilter.filterType) {
+                            case 'adjustment':
+                                // Ajuster légèrement la luminosité et la saturation
+                                if (modifiedFilter.brightness) modifiedFilter.brightness *= 0.9;
+                                if (modifiedFilter.saturate) modifiedFilter.saturate *= 0.8;
+                                if (modifiedFilter.animated?.alpha) {
+                                    // Décaler légèrement l'oscillation d'opacité
+                                    modifiedFilter.animated.alpha.val1 *= 0.9;
+                                    modifiedFilter.animated.alpha.val2 *= 0.9;
+                                }
+                                break;
+                            case 'wave':
+                                // Modifier légèrement les paramètres de vague
+                                if (modifiedFilter.strength) modifiedFilter.strength *= 1.2;
+                                if (modifiedFilter.animated?.alpha) {
+                                    modifiedFilter.animated.alpha.val1 *= 0.85;
+                                    modifiedFilter.animated.alpha.val2 *= 0.85;
+                                }
+                                break;
+                            default:
+                                // Pour autres types, ajuster l'opacité générale si possible
+                                if (modifiedFilter.animated?.alpha) {
+                                    modifiedFilter.animated.alpha.val1 *= 0.9;
+                                    modifiedFilter.animated.alpha.val2 *= 0.9;
+                                }
+                                break;
+                        }
+
+                        return modifiedFilter;
+                    });
+
+                    // Appliquer les filtres modifiés
+                    await TokenMagic.addFilters(token.document, modifiedFilters);
+                    console.log(`[Moctei] Applied ${modifiedFilters.length} modified filters to clone`);
+                }
+            } catch (filterCopyError) {
+                console.warn("[Moctei] Could not copy existing filters:", filterCopyError);
+                hasExistingFilters = false;
+            }
+
+            // 3. Si pas de filtres existants, appliquer le filtre par défaut du clone
+            if (!hasExistingFilters) {
+                const filterConfig = SPELL_CONFIG.clone.visualFilter;
+                const filterParams = [{
+                    filterType: filterConfig.filterType,
+                    filterId: filterConfig.filterId,
+                    brightness: filterConfig.brightness,
+                    contrast: filterConfig.contrast,
+                    saturate: filterConfig.saturate,
+                    animated: filterConfig.animated
+                }];
+
+                // Essayer plusieurs approches pour Token Magic FX
+                let success = false;
+
+                // Approche 1: Utiliser le document du token
+                try {
+                    await TokenMagic.addFilters(token.document, filterParams);
+                    success = true;
+                    console.log(`[Moctei] Applied default shadow clone filter to token document: ${token.document.id}`);
+                } catch (docError) {
+                    console.warn("[Moctei] Document approach failed:", docError);
+                }
+
+                // Approche 2: Utiliser le token directement si l'approche document échoue
+                if (!success) {
+                    try {
+                        await TokenMagic.addFilters(token, filterParams);
+                        success = true;
+                        console.log(`[Moctei] Applied default shadow clone filter to token object: ${token.id}`);
+                    } catch (tokenError) {
+                        console.warn("[Moctei] Token object approach failed:", tokenError);
+                    }
+                }
+
+                // Approche 3: Récupérer le token depuis le canvas si les autres échouent
+                if (!success) {
+                    try {
+                        const canvasToken = canvas.tokens.get(token.id);
+                        if (canvasToken) {
+                            await TokenMagic.addFilters(canvasToken, filterParams);
+                            success = true;
+                            console.log(`[Moctei] Applied default shadow clone filter to canvas token: ${token.id}`);
+                        }
+                    } catch (canvasError) {
+                        console.warn("[Moctei] Canvas token approach failed:", canvasError);
+                    }
+                }
+
+                if (!success) {
+                    throw new Error("All filter application approaches failed");
+                }
             }
 
         } catch (error) {
