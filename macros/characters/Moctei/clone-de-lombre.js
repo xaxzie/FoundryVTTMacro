@@ -58,8 +58,8 @@
 
         // Animation d'invocation
         animation: {
-            cast: "jb2a_patreon.misty_step.01.dark_purple", // Animation de téléportation sombre
-            clone: "jb2a_patreon.smoke.puff.ring.02.black", // Effet de fumée lors de l'apparition
+            cast: "jb2a_patreon.misty_step.01.purple", // Animation de téléportation sombre
+            clone: "jb2a_patreon.misty_step.01.purple", // Effet de fumée lors de l'apparition
             sound: null
         },
 
