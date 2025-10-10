@@ -179,11 +179,15 @@
             });
 
             // Aligner les coordonnées sur la grille pour un placement correct
+            // Utiliser Math.floor comme dans les autres macros pour obtenir la case cliquée
             const gridSize = canvas.grid.size;
-            const snappedX = Math.round(position.x / gridSize) * gridSize;
-            const snappedY = Math.round(position.y / gridSize) * gridSize;
+            const targetGridX = Math.floor(position.x / gridSize);
+            const targetGridY = Math.floor(position.y / gridSize);
+            const snappedX = targetGridX * gridSize;
+            const snappedY = targetGridY * gridSize;
 
             console.log(`[Moctei] Portal position: ${position.x}, ${position.y}`);
+            console.log(`[Moctei] Target grid: ${targetGridX}, ${targetGridY}`);
             console.log(`[Moctei] Snapped to grid: ${snappedX}, ${snappedY}`);
 
             return { x: snappedX, y: snappedY };
@@ -278,7 +282,20 @@
     async function applyCloneVisualFilter(token) {
         try {
             // Attendre que le token soit bien créé et rendu
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Vérifier que le token et son document existent
+            if (!token) {
+                console.error("[Moctei] Token is null or undefined");
+                return;
+            }
+
+            if (!token.document) {
+                console.error("[Moctei] Token document is null or undefined");
+                return;
+            }
+
+            console.log(`[Moctei] Applying filter to token: ${token.id}, document ID: ${token.document.id}`);
 
             const filterConfig = SPELL_CONFIG.clone.visualFilter;
 
@@ -292,9 +309,46 @@
                 animated: filterConfig.animated
             }];
 
-            // Utiliser le document du token pour Token Magic FX
-            await TokenMagic.addFilters(token.document, filterParams);
-            console.log(`[Moctei] Applied shadow clone filter to token: ${token.id}`);
+            // Essayer plusieurs approches pour Token Magic FX
+            let success = false;
+
+            // Approche 1: Utiliser le document du token
+            try {
+                await TokenMagic.addFilters(token.document, filterParams);
+                success = true;
+                console.log(`[Moctei] Applied shadow clone filter to token document: ${token.document.id}`);
+            } catch (docError) {
+                console.warn("[Moctei] Document approach failed:", docError);
+            }
+
+            // Approche 2: Utiliser le token directement si l'approche document échoue
+            if (!success) {
+                try {
+                    await TokenMagic.addFilters(token, filterParams);
+                    success = true;
+                    console.log(`[Moctei] Applied shadow clone filter to token object: ${token.id}`);
+                } catch (tokenError) {
+                    console.warn("[Moctei] Token object approach failed:", tokenError);
+                }
+            }
+
+            // Approche 3: Récupérer le token depuis le canvas si les autres échouent
+            if (!success) {
+                try {
+                    const canvasToken = canvas.tokens.get(token.id);
+                    if (canvasToken) {
+                        await TokenMagic.addFilters(canvasToken, filterParams);
+                        success = true;
+                        console.log(`[Moctei] Applied shadow clone filter to canvas token: ${token.id}`);
+                    }
+                } catch (canvasError) {
+                    console.warn("[Moctei] Canvas token approach failed:", canvasError);
+                }
+            }
+
+            if (!success) {
+                throw new Error("All filter application approaches failed");
+            }
 
         } catch (error) {
             console.error("[Moctei] Error applying clone visual filter:", error);
