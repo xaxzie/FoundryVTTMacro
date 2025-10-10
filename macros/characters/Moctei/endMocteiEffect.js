@@ -101,7 +101,7 @@
         "Brume d'ombre": {
             displayName: "Brume d'ombre",
             icon: "icons/magic/fire/projectile-fireball-smoke-blue.webp",
-            description: "Entouré par une brume d'ombre affaiblissante de Moctei",
+            description: "Entouré par une brume d'ombre affaiblissante de Moctei - Toutes caractéristiques réduites",
             sectionTitle: "🌫️ Brume d'Ombre",
             sectionIcon: "🌫️",
             cssClass: "shadow-mist-effect",
@@ -113,7 +113,7 @@
             ],
             cleanup: {
                 sequencerNames: [
-                    "shadowMistSequenceName" // Animation de brume persistante
+                    "flags.world.shadowMistSequenceName" // Animation de brume persistante
                 ]
             },
             mechanicType: "shadowMist",
@@ -124,11 +124,9 @@
             }),
             getDynamicDescription: (effect) => {
                 const sourceSpell = effect.flags?.world?.spellName || "Brume d'ombre";
-                return `Entouré par une brume d'ombre de ${sourceSpell}`;
-            },
-            // Configuration spéciale pour retirer les blessures associées
-            removeAssociatedWounds: true,
-            woundSource: "Brume d'ombre"
+                const malus = effect.flags?.statuscounter?.value || 1;
+                return `Entouré par une brume d'ombre de ${sourceSpell} (-${malus} toutes caractéristiques)`;
+            }
         },
 
         // TODO: Add more Moctei's specific shadow effects here
@@ -545,26 +543,7 @@
             // Cleanup des animations Sequencer
             cleanupSequencerAnimations(effect, config);
 
-            // Si cet effet a des blessures associées, les supprimer
-            if (config.removeAssociatedWounds && config.woundSource) {
-                const woundEffects = token.actor.effects.contents.filter(e =>
-                    e.name?.toLowerCase() === 'blessures' &&
-                    e.flags?.world?.woundSource === config.woundSource
-                );
-
-                for (const woundEffect of woundEffects) {
-                    try {
-                        if (token.actor.isOwner) {
-                            await woundEffect.delete();
-                        } else {
-                            await removeEffectWithGMDelegation(token.actor, woundEffect.id);
-                        }
-                        console.log(`[Moctei] Removed associated wound from ${token.name} (source: ${config.woundSource})`);
-                    } catch (woundError) {
-                        console.warn(`[Moctei] Could not remove associated wound from ${token.name}:`, woundError);
-                    }
-                }
-            }
+            // Note: Shadow mist effect no longer creates wounds, just characteristic malus
 
             // Animation de libération de la brume
             const liberationSeq = new Sequence();
@@ -588,9 +567,9 @@
             results.simple.push({
                 target: token.name,
                 effect: effectType,
-                extraInfo: "Blessures associées supprimées"
+                extraInfo: "Malus aux caractéristiques supprimé"
             });
-            console.log(`[Moctei] Removed ${effectType} and associated wounds from ${token.name}`);
+            console.log(`[Moctei] Removed ${effectType} from ${token.name}`);
 
         } catch (error) {
             console.error(`[Moctei] Error removing ${effectType} from ${token.name}:`, error);

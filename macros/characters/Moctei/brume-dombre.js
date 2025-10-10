@@ -29,8 +29,19 @@
         spellLevel: 1,
         isDirect: true,
         isFocusable: true,
-        hasNoDamage: true, // Pas de dégâts directs, juste des blessures
-        woundCount: 1, // Nombre de blessures infligées
+        hasNoDamage: true, // Pas de dégâts directs, juste malus aux caractéristiques
+        characteristicMalus: 1, // Malus de -1 appliqué à toutes les caractéristiques
+
+        // Les 7 caractéristiques du système
+        characteristics: [
+            "physique",
+            "dexterite",
+            "perception",
+            "esprit",
+            "parole",
+            "savoir",
+            "volonte"
+        ],
 
         animations: {
             projectile: "jb2a.ranged.01.projectile.01.dark_orange", // Projectile de brume
@@ -49,7 +60,7 @@
         targetEffect: {
             name: "Brume d'ombre",
             icon: "icons/magic/fire/projectile-fireball-smoke-blue.webp",
-            description: "Entouré par une brume d'ombre affaiblissante de Moctei"
+            description: "Entouré par une brume d'ombre affaiblissante de Moctei - Toutes caractéristiques réduites de 1"
         },
 
         // Jet de sauvegarde de la cible
@@ -142,7 +153,7 @@
 
                         <div style="background: #fff3e0; padding: 10px; border-radius: 5px; margin: 10px 0;">
                             <strong>⚡ Effet :</strong><br>
-                            • Inflige <strong>${SPELL_CONFIG.woundCount} blessure</strong> à la cible<br>
+                            • Applique <strong>-${SPELL_CONFIG.characteristicMalus} à toutes les caractéristiques</strong> (7 chars)<br>
                             • <strong>Jet de sauvegarde :</strong> Volonté de l'adversaire<br>
                             • <strong>Portée :</strong> ${SPELL_CONFIG.targeting.range} cases<br>
                             • <strong>Effet visuel :</strong> Brume persistante sur la cible
@@ -359,98 +370,60 @@
     const attackRoll = new Roll(`${totalAttackDice}d7 + ${levelBonus}`);
     await attackRoll.evaluate({ async: true });
 
-    // ===== APPLY WOUND EFFECT =====
-    let woundApplied = false;
+    // ===== APPLY SHADOW MIST EFFECT =====
+    let effectApplied = false;
     let effectMessage = "";
 
     if (targetActorInfo?.actor) {
         try {
-            // Vérifier s'il y a déjà un effet de blessures
-            let injuryEffect = targetActorInfo.actor.effects.find(e => e.name?.toLowerCase() === 'blessures');
+            // Check if target already has shadow mist effect
+            const existingShadowMistEffect = targetActorInfo.actor.effects.find(e => e.name === SPELL_CONFIG.targetEffect.name);
 
-            if (injuryEffect) {
-                // Augmenter les blessures existantes
-                const currentWounds = injuryEffect.flags?.statuscounter?.value || 0;
-                const newWoundCount = currentWounds + SPELL_CONFIG.woundCount;
-
-                const updateData = {
-                    flags: {
-                        ...injuryEffect.flags,
-                        statuscounter: { value: newWoundCount, visible: true }
-                    },
-                    description: `Blessures subies - Niveau : ${newWoundCount}`
-                };
-
-                // Use GM delegation for effect update if available
-                if (globalThis.gmSocket) {
-                    console.log(`[Moctei] Updating wound effect via GM socket`);
-                    await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetActorInfo.actor.id, injuryEffect.id, updateData);
-                } else {
-                    // Fallback: direct update if GM socket not available
-                    console.log(`[Moctei] GM Socket not available, updating effect directly`);
-                    await injuryEffect.update(updateData);
-                }
-                woundApplied = true;
-                effectMessage = `Blessures augmentées : ${currentWounds} → ${newWoundCount}`;
-
+            if (existingShadowMistEffect) {
+                effectMessage = "Cible déjà affectée par la brume d'ombre";
+                effectApplied = false;
             } else {
-                // Créer un nouvel effet de blessures
-                const woundEffectData = {
-                    name: "Blessures",
-                    icon: "icons/svg/blood.svg",
-                    description: `Blessures subies - Niveau : ${SPELL_CONFIG.woundCount}`,
+                // Create shadow mist effect with characteristic malus
+                const shadowMistEffectData = {
+                    name: SPELL_CONFIG.targetEffect.name,
+                    icon: SPELL_CONFIG.targetEffect.icon,
+                    description: SPELL_CONFIG.targetEffect.description,
+                    duration: { seconds: 86400 },
                     flags: {
-                        statuscounter: { value: SPELL_CONFIG.woundCount, visible: true },
                         world: {
-                            woundSource: "Brume d'ombre",
-                            woundCaster: caster.id
-                        }
+                            shadowMistCaster: caster.id,
+                            shadowMistTarget: targetActorInfo.token.id,
+                            shadowMistSequenceName: `shadow-mist-${caster.id}-${targetActorInfo.token.id}`,
+                            spellName: SPELL_CONFIG.name
+                        },
+                        // Apply -1 malus to all characteristics (like Missy's embrace)
+                        ...Object.fromEntries(
+                            SPELL_CONFIG.characteristics.map(char => [char, { value: -SPELL_CONFIG.characteristicMalus }])
+                        ),
+                        // Status counter to show the malus value
+                        statuscounter: { value: SPELL_CONFIG.characteristicMalus, visible: true }
                     }
                 };
 
                 // Use GM delegation for effect creation if available
                 if (globalThis.gmSocket) {
-                    console.log(`[Moctei] Creating wound effect via GM socket`);
-                    await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActorInfo.actor.id, woundEffectData);
+                    console.log(`[Moctei] Creating shadow mist effect via GM socket`);
+                    await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActorInfo.actor.id, shadowMistEffectData);
                 } else {
                     // Fallback: direct creation if GM socket not available
                     console.log(`[Moctei] GM Socket not available, creating effect directly`);
-                    await targetActorInfo.actor.createEmbeddedDocuments("ActiveEffect", [woundEffectData]);
+                    await targetActorInfo.actor.createEmbeddedDocuments("ActiveEffect", [shadowMistEffectData]);
                 }
-                woundApplied = true;
-                effectMessage = `${SPELL_CONFIG.woundCount} blessure infligée`;
-            }
 
-            // Effet visuel temporaire sur la cible
-            const visualEffectData = {
-                name: SPELL_CONFIG.targetEffect.name,
-                icon: SPELL_CONFIG.targetEffect.icon,
-                description: SPELL_CONFIG.targetEffect.description,
-                duration: { seconds: 86400 },
-                flags: {
-                    world: {
-                        shadowMistCaster: caster.id,
-                        shadowMistTarget: targetActorInfo.token.id,
-                        shadowMistSequenceName: `shadow-mist-${caster.id}-${targetActorInfo.token.id}`,
-                        spellName: SPELL_CONFIG.name
-                    }
-                }
-            };
-
-            // Use GM delegation for visual effect creation if available
-            if (globalThis.gmSocket) {
-                console.log(`[Moctei] Creating visual shadow mist effect via GM socket`);
-                await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActorInfo.actor.id, visualEffectData);
-            } else {
-                // Fallback: direct creation if GM socket not available
-                console.log(`[Moctei] GM Socket not available, creating visual effect directly`);
-                await targetActorInfo.actor.createEmbeddedDocuments("ActiveEffect", [visualEffectData]);
+                effectApplied = true;
+                effectMessage = `Malus de -${SPELL_CONFIG.characteristicMalus} appliqué aux 7 caractéristiques`;
+                console.log(`[Moctei] Applied shadow mist effect to ${targetName}`);
             }
-            console.log(`[Moctei] Applied visual shadow mist effect to ${targetName}`);
 
         } catch (error) {
-            console.error("[Moctei] Error applying wound effect:", error);
-            ui.notifications.warn("Erreur lors de l'application des blessures !");
+            console.error("[Moctei] Error applying shadow mist effect:", error);
+            ui.notifications.warn("Erreur lors de l'application de l'effet de brume d'ombre !");
+            effectMessage = "Erreur lors de l'application de l'effet";
         }
     } else {
         effectMessage = "Aucune cible valide trouvée";
@@ -485,7 +458,7 @@
             <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f3e5f5; border-radius: 4px;">
                 <div style="font-size: 1.2em; color: #4a148c; font-weight: bold;">🌫️ EFFET: ${effectMessage}</div>
                 <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
-                    Cible enveloppée par la brume d'ombre
+                    Cible enveloppée par la brume d'ombre affaiblissante
                 </div>
             </div>
         ` : `
@@ -526,7 +499,7 @@
 
     // ===== FINAL NOTIFICATION =====
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
-    const effectInfo = woundApplied ? ` - ${effectMessage}` : " - Aucun effet appliqué";
+    const effectInfo = effectApplied ? ` - ${effectMessage}` : " - Aucun effet appliqué";
 
     ui.notifications.info(`🌫️ ${SPELL_CONFIG.name} lancé !${stanceInfo} Cible: ${targetName}. Attaque: ${attackRoll.total}${effectInfo}. Coût: ${actualManaCost} mana.`);
 
