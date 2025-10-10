@@ -42,9 +42,8 @@
                 fadeOut: 500
             },
             projectile: {
-                file: "jb2a.energy_beam.normal.purple.03", // Projectile d'ombre entre les positions
+                file: "jb2a.energy_strands.range.standard.purple.03", // Projectile d'ombre entre les positions
                 scale: 0.6,
-                speed: 1500, // Vitesse du projectile
                 tint: "#2e0054"
             },
             arrival: {
