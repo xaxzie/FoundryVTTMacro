@@ -33,10 +33,9 @@
         woundCount: 1, // Nombre de blessures infligées
 
         animations: {
-            projectile: "jb2a_patreon.smoke.puff.ring.02.black", // Projectile de brume
-            impact: "jb2a_patreon.impact.ground_crack.purple.01", // Impact au sol
-            persistent: "jb2a_patreon.fog_cloud.02.black", // Brume persistante sur la cible
-            cast: "jb2a_patreon.misty_step.01.dark_purple", // Animation sur le lanceur
+            projectile: "jb2a.ranged.01.projectile.01.dark_orange", // Projectile de brume
+            impact: "jb2a_patreon.darkness.black", // Impact au sol
+            persistent: "jb2a_patreon.portals.horizontal.ring.dark_purple", // Brume persistante sur la cible
             sound: null
         },
 
@@ -49,9 +48,8 @@
         // Configuration de l'effet persistant sur la cible
         targetEffect: {
             name: "Brume d'ombre",
-            icon: "icons/magic/air/fog-gas-smoke-swirling-gray.webp",
-            description: "Entouré par une brume d'ombre affaiblissante de Moctei",
-            duration: 30 // 30 secondes pour l'effet visuel
+            icon: "icons/magic/fire/projectile-fireball-smoke-blue.webp",
+            description: "Entouré par une brume d'ombre affaiblissante de Moctei"
         },
 
         // Jet de sauvegarde de la cible
@@ -309,17 +307,6 @@
     async function playAnimation() {
         const seq = new Sequence();
 
-        // Animation de cast sur le lanceur
-        if (SPELL_CONFIG.animations.cast) {
-            seq.effect()
-                .file(SPELL_CONFIG.animations.cast)
-                .attachTo(caster)
-                .scale(0.6)
-                .duration(1500)
-                .fadeIn(300)
-                .fadeOut(500);
-        }
-
         // Projectile de brume d'ombre
         if (SPELL_CONFIG.animations.projectile) {
             seq.effect()
@@ -327,7 +314,6 @@
                 .attachTo(caster)
                 .stretchTo(target)
                 .scale(0.4)
-                .duration(1200)
                 .fadeIn(200)
                 .fadeOut(300)
                 .tint("#2a1a3a")
@@ -339,8 +325,8 @@
             seq.effect()
                 .file(SPELL_CONFIG.animations.impact)
                 .atLocation(target)
-                .scale(0.8)
-                .duration(1000)
+                .scale(0.2)
+                .opacity(0.9)
                 .fadeIn(200)
                 .fadeOut(400)
                 .tint("#4a2a6a");
@@ -351,11 +337,12 @@
             seq.effect()
                 .file(SPELL_CONFIG.animations.persistent)
                 .attachTo(targetActorInfo.token)
-                .scale(1.2)
-                .duration(SPELL_CONFIG.targetEffect.duration * 1000)
+                .scale(0.5)
+                .persist()
                 .fadeIn(800)
                 .fadeOut(2000)
                 .tint("#1a0a2a")
+                .belowTokens()
                 .opacity(0.7)
                 .name(`shadow-mist-${caster.id}-${targetActorInfo.token.id}`);
         }
@@ -423,7 +410,7 @@
                 name: SPELL_CONFIG.targetEffect.name,
                 icon: SPELL_CONFIG.targetEffect.icon,
                 description: SPELL_CONFIG.targetEffect.description,
-                duration: { seconds: SPELL_CONFIG.targetEffect.duration },
+                duration: { seconds: 86400 },
                 flags: {
                     world: {
                         shadowMistCaster: caster.id,
