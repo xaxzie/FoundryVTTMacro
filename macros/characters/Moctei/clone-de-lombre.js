@@ -178,7 +178,15 @@
                 drawBoundingBox: false
             });
 
-            return { x: position.x, y: position.y };
+            // Aligner les coordonnées sur la grille pour un placement correct
+            const gridSize = canvas.grid.size;
+            const snappedX = Math.round(position.x / gridSize) * gridSize;
+            const snappedY = Math.round(position.y / gridSize) * gridSize;
+
+            console.log(`[Moctei] Portal position: ${position.x}, ${position.y}`);
+            console.log(`[Moctei] Snapped to grid: ${snappedX}, ${snappedY}`);
+
+            return { x: snappedX, y: snappedY };
         } catch (error) {
             console.error("Portal selection error:", error);
             return null;
@@ -269,22 +277,28 @@
     // ===== APPLICATION DU FILTRE VISUEL =====
     async function applyCloneVisualFilter(token) {
         try {
+            // Attendre que le token soit bien créé et rendu
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             const filterConfig = SPELL_CONFIG.clone.visualFilter;
 
-            const filterParams = {
+            // Structure correcte pour Token Magic FX (doit être un tableau)
+            const filterParams = [{
                 filterType: filterConfig.filterType,
                 filterId: filterConfig.filterId,
                 brightness: filterConfig.brightness,
                 contrast: filterConfig.contrast,
                 saturate: filterConfig.saturate,
                 animated: filterConfig.animated
-            };
+            }];
 
-            await TokenMagic.addFilters(token, filterParams);
+            // Utiliser le document du token pour Token Magic FX
+            await TokenMagic.addFilters(token.document, filterParams);
             console.log(`[Moctei] Applied shadow clone filter to token: ${token.id}`);
 
         } catch (error) {
             console.error("[Moctei] Error applying clone visual filter:", error);
+            console.error("[Moctei] Filter error details:", error);
             ui.notifications.warn("Le clone a été créé mais sans effet visuel (Token Magic FX requis).");
         }
     }
