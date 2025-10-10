@@ -147,7 +147,7 @@
         },
         "SO : Forme Astrale": {
             name: "SO : Forme Astrale",
-            icon: "icons/magic/death/spirit-ghost-blue.webp",
+            icon: "icons/magic/control/silhouette-hold-beam-blue.webp",
             flags: [],
             description: "Moctei devient intangible mais son cœur arrête de battre",
             category: "custom",
@@ -156,11 +156,12 @@
             hasAnimation: true,
             hasSpecialRemovalEffect: true,
             animation: {
-                effectFile: "jb2a.energy_strands.range.standard.blue.blue",
+                effectFile: "jb2a_patreon.energy_strands.overlay.orange.01",
                 scale: 0.8,
-                fadeOut: 3000,
+                fadeOut: 500,
                 persistent: false,
-                sequencerName: "MocteiAstralTransition"
+                sequencerName: "MocteiAstralTransition",
+                tint: "#010101"
             },
             filters: {
                 filterId: "MocteiAstralForm",
