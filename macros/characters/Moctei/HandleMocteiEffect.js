@@ -825,11 +825,74 @@
     // === HANDLE REMOVE ALL ===
     if (result.action === "removeAll") {
         try {
+            // Clean up visual effects first before removing the effect documents
+            if (canvas.tokens.controlled.length > 0) {
+                const token = canvas.tokens.controlled[0];
+
+                // Clean up all custom effects visual elements
+                for (const [effectKey, effectData] of Object.entries(CUSTOM_EFFECTS)) {
+                    const existingEffect = currentState.customEffects[effectKey];
+                    if (existingEffect) {
+                        console.log(`[Moctei] Cleaning up visual effects for: ${effectData.name}`);
+
+                        // Handle transformation removal
+                        if (effectData.hasTransformation) {
+                            try {
+                                await applyTokenTransformation(token, effectData.transformation, false);
+                            } catch (error) {
+                                console.warn(`[Moctei] Error removing transformation for ${effectData.name}:`, error);
+                            }
+                        }
+
+                        // Handle filter removal
+                        if (effectData.hasFilters) {
+                            try {
+                                await applyTokenFilters(token, effectData.filters, false);
+                            } catch (error) {
+                                console.warn(`[Moctei] Error removing filters for ${effectData.name}:`, error);
+                            }
+                        }
+
+                        // Handle animation cleanup
+                        if (effectData.hasAnimation && effectData.animation.persistent && effectData.animation.sequencerName) {
+                            try {
+                                Sequencer.EffectManager.endEffects({ name: effectData.animation.sequencerName });
+                            } catch (error) {
+                                console.warn(`[Moctei] Error ending animation for ${effectData.name}:`, error);
+                            }
+                        }
+                    }
+                }
+
+                // Clean up any remaining Token Magic FX filters on this token
+                try {
+                    if (typeof TokenMagic !== "undefined") {
+                        await TokenMagic.deleteFilters(token);
+                        console.log(`[Moctei] Cleaned up all Token Magic FX filters`);
+                    }
+                } catch (error) {
+                    console.warn(`[Moctei] Error cleaning up all filters:`, error);
+                }
+
+                // Clean up any remaining Sequencer effects on this token
+                try {
+                    if (typeof Sequencer !== "undefined") {
+                        Sequencer.EffectManager.endEffects({ object: token });
+                        console.log(`[Moctei] Cleaned up all Sequencer effects`);
+                    }
+                } catch (error) {
+                    console.warn(`[Moctei] Error cleaning up all animations:`, error);
+                }
+            }
+
+            // Now remove all effect documents
             const effectsToRemove = actor.effects.contents.slice();
             for (const effect of effectsToRemove) {
                 await effect.delete();
             }
-            ui.notifications.success(`🌑 Tous les effets de ${actor.name} ont été supprimés !`);
+
+            ui.notifications.success(`🌑 Tous les effets et animations de ${actor.name} ont été supprimés !`);
+
         } catch (error) {
             console.error("[Moctei] Error removing all effects:", error);
             ui.notifications.error("Erreur lors de la suppression des effets !");
