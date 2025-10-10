@@ -90,7 +90,6 @@
             manaCost: "2 (focusable) + 1/usage en vol vertical",
             animation: {
                 effectFile: "animated-spell-effects.misc.wings.rectangle",
-                fadeOut: 2000,
                 persistent: true,
                 scale: 0.4,
                 opacity: 0.6,
@@ -385,14 +384,23 @@
             if (isActivating && animConfig.persistent) {
                 console.log(`[Moctei] Starting persistent shadow animation for ${token.name}`);
 
+                // End any existing animation with the same name first
+                if (animConfig.sequencerName) {
+                    Sequencer.EffectManager.endEffects({ name: animConfig.sequencerName });
+                    await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure cleanup
+                }
+
                 const seq = new Sequence();
                 const effect = seq.effect()
                     .file(animConfig.effectFile)
                     .attachTo(token)
                     .scale(animConfig.scale || 0.8)
-                    .fadeOut(animConfig.fadeOut || 2000)
                     .persist()
                     .name(animConfig.sequencerName);
+                // Apply fadeOut only if specified and not infinite duration
+                if (animConfig.fadeOut && animConfig.duration !== 0) {
+                    effect.fadeOut(animConfig.fadeOut);
+                }
 
                 // Apply tint if specified
                 if (animConfig.tint) {
