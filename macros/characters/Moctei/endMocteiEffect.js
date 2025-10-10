@@ -565,20 +565,6 @@
             // Cleanup des animations Sequencer
             cleanupSequencerAnimations(effect, config);
 
-            // Note: Shadow mist effect no longer creates wounds, just characteristic malus
-
-            // Animation de libération de la brume
-            const liberationSeq = new Sequence();
-            liberationSeq.effect()
-                .file("jb2a_patreon.wind_stream.white")
-                .attachTo(token)
-                .scale(0.8)
-                .duration(2000)
-                .fadeOut(1000)
-                .tint("#4a148c");
-
-            await liberationSeq.play();
-
             // Suppression de l'effet principal
             if (token.actor.isOwner) {
                 await effect.delete();
