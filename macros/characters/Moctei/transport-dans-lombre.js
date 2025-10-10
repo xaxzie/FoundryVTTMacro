@@ -528,6 +528,13 @@
             }
         }
 
+        // Diagnostic Advanced Macros
+        console.log(`[Moctei] Diagnostic Advanced Macros:`);
+        console.log(`[Moctei] - Module actif: ${advancedMacros.active}`);
+        console.log(`[Moctei] - Version: ${advancedMacros.version}`);
+        console.log(`[Moctei] - Queries disponibles:`, Object.keys(CONFIG.queries || {}));
+        console.log(`[Moctei] - Has executeMacro query:`, !!CONFIG.queries?.["advanced-macros.executeMacro"]);
+
         // Si le joueur possède le token, téléportation directe
         if (token.actor.isOwner) {
             return await teleportOwnToken(token, destination);
@@ -543,7 +550,28 @@
                 return false;
             }
 
+            // Vérifier et corriger la configuration de la macro si nécessaire
+            const currentFlag = teleportMacro.getFlag("advanced-macros", "runForSpecificUser");
+            if (currentFlag !== "GM" && game.user.isGM) {
+                console.warn(`[Moctei] Configuration incorrecte de la macro helper (${currentFlag} au lieu de GM), correction...`);
+                try {
+                    await teleportMacro.setFlag("advanced-macros", "runForSpecificUser", "GM");
+                    ui.notifications.info("Configuration de la macro helper corrigée pour s'exécuter en tant que GM");
+                } catch (flagError) {
+                    console.error(`[Moctei] Impossible de corriger la configuration:`, flagError);
+                }
+            }
+
             console.log(`[Moctei] Utilisation de la macro helper pour téléporter ${token.name}`);
+
+            // Diagnostic de la macro helper
+            console.log(`[Moctei] Diagnostic macro helper:`);
+            console.log(`[Moctei] - Macro trouvée: ${teleportMacro.name}`);
+            console.log(`[Moctei] - canRunAsGM: ${teleportMacro.canRunAsGM}`);
+            console.log(`[Moctei] - runForSpecificUser flag:`, teleportMacro.getFlag("advanced-macros", "runForSpecificUser"));
+            console.log(`[Moctei] - Author: ${game.users.get(teleportMacro.author?.id)?.name}`);
+            console.log(`[Moctei] - Current user: ${game.user.name} (isGM: ${game.user.isGM})`);
+            console.log(`[Moctei] - Active GM: ${game.users.activeGM?.name}`);
 
             // Exécuter la macro avec les arguments nécessaires
             const result = await teleportMacro.execute({

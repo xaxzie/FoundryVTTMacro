@@ -60,26 +60,91 @@
 
     console.log(`[Moctei Helper] Téléportation de ${targetToken.name} vers (${destinationX}, ${destinationY})`);
 
+    // ===== DIAGNOSTIC DES PRIVILÈGES =====
+    console.log(`[Moctei Helper] Diagnostic des privilèges:`);
+    console.log(`[Moctei Helper] - Utilisateur actuel: ${game.user.name}`);
+    console.log(`[Moctei Helper] - Est GM: ${game.user.isGM}`);
+    console.log(`[Moctei Helper] - Peut modifier scene: ${game.user.can("TOKEN_UPDATE")}`);
+    console.log(`[Moctei Helper] - Token ownership:`, targetToken.document.ownership);
+    console.log(`[Moctei Helper] - Scene ownership:`, canvas.scene.ownership);
+    console.log(`[Moctei Helper] - User permissions:`, game.user.permissions);
+
+    // Vérifier si le token peut être modifié
+    const canUpdate = targetToken.document.canUserModify(game.user, "update");
+    console.log(`[Moctei Helper] - Peut modifier le token: ${canUpdate}`);
+
+    if (!canUpdate && !game.user.isGM) {
+        console.error(`[Moctei Helper] Privilèges insuffisants pour modifier le token`);
+        return {
+            success: false,
+            error: `Privilèges insuffisants: utilisateur ${game.user.name} ne peut pas modifier le token ${targetToken.name}`
+        };
+    }
+
     // ===== EXÉCUTION DE LA TÉLÉPORTATION =====
     try {
+        // Si on n'est pas GM et qu'on ne peut pas modifier le token, essayer une approche alternative
+        if (!game.user.isGM && !canUpdate) {
+            console.warn(`[Moctei Helper] Pas de privilèges GM, tentative via GM Socket ou Alternative`);
+
+            // Essayer de trouver un GM actif et lui envoyer une demande
+            const activeGM = game.users.activeGM;
+            if (activeGM && !activeGM.isSelf) {
+                console.log(`[Moctei Helper] Envoi de requête au GM actif: ${activeGM.name}`);
+                // Cette approche ne fonctionnera que si Advanced Macros traite correctement les queries
+                return {
+                    success: false,
+                    error: `Macro non exécutée en tant que GM. GM actif: ${activeGM.name}, utilisateur actuel: ${game.user.name}`
+                };
+            }
+        }
+
         // Sauvegarder le mode de déplacement actuel
         const originalMovementType = targetToken.document.movementAction || 'walk';
 
-        // Activer le mode de déplacement "Teleportation" (FoundryVTT v13)
-        await targetToken.document.update({
-            movementAction: CONST.TOKEN_MOVEMENT_TYPES.TELEPORT || 'blink'
-        });
+        console.log(`[Moctei Helper] Tentative de téléportation avec privilèges ${game.user.isGM ? 'GM' : 'joueur'}`);
 
-        // Effectuer le déplacement
-        await targetToken.document.update({
-            x: destinationX,
-            y: destinationY
-        });
+        // Approche 1: Mise à jour standard du token
+        try {
+            // Activer le mode de déplacement "Teleportation" (FoundryVTT v13)
+            await targetToken.document.update({
+                movementAction: CONST.TOKEN_MOVEMENT_TYPES.TELEPORT || 'blink'
+            });
 
-        // Restaurer le mode de déplacement original
-        await targetToken.document.update({
-            movementAction: originalMovementType
-        });
+            // Effectuer le déplacement
+            await targetToken.document.update({
+                x: destinationX,
+                y: destinationY
+            });
+
+            // Restaurer le mode de déplacement original
+            await targetToken.document.update({
+                movementAction: originalMovementType
+            });
+
+        } catch (updateError) {
+            console.warn(`[Moctei Helper] Échec mise à jour standard, tentative alternative:`, updateError.message);
+
+            // Approche 2: Mise à jour via la Scene si on a les permissions
+            if (game.user.can("TOKEN_UPDATE")) {
+                await canvas.scene.updateEmbeddedDocuments("Token", [{
+                    _id: targetToken.id,
+                    x: destinationX,
+                    y: destinationY,
+                    movementAction: CONST.TOKEN_MOVEMENT_TYPES.TELEPORT || 'blink'
+                }]);
+
+                // Restaurer le mode de déplacement
+                setTimeout(async () => {
+                    await canvas.scene.updateEmbeddedDocuments("Token", [{
+                        _id: targetToken.id,
+                        movementAction: originalMovementType
+                    }]);
+                }, 100);
+            } else {
+                throw updateError; // Re-lancer l'erreur originale
+            }
+        }
 
         const result = {
             success: true,
@@ -88,7 +153,8 @@
             tokenId: tokenId,
             position: { x: destinationX, y: destinationY },
             executedBy: game.user.name,
-            executedAsGM: game.user.isGM
+            executedAsGM: game.user.isGM,
+            method: game.user.isGM ? "GM privileges" : "Alternative approach"
         };
 
         console.log("[Moctei Helper] Téléportation réussie:", result);
