@@ -129,6 +129,28 @@
             }
         },
 
+        // Rune de détection d'ombre - Animation persistante au sol
+        "Rune de détection d'ombre": {
+            displayName: "Rune de détection d'ombre",
+            icon: "icons/magic/symbols/rune-sigil-black-purple.webp",
+            description: "Rune d'ombre surveillant une zone pour la détection",
+            sectionTitle: "🔮 Runes de Détection",
+            sectionIcon: "🔮",
+            cssClass: "shadow-detection-rune-effect",
+            borderColor: "#2e0054",
+            bgColor: "#f3e5f5",
+            // Pas de detectFlags car pas d'effet d'acteur - détection par animation Sequencer
+            mechanicType: "shadowDetectionRune",
+            isSequencerOnly: true, // Spécial : pas d'effet d'acteur, juste animation
+            // Pas d'effet d'acteur à chercher, on va détecter directement les animations
+            detectSequencerAnimations: true,
+            sequencerPattern: "MocteiShadowDetectionRune_*", // Pattern pour détecter les runes
+            cleanup: {
+                removeFromCasterFlags: true, // Supprimer des flags du caster
+                flagPath: "world.shadowDetectionRunes" // Chemin des flags à nettoyer
+            }
+        },
+
         // TODO: Add more Moctei's specific shadow effects here
         // Future effects like shadow teleportation, darkness manipulation, etc.
     };
@@ -581,6 +603,60 @@
         }
     }
 
+    /**
+     * Traite la suppression d'une rune de détection d'ombre
+     */
+    async function handleShadowDetectionRuneRemoval(effectInfo, results) {
+        const { effectType, config, runeData } = effectInfo;
+
+        try {
+            // Supprimer l'animation Sequencer persistante
+            if (runeData.id) {
+                try {
+                    Sequencer.EffectManager.endEffects({ name: runeData.id });
+                    console.log(`[Moctei] Ended sequencer effect for rune: ${runeData.id}`);
+                } catch (seqError) {
+                    console.warn(`[Moctei] Could not end sequencer effect ${runeData.id}:`, seqError);
+                }
+            }
+
+            // Animation de dissipation de la rune
+            if (runeData.position) {
+                const dissipationSeq = new Sequence();
+                dissipationSeq.effect()
+                    .file("jb2a_patreon.magic_signs.rune.abjuration.outro.purple")
+                    .atLocation(runeData.position)
+                    .scale(0.5)
+                    .duration(2000)
+                    .fadeOut(1000)
+                    .tint("#2e0054");
+
+                await dissipationSeq.play();
+            }
+
+            // Supprimer la rune des flags du caster
+            const currentRunes = caster.document.flags?.world?.shadowDetectionRunes || [];
+            const updatedRunes = currentRunes.filter(rune => rune.id !== runeData.id);
+
+            await caster.document.setFlag('world', 'shadowDetectionRunes', updatedRunes);
+
+            results.runesRemoved.push({
+                target: `Position (${Math.round(runeData.position.x)}, ${Math.round(runeData.position.y)})`,
+                effect: effectType,
+                extraInfo: `${runeData.manaCost} mana récupérés`
+            });
+            console.log(`[Moctei] Removed shadow detection rune: ${runeData.id}`);
+
+        } catch (error) {
+            console.error(`[Moctei] Error removing shadow detection rune:`, error);
+            results.failed.push({
+                target: `Rune ${runeData.id}`,
+                effect: effectType,
+                error: error.message
+            });
+        }
+    }
+
     // ===== VALIDATION INITIALE =====
     if (!canvas.tokens.controlled.length) {
         ui.notifications.error(`Veuillez d'abord sélectionner le jeton de ${CHARACTER_CONFIG.displayName} !`);
@@ -599,7 +675,7 @@
     function findCharacterEffectsOnCanvas() {
         const characterEffects = [];
 
-        // Parcourir tous les tokens sur la scène
+        // Parcourir tous les tokens sur la scène pour les effets d'acteur
         for (const token of canvas.tokens.placeables) {
             if (!token.actor) continue;
             if (token.id === caster.id) continue; // Skip Moctei lui-même
@@ -608,6 +684,8 @@
             for (const effect of token.actor.effects.contents) {
                 // Vérifier chaque type d'effet configuré
                 for (const [effectType, config] of Object.entries(EFFECT_CONFIG)) {
+                    // Skip les effets Sequencer-only qui n'ont pas d'effet d'acteur
+                    if (config.isSequencerOnly) continue;
 
                     // Utiliser la même logique que Urgen : checkEffectFlags
                     if (checkEffectFlags(effect, config, actor.id, token.id)) {
@@ -631,6 +709,41 @@
                         });
                     }
                 }
+            }
+        }
+
+        // Détecter les runes de détection d'ombre par les flags du caster
+        const shadowDetectionRunes = caster.document.flags?.world?.shadowDetectionRunes || [];
+        for (const runeData of shadowDetectionRunes) {
+            if (!runeData.isActive) continue; // Skip les runes inactives
+
+            const config = EFFECT_CONFIG["Rune de détection d'ombre"];
+            if (config) {
+                const description = `Rune surveillant la zone - Mana réservés: ${runeData.manaCost}`;
+                const extraData = {
+                    position: runeData.position,
+                    gridPosition: runeData.gridPosition,
+                    manaCost: runeData.manaCost,
+                    createdAt: runeData.createdAt,
+                    detectionRadius: runeData.detectionRadius,
+                    sequenceName: runeData.id
+                };
+
+                characterEffects.push({
+                    token: null, // Pas de token car c'est une animation au sol
+                    effect: null, // Pas d'effet d'acteur
+                    effectType: "Rune de détection d'ombre",
+                    config: config,
+                    description: description,
+                    extraData: extraData,
+                    runeData: runeData // Données complètes de la rune
+                });
+
+                console.log(`[Moctei] Found shadow detection rune:`, {
+                    id: runeData.id,
+                    position: runeData.position,
+                    manaCost: runeData.manaCost
+                });
             }
         }
 
@@ -714,14 +827,25 @@
             dialogContent += `<h4 style="color: ${config.borderColor}; margin: 15px 0 10px 0;">${config.sectionTitle}</h4>`;
 
             for (const effectInfo of effects) {
-                const { token, effect, description, extraData } = effectInfo;
+                const { token, effect, description, extraData, runeData } = effectInfo;
                 let extraInfo = '';
+                let targetName = '';
 
                 // Formatage des données supplémentaires selon le type
                 if (extraData.stacks) extraInfo += ` (${extraData.stacks} stacks)`;
                 if (extraData.counter) extraInfo += ` (${extraData.counter})`;
                 if (extraData.power) extraInfo += ` (Puissance: ${extraData.power})`;
                 if (extraData.usageCount) extraInfo += ` (${extraData.usageCount} utilisation(s))`;
+                if (extraData.manaCost) extraInfo += ` (${extraData.manaCost} mana)`;
+
+                // Gestion du nom de la cible (token ou position pour les runes)
+                if (token) {
+                    targetName = token.name;
+                } else if (runeData && runeData.position) {
+                    targetName = `Position (${Math.round(runeData.position.x)}, ${Math.round(runeData.position.y)})`;
+                } else {
+                    targetName = "Position inconnue";
+                }
 
                 dialogContent += `
                     <div class="effect-item ${config.cssClass}">
@@ -729,7 +853,7 @@
                         <div class="effect-icon" style="background-image: url('${config.icon}');"></div>
                         <div class="effect-content">
                             <div class="effect-type">${config.displayName}${extraInfo}</div>
-                            <div class="effect-target">${token.name}</div>
+                            <div class="effect-target">${targetName}</div>
                             <div class="effect-description">${description}</div>
                         </div>
                     </div>
@@ -799,6 +923,7 @@
         shadowEffects: [],
         darkFlames: [],
         casterEffects: [],
+        runesRemoved: [],
         failed: []
     };
 
@@ -817,6 +942,9 @@
                 case "shadowMist":
                     await handleShadowMistRemoval(effectInfo, removedEffects);
                     break;
+                case "shadowDetectionRune":
+                    await handleShadowDetectionRuneRemoval(effectInfo, removedEffects);
+                    break;
                 case "simple":
                 default:
                     await handleSimpleEffectRemoval(effectInfo, removedEffects);
@@ -825,8 +953,10 @@
 
         } catch (error) {
             console.error(`[Moctei] Error processing effect removal:`, error);
+            const targetName = effectInfo.token ? effectInfo.token.name :
+                effectInfo.runeData ? `Rune ${effectInfo.runeData.id}` : "Cible inconnue";
             removedEffects.failed.push({
-                target: effectInfo.token.name,
+                target: targetName,
                 effect: effectInfo.config.displayName,
                 error: error.message
             });
@@ -900,6 +1030,11 @@
                     categoryColor = "#1a0033";
                     categoryBg = "#f3e5f5";
                     break;
+                case 'runesRemoved':
+                    categoryTitle = "🔮 Runes de Détection Supprimées";
+                    categoryColor = "#2e0054";
+                    categoryBg = "#f3e5f5";
+                    break;
                 default:
                     categoryTitle = `${categoryKey} Supprimés`;
                     break;
@@ -910,7 +1045,8 @@
                     <div style="font-size: 1.1em; color: ${categoryColor}; margin-bottom: 6px;"><strong>${categoryTitle}</strong></div>
             `;
             for (const removed of effects) {
-                chatContent += `<div style="font-size: 0.9em; margin: 2px 0;">${removed.target}: ${removed.effect}</div>`;
+                const extraInfo = removed.extraInfo ? ` - ${removed.extraInfo}` : '';
+                chatContent += `<div style="font-size: 0.9em; margin: 2px 0;">${removed.target}: ${removed.effect}${extraInfo}</div>`;
             }
             chatContent += `</div>`;
         }
@@ -954,6 +1090,7 @@
         if (removedEffects.simple.length > 0) parts.push(`${removedEffects.simple.length} effet(s) simple(s)`);
         if (removedEffects.shadowEffects.length > 0) parts.push(`${removedEffects.shadowEffects.length} effet(s) d'ombre`);
         if (removedEffects.darkFlames.length > 0) parts.push(`${removedEffects.darkFlames.length} flamme(s) noire(s)`);
+        if (removedEffects.runesRemoved.length > 0) parts.push(`${removedEffects.runesRemoved.length} rune(s) de détection`);
 
         notificationText += parts.join(', ');
 
