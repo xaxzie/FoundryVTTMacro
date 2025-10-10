@@ -533,45 +533,86 @@
             return await teleportOwnToken(token, destination);
         }
 
-        // Sinon, utiliser Advanced Macros pour escalader les privilèges
+        // Sinon, utiliser le système de macro Advanced Macros pour escalader les privilèges
         try {
-            const teleportScript = `
-                const targetToken = canvas.tokens.get("${token.id}");
-                if (!targetToken) {
-                    return { success: false, error: "Token non trouvé" };
+            // Chercher une macro de téléportation configurée pour s'exécuter en tant que GM
+            let teleportMacro = game.macros.getName("Moctei Teleport Helper");
+
+            if (!teleportMacro) {
+                // Créer dynamiquement la macro de téléportation (seulement si on est GM)
+                if (game.user.isGM) {
+                    const macroData = {
+                        name: "Moctei Teleport Helper",
+                        type: "script",
+                        command: `
+                            // Script de téléportation exécuté avec privilèges GM
+                            const { tokenId, destinationX, destinationY } = args[0];
+
+                            const targetToken = canvas.tokens.get(tokenId);
+                            if (!targetToken) {
+                                return { success: false, error: "Token non trouvé" };
+                            }
+
+                            try {
+                                // Sauvegarder le mode de déplacement actuel
+                                const originalMovementType = targetToken.document.movementAction;
+
+                                // Activer le mode de déplacement "Teleportation"
+                                await targetToken.document.update({ movementAction: 'blink' });
+
+                                // Effectuer le déplacement
+                                await targetToken.document.update({
+                                    x: destinationX,
+                                    y: destinationY
+                                });
+
+                                // Restaurer le mode de déplacement original
+                                await targetToken.document.update({ movementAction: originalMovementType });
+
+                                return {
+                                    success: true,
+                                    message: "Téléportation d'allié réussie",
+                                    tokenName: targetToken.name,
+                                    position: { x: destinationX, y: destinationY }
+                                };
+                            } catch (err) {
+                                return { success: false, error: err.message };
+                            }
+                        `,
+                        folder: null,
+                        sort: 0,
+                        ownership: {
+                            default: CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED
+                        },
+                        flags: {
+                            "advanced-macros": {
+                                "runForSpecificUser": "GM"
+                            }
+                        }
+                    };
+
+                    teleportMacro = await Macro.create(macroData);
+                    console.log("[Moctei] Created teleport helper macro for Advanced Macros");
+                } else {
+                    ui.notifications.error("Macro de téléportation manquante ! Le GM doit d'abord l'exécuter.");
+                    return false;
                 }
+            }
 
-                // Sauvegarder le mode de déplacement actuel
-                const originalMovementType = targetToken.document.movementAction;
+            // Exécuter la macro avec les arguments nécessaires
+            const result = await teleportMacro.execute({
+                tokenId: token.id,
+                destinationX: destination.x,
+                destinationY: destination.y
+            });
 
-                // Activer le mode de déplacement "Teleportation"
-                await targetToken.document.update({ movementAction: 'blink' });
-
-                // Effectuer le déplacement
-                await targetToken.document.update({
-                    x: ${destination.x},
-                    y: ${destination.y}
-                });
-
-                // Restaurer le mode de déplacement original
-                await targetToken.document.update({ movementAction: originalMovementType });
-
-                return {
-                    success: true,
-                    message: "Téléportation d'allié réussie",
-                    tokenName: targetToken.name,
-                    position: { x: ${destination.x}, y: ${destination.y} }
-                };
-            `;
-
-            const result = await advancedMacros.api.executeAsGM(teleportScript);
-
-            if (result.success) {
+            if (result && result.success) {
                 console.log(`[Moctei] ${result.message}: ${result.tokenName}`);
                 return true;
             } else {
-                console.error(`[Moctei] Échec téléportation: ${result.error}`);
-                ui.notifications.error(`Échec téléportation: ${result.error}`);
+                const errorMsg = result ? result.error : "Erreur inconnue";
+                console.error(`[Moctei] Échec téléportation: ${errorMsg}`);
+                ui.notifications.error(`Échec téléportation: ${errorMsg}`);
                 return false;
             }
 
