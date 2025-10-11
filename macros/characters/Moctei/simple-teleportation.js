@@ -25,49 +25,33 @@
  */
 
 (async () => {
-    // ===== CONFIGURATION DU SORT =====
-    const SPELL_CONFIG = {
-        name: "Teleport",
-        manaCost: 5,
-        spellLevel: 1,
-        isFocusable: true, // Focalisable
-
+    // ===== CONFIGURATION DES ANIMATIONS =====
+    const ANIMATION_CONFIG = {
         // Animation de téléportation
-        teleportation: {
-            departure: {
-                file: "jb2a_patreon.misty_step.01.purple", // Animation de départ
-                scale: 0.8,
-                duration: 1500,
-                fadeIn: 300,
-                fadeOut: 500
-            },
-            projectile: {
-                file: "jb2a.energy_strands.range.standard.purple.03", // Projectile d'ombre entre les positions
-                scale: 0.6,
-                tint: "#2e0054"
-            },
-            arrival: {
-                file: "jb2a_patreon.misty_step.01.purple", // Animation d'arrivée
-                scale: 0.8,
-                duration: 1500,
-                fadeIn: 300,
-                fadeOut: 500
-            }
+        departure: {
+            file: "jb2a_patreon.misty_step.01.purple",
+            scale: 0.8,
+            duration: 1500,
+            fadeIn: 300,
+            fadeOut: 500
+        },
+        projectile: {
+            file: "jb2a.energy_strands.range.standard.purple.03",
+            scale: 0.6,
+            tint: "#2e0054"
+        },
+        arrival: {
+            file: "jb2a_patreon.misty_step.01.purple",
+            scale: 0.8,
+            duration: 1500,
+            fadeIn: 300,
+            fadeOut: 500
         },
 
         // Configuration Portal pour le ciblage
         portal: {
-            range: 300, // Portée maximale pour la téléportation
-            color: "#2e0054", // Couleur violet sombre
             texture: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Purple_400x400.webm",
             label: "Destination de la Téléportation"
-        },
-
-        // Sons (optionnel)
-        sounds: {
-            departure: null, // Son de départ
-            projectile: null, // Son du projectile d'ombre
-            arrival: null // Son d'arrivée
         }
     };
 
@@ -85,28 +69,15 @@
         return;
     }
 
-    // ===== UTILS (stance, validation) =====
-    function getCurrentStance(actor) {
-        return actor?.effects?.contents?.find(e =>
-            ['focus', 'offensif', 'defensif'].includes(e.name?.toLowerCase())
-        )?.name?.toLowerCase() || null;
-    }
 
-    const currentStance = getCurrentStance(actor);
-
-    // Modifier le coût selon la focalisation (si applicable)
-    let actualManaCost = SPELL_CONFIG.manaCost;
-    if (SPELL_CONFIG.isFocusable && currentStance === 'focus') {
-        actualManaCost = Math.max(1, Math.floor(SPELL_CONFIG.manaCost * 0.75)); // Réduction de 25%
-    }
 
     // ===== SÉLECTION DE DESTINATION AVEC PORTAL =====
     async function selectTeleportDestination() {
         try {
             const position = await window.Sequencer.Crosshair.show({
                 size: canvas.grid.size,
-                icon: SPELL_CONFIG.portal.texture,
-                label: SPELL_CONFIG.portal.label,
+                icon: ANIMATION_CONFIG.portal.texture,
+                label: ANIMATION_CONFIG.portal.label,
                 labelOffset: { y: -40 },
                 drawIcon: true,
                 drawOutline: true,
@@ -187,32 +158,32 @@
 
         // 1. Animation de départ
         seq.effect()
-            .file(SPELL_CONFIG.teleportation.departure.file)
+            .file(ANIMATION_CONFIG.departure.file)
             .atLocation(originalCenter)
-            .scale(SPELL_CONFIG.teleportation.departure.scale)
-            .duration(SPELL_CONFIG.teleportation.departure.duration)
-            .fadeIn(SPELL_CONFIG.teleportation.departure.fadeIn)
-            .fadeOut(SPELL_CONFIG.teleportation.departure.fadeOut)
+            .scale(ANIMATION_CONFIG.departure.scale)
+            .duration(ANIMATION_CONFIG.departure.duration)
+            .fadeIn(ANIMATION_CONFIG.departure.fadeIn)
+            .fadeOut(ANIMATION_CONFIG.departure.fadeOut)
             .waitUntilFinished(-800); // Continue avant la fin pour enchaîner
 
         // 2. Animation de projectile (énergie d'ombre entre les positions)
         seq.effect()
-            .file(SPELL_CONFIG.teleportation.projectile.file)
+            .file(ANIMATION_CONFIG.projectile.file)
             .atLocation(originalCenter)
             .stretchTo(destinationCenter, { onlyX: false })
-            .scale(SPELL_CONFIG.teleportation.projectile.scale)
-            .tint(SPELL_CONFIG.teleportation.projectile.tint)
+            .scale(ANIMATION_CONFIG.projectile.scale)
+            .tint(ANIMATION_CONFIG.projectile.tint)
             .duration(1200) // Durée fixe pour le projectile
             .waitUntilFinished(-600); // Continue avant la fin
 
         // 3. Animation d'arrivée
         seq.effect()
-            .file(SPELL_CONFIG.teleportation.arrival.file)
+            .file(ANIMATION_CONFIG.arrival.file)
             .atLocation(destinationCenter)
-            .scale(SPELL_CONFIG.teleportation.arrival.scale)
-            .duration(SPELL_CONFIG.teleportation.arrival.duration)
-            .fadeIn(SPELL_CONFIG.teleportation.arrival.fadeIn)
-            .fadeOut(SPELL_CONFIG.teleportation.arrival.fadeOut);
+            .scale(ANIMATION_CONFIG.arrival.scale)
+            .duration(ANIMATION_CONFIG.arrival.duration)
+            .fadeIn(ANIMATION_CONFIG.arrival.fadeIn)
+            .fadeOut(ANIMATION_CONFIG.arrival.fadeOut);
 
         // Jouer toute la séquence
         await seq.play();

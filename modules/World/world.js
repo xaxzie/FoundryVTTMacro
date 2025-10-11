@@ -16,6 +16,14 @@ Hooks.on('ready', async () => {
             document.update({ doorSound: "woodBasic" });
         }
     });
+
+    Hooks.on("renderChatMessage", (message, html, data) => {
+        html.find(".teleport-moctei-button").click(async () => {
+            const macro = game.macros.find(m => m.name === "Teleport");
+            if (!macro) return ui.notifications.error("Macro 'Teleport' not found!");
+            macro.execute();
+        });
+    });
 console.log("[DEBUG]FT World | default door sounds setted");
 });
 
@@ -215,3 +223,4 @@ Hooks.on("createMacro", async (macro, options, userId) => {
     console.error("[DEBUG] createMacro hook error:", err);
   }
 });
+
