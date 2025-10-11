@@ -27,7 +27,7 @@
 (async () => {
     // ===== CONFIGURATION DU SORT =====
     const SPELL_CONFIG = {
-        name: "Téléportation dans l'ombre",
+        name: "Teleport",
         manaCost: 5,
         spellLevel: 1,
         isFocusable: true, // Focalisable
@@ -260,72 +260,6 @@
 
     // 3. Attendre la fin de toutes les animations
     await animationPromise;
-
-    // ===== MESSAGE DE CHAT =====
-    function createChatMessage() {
-        const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
-        const focusInfo = (SPELL_CONFIG.isFocusable && currentStance === 'focus') ?
-            ` ⚡ Focalisé (${SPELL_CONFIG.manaCost} → ${actualManaCost} mana)` : '';
-
-        const distance = Math.sqrt(
-            Math.pow(destinationPosition.x - originalPosition.x, 2) +
-            Math.pow(destinationPosition.y - originalPosition.y, 2)
-        );
-        const distanceInFeet = Math.round(distance / gridSize * 5); // Conversion en pieds (5 pieds par case)
-
-        return `
-            <div style="border: 2px solid #4a148c; border-radius: 8px; padding: 15px; background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);">
-                <div style="text-align: center; margin-bottom: 12px;">
-                    <h3 style="color: #4a148c; margin: 0; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
-                        🌑 ${SPELL_CONFIG.name}
-                    </h3>
-                    <p style="margin: 5px 0; font-style: italic; color: #666;">
-                        "Moctei disparaît dans les ombres pour réapparaître ailleurs..."
-                    </p>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0;">
-                    <div style="background: rgba(255,255,255,0.7); padding: 8px; border-radius: 4px;">
-                        <strong>🎯 Lanceur :</strong><br>${actor.name}${stanceInfo}
-                    </div>
-                    <div style="background: rgba(255,255,255,0.7); padding: 8px; border-radius: 4px;">
-                        <strong>💰 Coût :</strong><br>${actualManaCost} mana${focusInfo}
-                    </div>
-                </div>
-
-                <div style="background: #fff3e0; padding: 10px; border-radius: 4px; margin: 10px 0; font-size: 0.9em;">
-                    <strong>⚡ Effet :</strong><br>
-                    • <strong>Type :</strong> Téléportation instantanée<br>
-                    • <strong>Méthode :</strong> Voyage par les ombres<br>
-                    • <strong>Durée :</strong> Instantané<br>
-                    • <strong>Portée :</strong> Visuelle
-                </div>
-
-                <div style="text-align: center; margin-top: 10px; padding: 8px; background: rgba(46, 0, 84, 0.1); border-radius: 4px;">
-                    <em style="color: #4a148c;">
-                        🌑 Moctei a traversé les ombres avec succès ! 🌑
-                    </em>
-                </div>
-            </div>
-        `;
-    }
-
-    // Envoyer le message de chat
-    await ChatMessage.create({
-        speaker: ChatMessage.getSpeaker({ token: casterToken }),
-        content: createChatMessage(),
-        type: CONST.CHAT_MESSAGE_TYPES.OTHER
-    });
-
-    // ===== NOTIFICATION FINALE =====
-    const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
-    const focusInfo = (SPELL_CONFIG.isFocusable && currentStance === 'focus') ? ' ⚡ Focalisé' : '';
-
-    ui.notifications.info(
-        `🌑 ${SPELL_CONFIG.name} lancé !${stanceInfo}${focusInfo} ` +
-        `Moctei s'est téléporté vers (${Math.round(destinationPosition.x)}, ${Math.round(destinationPosition.y)}). ` +
-        `Coût : ${actualManaCost} mana.`
-    );
 
     console.log(`[Moctei] Shadow teleportation completed successfully`);
 
