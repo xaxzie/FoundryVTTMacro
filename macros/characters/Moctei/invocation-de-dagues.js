@@ -126,6 +126,22 @@
                 icon: "icons/magic/fire/flame-burning-skull-orange.webp",
                 description: "Brûlé par les flammes noires de Moctei - Dégâts continus (depuis Invocation de dagues)"
             }
+        },
+
+        // Configuration de la Marque de Lavi
+        laviMarkOption: {
+            name: "Marque de Lavi",
+            manaCost: 4, // Coût additionnel
+            isFocusable: true,
+            description: "Ajoute 4d6 dégâts si la cible ne l'a pas remarqué",
+            condition: "La cible ne doit pas avoir remarqué Moctei",
+            bonusDamage: "4d6",
+            animation: {
+                file: "animated-spell-effects.misc.runes.wild.purple.circle",
+                scale: 0.5,
+                fadeOut: 800,
+                tint: "#8e24aa"
+            }
         }
     };
 
@@ -244,17 +260,19 @@
                 ${modeOptions}
 
                 <div style="margin: 10px 0; padding: 10px; background: #fff3e0; border-radius: 4px; border: 2px solid #f57c00;">
-                    <h4 style="margin: 0 0 10px 0; color: #e65100;">🔥 Options Combo (+2 mana, focalisable)</h4>
+                    <h4 style="margin: 0 0 10px 0; color: #e65100;">🔥 Options Combo</h4>
                     <label style="display: flex; align-items: center; margin-bottom: 8px;">
-                        <input type="radio" name="comboOption" value="none" checked style="margin-right: 8px;">
-                        <span><strong>Dagues seules</strong> - Effet standard</span>
+                        <input type="checkbox" id="darkFlameOption" style="margin-right: 8px;">
+                        <span><strong>+ Feu Obscur</strong> (+2 mana, focalisable) - Applique aussi Flamme Noire</span>
                     </label>
-                    <label style="display: flex; align-items: center;">
-                        <input type="radio" name="comboOption" value="darkFlame" style="margin-right: 8px;">
-                        <span><strong>+ Feu Obscur</strong> - Applique aussi Flamme Noire en cas de coup réussi</span>
+                    <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <input type="checkbox" id="laviMarkOption" style="margin-right: 8px;">
+                        <span><strong>+ Marque de Lavi</strong> (+4 mana, focalisable) - +4d6 dégâts si non remarqué</span>
                     </label>
                     <div style="margin-top: 8px; font-size: 0.9em; color: #bf360c; font-style: italic;">
-                        💡 Applique les flammes noires (dégâts continus) sur la cible touchée
+                        💡 <strong>Feu Obscur:</strong> Applique les flammes noires (dégâts continus) sur la cible touchée<br>
+                        🎯 <strong>Marque de Lavi:</strong> La cible ne doit pas avoir remarqué Moctei pour bénéficier du bonus<br>
+                        ✨ <strong>Ces options sont cumulables !</strong>
                     </div>
                 </div>
 
@@ -297,13 +315,15 @@
                             const selectedMode = html.find('input[name="mode"]:checked').val();
                             const attackBonus = parseInt(html.find('#attackBonus').val()) || 0;
                             const damageBonus = parseInt(html.find('#damageBonus').val()) || 0;
-                            const comboOption = html.find('input[name="comboOption"]:checked').val();
+                            const isDarkFlameActive = html.find('#darkFlameOption').is(':checked');
+                            const isLaviMarkActive = html.find('#laviMarkOption').is(':checked');
 
                             resolve({
                                 mode: selectedMode,
                                 attackBonus: attackBonus,
                                 damageBonus: damageBonus,
-                                comboOption: comboOption
+                                isDarkFlameActive: isDarkFlameActive,
+                                isLaviMarkActive: isLaviMarkActive
                             });
                         }
                     },
@@ -327,7 +347,7 @@
         return;
     }
 
-    const { mode, attackBonus, damageBonus, comboOption } = userConfig;
+    const { mode, attackBonus, damageBonus, isDarkFlameActive, isLaviMarkActive } = userConfig;
 
     // Déterminer le coût en mana et la configuration
     let actualManaCost = 0;
@@ -344,13 +364,20 @@
     }
 
     // ===== COMBO CONFIGURATION =====
-    const isComboActive = comboOption === 'darkFlame';
-    const comboManaCost = isComboActive ? SPELL_CONFIG.comboOption.manaCost : 0;
-    const comboManaCostReduced = (currentStance === 'focus' && SPELL_CONFIG.comboOption.isFocusable);
-    const finalComboManaCost = isComboActive ? (comboManaCostReduced ? 0 : comboManaCost) : 0;
+    // Les options sont maintenant des checkboxes indépendantes
+
+    // Calcul du coût Feu Obscur
+    const darkFlameManaCost = isDarkFlameActive ? SPELL_CONFIG.comboOption.manaCost : 0;
+    const darkFlameManaCostReduced = (currentStance === 'focus' && SPELL_CONFIG.comboOption.isFocusable);
+    const finalDarkFlameManaCost = isDarkFlameActive ? (darkFlameManaCostReduced ? 0 : darkFlameManaCost) : 0;
+
+    // Calcul du coût Marque de Lavi
+    const laviMarkManaCost = isLaviMarkActive ? SPELL_CONFIG.laviMarkOption.manaCost : 0;
+    const laviMarkManaCostReduced = (currentStance === 'focus' && SPELL_CONFIG.laviMarkOption.isFocusable);
+    const finalLaviMarkManaCost = isLaviMarkActive ? (laviMarkManaCostReduced ? 0 : laviMarkManaCost) : 0;
 
     // Mise à jour du coût total
-    actualManaCost += finalComboManaCost;
+    actualManaCost += finalDarkFlameManaCost + finalLaviMarkManaCost;
 
     // ===== TARGETING via Portal =====
     async function selectTarget() {
@@ -550,26 +577,39 @@
         const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
         const totalDamageBonus = characteristicInfo.final + (damageBonus || 0) + effectDamageBonus;
 
+        // Construire la formule de base
+        let baseDamageFormula = damageConfig.dice;
+
+        // Ajouter la Marque de Lavi si active
+        if (isLaviMarkActive) {
+            baseDamageFormula += " + 4d6";
+        }
+
         if (currentStance === 'offensif') {
             // Offensive stance: main damage is maximized
-            const diceMax = damageConfig.dice === '2d4' ? 8 : 4; // 2d4 max = 8, 1d4 max = 4
-            const maxDamage = diceMax + totalDamageBonus;
+            const baseDiceMax = damageConfig.dice === '2d4' ? 8 : 4; // 2d4 max = 8, 1d4 max = 4
+            const laviMarkMax = isLaviMarkActive ? 24 : 0; // 4d6 max = 24
+            const maxDamage = baseDiceMax + laviMarkMax + totalDamageBonus;
 
-            console.log(`[DEBUG] Maximized damage: ${maxDamage} (${diceMax} + ${totalDamageBonus})`);
+            console.log(`[DEBUG] Maximized damage: ${maxDamage} (${baseDiceMax}${isLaviMarkActive ? ' + 24' : ''} + ${totalDamageBonus})`);
 
             return {
                 total: maxDamage,
-                formula: `${diceMax} + ${totalDamageBonus}`,
+                formula: `${baseDiceMax}${isLaviMarkActive ? ' + 24' : ''} + ${totalDamageBonus}`,
                 result: maxDamage,
-                isMaximized: true
+                isMaximized: true,
+                hasLaviMark: isLaviMarkActive
             };
         } else {
             // Normal dice rolling
-            const damage = new Roll(`${damageConfig.dice} + @totalBonus`, { totalBonus: totalDamageBonus });
+            const damage = new Roll(`${baseDamageFormula} + @totalBonus`, { totalBonus: totalDamageBonus });
             await damage.evaluate({ async: true });
 
             console.log(`[DEBUG] Rolled damage: ${damage.total} (formula: ${damage.formula})`);
-            return damage;
+            return {
+                ...damage,
+                hasLaviMark: isLaviMarkActive
+            };
         }
     }
 
@@ -587,7 +627,13 @@
         const damageConfig = isCloseRange ? SPELL_CONFIG.damage.close : SPELL_CONFIG.damage.ranged;
         const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
         const totalDamageBonus = characteristicInfo.final + (damageBonus || 0) + effectDamageBonus;
-        combinedRollParts.push(`${damageConfig.dice} + ${totalDamageBonus}`);
+
+        // Construire la formule de dégâts avec Marque de Lavi si active
+        let damageFormula = damageConfig.dice;
+        if (isLaviMarkActive) {
+            damageFormula += " + 4d6";
+        }
+        combinedRollParts.push(`${damageFormula} + ${totalDamageBonus}`);
     }
 
     // Create and evaluate combined roll
@@ -603,18 +649,72 @@
         const damageConfig = isCloseRange ? SPELL_CONFIG.damage.close : SPELL_CONFIG.damage.ranged;
         const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
         const totalDamageBonus = characteristicInfo.final + (damageBonus || 0) + effectDamageBonus;
-        const damageFormulaString = `${damageConfig.dice} + ${totalDamageBonus}`;
+
+        // Construire la formule affichée avec Marque de Lavi si active
+        let damageFormulaString = damageConfig.dice;
+        if (isLaviMarkActive) {
+            damageFormulaString += " + 4d6";
+        }
+        damageFormulaString += ` + ${totalDamageBonus}`;
+
         finalDamageResult = {
             total: damageRollResult?.result ?? damageRollResult?.total ?? (typeof damageResult === 'object' ? damageResult.total : null),
             formula: damageFormulaString,
-            result: damageRollResult?.result ?? damageRollResult?.total ?? (typeof damageResult === 'object' ? damageResult.total : null)
+            result: damageRollResult?.result ?? damageRollResult?.total ?? (typeof damageResult === 'object' ? damageResult.total : null),
+            hasLaviMark: isLaviMarkActive
         };
     }
 
     const totalDamage = finalDamageResult.total;
 
+    // ===== MARQUE DE LAVI ANIMATION =====
+    if (isLaviMarkActive && targetActorInfo?.token) {
+        // Animation de la Marque de Lavi
+        const laviMarkSeq = new Sequence();
+        laviMarkSeq.effect()
+            .file(SPELL_CONFIG.laviMarkOption.animation.file)
+            .attachTo(targetActorInfo.token)
+            .scale(SPELL_CONFIG.laviMarkOption.animation.scale)
+            .fadeOut(SPELL_CONFIG.laviMarkOption.animation.fadeOut)
+            .tint(SPELL_CONFIG.laviMarkOption.animation.tint); // Déclenché après les animations d'attaque
+
+        await laviMarkSeq.play();
+        console.log(`[Moctei] Applied Lavi Mark animation to ${targetName}`);
+    }
+
+    // ===== GM DELEGATION FUNCTIONS =====
+    async function applyEffectWithGMDelegation(targetToken, effectData) {
+        if (!targetToken?.actor) {
+            console.error("[Moctei] No valid target token or actor");
+            return false;
+        }
+
+        try {
+            if (targetToken.actor.isOwner) {
+                // User owns the token, apply directly
+                await targetToken.actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+                console.log(`[Moctei] Applied effect directly to ${targetToken.name}`);
+                return true;
+            } else {
+                // Use GM delegation for tokens the user doesn't own
+                if (globalThis.gmSocket) {
+                    await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetToken.id, effectData);
+                    console.log(`[Moctei] Applied effect to ${targetToken.name} via GM delegation`);
+                    return true;
+                } else {
+                    console.warn(`[Moctei] GM Socket not available and user doesn't own ${targetToken.name}`);
+                    ui.notifications.warn(`Impossible d'appliquer l'effet à ${targetToken.name} - Contactez le MJ`);
+                    return false;
+                }
+            }
+        } catch (error) {
+            console.error(`[Moctei] Error applying effect to ${targetToken.name}:`, error);
+            return false;
+        }
+    }
+
     // ===== COMBO DARK FLAME APPLICATION =====
-    if (isComboActive && targetActorInfo?.actor) {
+    if (isDarkFlameActive && targetActorInfo?.actor) {
         // Calculs pour le Feu Obscur combo (basé sur Dextérité comme dans feu-obscur.js)
         const darkFlameInitialDamage = Math.ceil(characteristicInfo.final / 2); // Dex/2 arrondi sup
         const darkFlameContinuousDamage = Math.ceil(characteristicInfo.final / 4); // Dex/4 arrondi sup
@@ -653,16 +753,10 @@
             }
         };
 
-        try {
-            // Use GM delegation for effect application if available
-            if (globalThis.gmSocket) {
-                console.log(`[Moctei] Applying combo dark flame to ${targetName} via GM socket`);
-                await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActorInfo.actor.id, darkFlameEffectData);
-            } else {
-                // Fallback: direct application if GM socket not available
-                console.log(`[Moctei] GM Socket not available, applying effect directly to ${targetName}`);
-                await targetActorInfo.actor.createEmbeddedDocuments("ActiveEffect", [darkFlameEffectData]);
-            }
+        // Appliquer l'effet avec délégation GM si nécessaire
+        const effectApplied = await applyEffectWithGMDelegation(targetActorInfo.token, darkFlameEffectData);
+
+        if (effectApplied) {
             console.log(`[Moctei] Applied combo dark flame to ${targetName}`);
 
             // Gérer l'effet de contrôle Feu Obscur sur Moctei
@@ -713,10 +807,8 @@
                 await actor.createEmbeddedDocuments("ActiveEffect", [darkFlameControlEffectData]);
                 console.log(`[Moctei] Created new dark flame control effect`);
             }
-
-        } catch (error) {
-            console.error(`[Moctei] Error applying combo dark flame:`, error);
-            ui.notifications.error(`Erreur lors de l'application du Feu Obscur combo !`);
+        } else {
+            console.warn(`[Moctei] Could not apply dark flame effect to ${targetName}`);
         }
     }
 
@@ -824,30 +916,64 @@
         const damageConfig = isCloseRange ? SPELL_CONFIG.damage.close : SPELL_CONFIG.damage.ranged;
         const totalDamageBonus = characteristicInfo.final + (damageBonus || 0) + effectDamageBonus;
 
+        // Construction de la formule affichée
+        let displayFormula = damageConfig.dice;
+        if (isLaviMarkActive) {
+            displayFormula += " + 4d6";
+        }
+        displayFormula += ` + ${SPELL_CONFIG.characteristicDisplay} + bonus`;
+
         const damageDisplay = `
             <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
                 <div style="font-size: 1.1em; color: #424242; margin-bottom: 6px;"><strong>🌑 ${SPELL_CONFIG.name}${stanceNote}</strong></div>
                 <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cible:</strong> ${targetName}</div>
                 <div style="font-size: 1.4em; color: #4a148c; font-weight: bold;">💥 DÉGÂTS: ${totalDamage}</div>
                 <div style="font-size: 0.8em; color: #666; margin-top: 2px;">
-                    (${damageConfig.dice} + ${SPELL_CONFIG.characteristicDisplay} + bonus)
+                    (${displayFormula})
                 </div>
                 <div style="font-size: 0.8em; color: #666;">
-                    ${damageConfig.description}: ${totalDamage}
+                    ${damageConfig.description}${isLaviMarkActive ? ' + Marque de Lavi' : ''}: ${totalDamage}
                 </div>
             </div>
         `;
 
-        const comboDisplay = isComboActive ? `
-            <div style="margin: 8px 0; padding: 10px; background: #fff3e0; border-radius: 4px; border: 2px solid #f57c00;">
-                <div style="font-size: 1.1em; color: #e65100; font-weight: bold; margin-bottom: 6px;">🔥 COMBO FEU OBSCUR ACTIVÉ</div>
-                <div style="font-size: 0.9em; color: #bf360c;">
-                    <div>💥 <strong>Dégâts initiaux Feu Obscur:</strong> ${Math.ceil(characteristicInfo.final / 2)} (Dex/2, arrondi sup.)</div>
-                    <div>🔥 <strong>Dégâts continus Feu Obscur:</strong> ${Math.ceil(characteristicInfo.final / 4)} (Dex/4, arrondi sup.)</div>
-                    <div>🔥 <strong>Maintenance:</strong> +1 mana par tour pour le Feu Obscur</div>
+        // Combo displays (options cumulables)
+        let comboDisplay = '';
+
+        if (isDarkFlameActive) {
+            comboDisplay += `
+                <div style="margin: 8px 0; padding: 10px; background: #fff3e0; border-radius: 4px; border: 2px solid #f57c00;">
+                    <div style="font-size: 1.1em; color: #e65100; font-weight: bold; margin-bottom: 6px;">🔥 FEU OBSCUR ACTIVÉ</div>
+                    <div style="font-size: 0.9em; color: #bf360c;">
+                        <div>💥 <strong>Dégâts initiaux Feu Obscur:</strong> ${Math.ceil(characteristicInfo.final / 2)} (Dex/2, arrondi sup.)</div>
+                        <div>🔥 <strong>Dégâts continus Feu Obscur:</strong> ${Math.ceil(characteristicInfo.final / 4)} (Dex/4, arrondi sup.)</div>
+                        <div>🔥 <strong>Maintenance:</strong> +1 mana par tour pour le Feu Obscur</div>
+                    </div>
                 </div>
-            </div>
-        ` : '';
+            `;
+        }
+
+        if (isLaviMarkActive) {
+            comboDisplay += `
+                <div style="margin: 8px 0; padding: 10px; background: #f3e5f5; border-radius: 4px; border: 2px solid #8e24aa;">
+                    <div style="font-size: 1.1em; color: #6a1b9a; font-weight: bold; margin-bottom: 6px;">🎯 MARQUE DE LAVI ACTIVÉE</div>
+                    <div style="font-size: 0.9em; color: #4a148c;">
+                        <div>⚡ <strong>Bonus de dégâts:</strong> +4d6 (cible non remarquée)</div>
+                        <div>✨ <strong>Condition:</strong> La cible ne doit pas avoir remarqué Moctei</div>
+                        <div>🔮 <strong>Coût supplémentaire:</strong> ${finalLaviMarkManaCost > 0 ? `${finalLaviMarkManaCost} mana` : '0 mana (Focus)'}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (isDarkFlameActive && isLaviMarkActive) {
+            comboDisplay += `
+                <div style="margin: 8px 0; padding: 8px; background: linear-gradient(45deg, #fff3e0, #f3e5f5); border-radius: 4px; border: 2px solid #6a1b9a; text-align: center;">
+                    <div style="font-size: 1.0em; color: #4a148c; font-weight: bold;">⚡ COMBO COMPLET ACTIVÉ ⚡</div>
+                    <div style="font-size: 0.8em; color: #8e24aa; margin-top: 2px;">Feu Obscur + Marque de Lavi</div>
+                </div>
+            `;
+        }
 
         const effectDisplay = effectMessage ? `
             <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f3e5f5; border-radius: 4px;">
@@ -887,7 +1013,15 @@
     const rangeInfo = isCloseRange ? "rapprochée" : "à distance";
     const maximizedInfo = currentStance === 'offensif' ? ' MAXIMISÉ' : '';
 
-    const comboInfo = isComboActive ? ` + Feu Obscur (${Math.ceil(characteristicInfo.final / 2)} initiaux, ${Math.ceil(characteristicInfo.final / 4)}/tour)` : '';
+    // Construction des informations de combo (options cumulables)
+    let comboInfo = '';
+    if (isDarkFlameActive && isLaviMarkActive) {
+        comboInfo += ` + Combo Complet (Feu Obscur: ${Math.ceil(characteristicInfo.final / 2)} initiaux, ${Math.ceil(characteristicInfo.final / 4)}/tour + Marque de Lavi: +4d6)`;
+    } else if (isDarkFlameActive) {
+        comboInfo += ` + Feu Obscur (${Math.ceil(characteristicInfo.final / 2)} initiaux, ${Math.ceil(characteristicInfo.final / 4)}/tour)`;
+    } else if (isLaviMarkActive) {
+        comboInfo += ` + Marque de Lavi (+4d6)`;
+    }
 
     ui.notifications.info(`🌑 ${SPELL_CONFIG.name} lancé !${stanceInfo} Cible: ${targetName} (${rangeInfo}). Attaque: ${attackResult.result}, Dégâts: ${totalDamage}${maximizedInfo}.${comboInfo}`);
 
