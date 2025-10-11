@@ -19,8 +19,8 @@
     // ===== CONFIGURATION DU SORT =====
     const SPELL_CONFIG = {
         name: "Substitution d'ombre",
-        characteristic: "dexterite",
-        characteristicDisplay: "Dextérité",
+        characteristic: "agilite",
+        characteristicDisplay: "Agilité",
         spellLevel: 2,
         isDirect: true,
         isFocusable: false, // Non focusable
@@ -342,7 +342,7 @@
 
         const effectInfo = characteristicInfo.effectBonus !== 0 ?
             `<div style="color: #2e7d32; font-size: 0.9em; margin: 5px 0;">
-                <div>✨ Bonus de Dextérité: +${characteristicInfo.effectBonus}</div>
+                <div>✨ Bonus d'agilité: ${characteristicInfo.effectBonus}</div>
             </div>` : '';
 
         const bonusInfo = dodgeBonus > 0 ?
@@ -391,7 +391,7 @@
 
                 <div style="display: flex; justify-content: space-around; margin: 10px 0;">
                     <div style="text-align: center;">
-                        <div style="font-size: 0.8em; color: #666;">DEXTÉRITÉ</div>
+                        <div style="font-size: 0.8em; color: #666;">Agilité</div>
                         <div style="font-size: 1.2em; font-weight: bold; color: #4a148c;">${characteristicInfo.final}</div>
                     </div>
                     <div style="text-align: center;">

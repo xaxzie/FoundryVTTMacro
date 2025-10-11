@@ -825,8 +825,29 @@
                     const effectKey = $(this).data('effect');
                     const category = $(this).data('category');
 
-                    if (action === 'setInjuries' || action === 'setCustomCount' || action === 'removeExternal') {
-                        // Handle injury/custom/external count setting directly
+                    if (action === 'setInjuries' || action === 'setCustomCount') {
+                        // Handle injury/custom count setting directly
+                        return;
+                    }
+
+                    if (action === 'removeExternal') {
+                        // Handle external effect removal immediately
+                        const externalEffect = actor.effects.get(effectKey);
+                        if (externalEffect) {
+                            externalEffect.delete().then(() => {
+                                ui.notifications.success(`🗑️ Effet externe "${externalEffect.name}" supprimé !`);
+                                // Remove the effect item from the dialog
+                                $(this).closest('.effect-item').fadeOut(300, function() {
+                                    $(this).remove();
+                                });
+                                console.log(`[Moctei] Removed external effect: ${externalEffect.name}`);
+                            }).catch(error => {
+                                console.error(`[Moctei] Error removing external effect:`, error);
+                                ui.notifications.error(`Erreur lors de la suppression de "${externalEffect.name}" !`);
+                            });
+                        } else {
+                            ui.notifications.warn("Effet externe introuvable !");
+                        }
                         return;
                     }
 
@@ -1418,17 +1439,6 @@
                         await existing.delete();
                         removedEffects.push(statusData.name || statusData.label);
                         console.log(`[Moctei] Removed status effect: ${statusData.name || statusData.label}`);
-                    }
-                }
-
-            } else if (category === 'external') {
-                if (action === 'removeExternal') {
-                    // Find the external effect by ID
-                    const externalEffect = actor.effects.get(effectKey);
-                    if (externalEffect) {
-                        await externalEffect.delete();
-                        removedEffects.push(externalEffect.name);
-                        console.log(`[Moctei] Removed external effect: ${externalEffect.name}`);
                     }
                 }
             }

@@ -41,14 +41,13 @@
         // Configuration des animations
         animations: {
             attack: {
-                file: "jb2a.eldritch_blast.purple",
-                scale: 0.8,
-                tint: "#4a148c" // Violet sombre pour l'attaque d'ombre
+                file: "jb2a.fairies.inward_burst.01.bluepurple",
+                scale: 0.5,
+                tint: "#010101" // Violet sombre pour l'attaque d'ombre
             },
             hit: {
-                file: "jb2a.impact.003.dark_purple",
-                scale: 0.6,
-                duration: 1000,
+                file: "jb2a_patreon.impact.001.dark_purple",
+                scale: 2.0,
                 fadeIn: 200,
                 fadeOut: 400
             }
@@ -380,11 +379,9 @@
                 // 1. Effet d'attaque depuis la zone d'ombre
                 seq.effect()
                     .file(SPELL_CONFIG.animations.attack.file)
-                    .atLocation(shadowCenter)
-                    .stretchTo(targetCenter)
+                    .atLocation(targetCenter)
                     .scale(SPELL_CONFIG.animations.attack.scale)
                     .tint(SPELL_CONFIG.animations.attack.tint)
-                    .duration(1200)
                     .waitUntilFinished(-400);
 
                 // 2. Effet d'impact sur la cible
@@ -392,7 +389,6 @@
                     .file(SPELL_CONFIG.animations.hit.file)
                     .atLocation(targetCenter)
                     .scale(SPELL_CONFIG.animations.hit.scale)
-                    .duration(SPELL_CONFIG.animations.hit.duration)
                     .fadeIn(SPELL_CONFIG.animations.hit.fadeIn)
                     .fadeOut(SPELL_CONFIG.animations.hit.fadeOut);
 
