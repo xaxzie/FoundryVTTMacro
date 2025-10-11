@@ -415,7 +415,7 @@
                     continue;
                 }
 
-                const mainResult = await globalThis.gmSocket.executeAsGM("removeEffectFromActor", effectInfo.actor.id, effectInfo.effect.id);
+                const mainResult = await globalThis.gmSocket.executeAsGM("removeEffectFromActor", effectInfo.token.id, effectInfo.effect.id);
 
                 if (mainResult?.success) {
                     console.log(`[DEBUG] Removed main Kingdom effect from ${effectInfo.name}`);
@@ -427,7 +427,7 @@
                     );
 
                     if (secondaryEffect) {
-                        const secondaryResult = await globalThis.gmSocket.executeAsGM("removeEffectFromActor", effectInfo.actor.id, secondaryEffect.id);
+                        const secondaryResult = await globalThis.gmSocket.executeAsGM("removeEffectFromActor", effectInfo.token.id, secondaryEffect.id);
                         if (secondaryResult?.success) {
                             console.log(`[DEBUG] Removed secondary Kingdom effect from ${effectInfo.name}`);
                         } else {
@@ -486,7 +486,7 @@
                 }
 
                 console.log(`[DEBUG] Removing ${effectInfo.effectType} effect from ${effectInfo.name} via GM socket`);
-                const result = await globalThis.gmSocket.executeAsGM("removeEffectFromActor", effectInfo.actor.id, effectInfo.effect.id);
+                const result = await globalThis.gmSocket.executeAsGM("removeEffectFromActor", effectInfo.token.id, effectInfo.effect.id);
 
                 if (result?.success) {
                     console.log(`[DEBUG] Successfully removed ${effectInfo.effectType} effect from ${effectInfo.name}`);

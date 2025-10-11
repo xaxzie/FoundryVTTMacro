@@ -91,6 +91,27 @@
         return false;
     }
 
+    // ===== FONCTIONS GM DELEGATION =====
+    /**
+     * Fonction de délégation GM pour suppression d'effets
+     */
+    async function removeEffectWithGMDelegation(targetToken, effectId) {
+        if (!globalThis.gmSocket) {
+            return { success: false, error: "GM Socket non disponible" };
+        }
+        return await globalThis.gmSocket.executeAsGM("removeEffectFromActor", targetToken.id, effectId);
+    }
+
+    /**
+     * Fonction de délégation GM pour mise à jour d'effets
+     */
+    async function updateEffectWithGMDelegation(targetToken, effectId, updateData) {
+        if (!globalThis.gmSocket) {
+            return { success: false, error: "GM Socket non disponible" };
+        }
+        return await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetToken.id, effectId, updateData);
+    }
+
     // ===== VALIDATION BASIQUE =====
     if (!canvas.tokens.controlled.length) {
         ui.notifications.error("Veuillez d'abord sélectionner le jeton de Missy !");
@@ -316,8 +337,12 @@
 
             console.log(`[DEBUG] Removing ${effectType} from ${token.name}`);
 
-            // Remove the effect
-            await effect.delete();
+            // Remove the effect via GM delegation
+            if (token.actor.isOwner) {
+                await effect.delete();
+            } else {
+                await removeEffectWithGMDelegation(token, effect.id);
+            }
 
             // Clean up any sequencer animations if specified
             if (config.cleanup?.sequencerName) {

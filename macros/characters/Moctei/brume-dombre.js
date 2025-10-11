@@ -405,14 +405,14 @@
                     }
                 };
 
-                // Use GM delegation for effect creation if available
+                // Use GM delegation for effect creation if available (token-based)
                 if (globalThis.gmSocket) {
-                    console.log(`[Moctei] Creating shadow mist effect via GM socket`);
-                    await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActorInfo.actor.id, shadowMistEffectData);
+                    console.log(`[Moctei] Creating shadow mist effect via GM socket (token-based)`);
+                    await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActorInfo.token.id, shadowMistEffectData);
                 } else {
-                    // Fallback: direct creation if GM socket not available
-                    console.log(`[Moctei] GM Socket not available, creating effect directly`);
-                    await targetActorInfo.actor.createEmbeddedDocuments("ActiveEffect", [shadowMistEffectData]);
+                    // Fallback: direct creation if GM socket not available (token-based)
+                    console.log(`[Moctei] GM Socket not available, creating effect directly on token actor`);
+                    await targetActorInfo.token.actor.createEmbeddedDocuments("ActiveEffect", [shadowMistEffectData]);
                 }
 
                 effectApplied = true;

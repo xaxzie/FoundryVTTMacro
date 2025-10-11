@@ -515,10 +515,10 @@
     // ===== APPLY SPEED REDUCTION EFFECT =====
     // Helper for GM delegation (copied from actor-detection.js)
 
-async function applyEffectWithGMDelegation(targetActor, effectData) {
-    if (!targetActor || !effectData) return;
-    if (targetActor.isOwner) {
-        await targetActor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+async function applyEffectWithGMDelegation(targetToken, effectData) {
+    if (!targetToken || !effectData) return;
+    if (targetToken.actor.isOwner) {
+        await targetToken.actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
     } else {
         if (!game.modules.get("socketlib")?.active) {
             ui.notifications.error("Socketlib module is required for GM delegation.");
@@ -532,11 +532,11 @@ async function applyEffectWithGMDelegation(targetActor, effectData) {
         }
 
         // Log the attempt
-        console.log("[DEBUG] Requesting GM to apply effect to", targetActor.name, effectData);
+        console.log("[DEBUG] Requesting GM to apply effect to token", targetToken.name, effectData);
 
         // CORRECT: Execute the function as GM using socketlib API
         try {
-            const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.id, effectData);
+            const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetToken.id, effectData);
             console.log("[DEBUG] GM delegation result:", result);
         } catch (err) {
             console.error("[DEBUG] GM delegation failed:", err);
@@ -546,10 +546,10 @@ async function applyEffectWithGMDelegation(targetActor, effectData) {
 }
 
 // Similarly update updateEffectWithGMDelegation:
-async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
-    if (!targetActor || !effectId || !updateData) return;
-    if (targetActor.isOwner) {
-        const effect = targetActor.effects.get(effectId);
+async function updateEffectWithGMDelegation(targetToken, effectId, updateData) {
+    if (!targetToken || !effectId || !updateData) return;
+    if (targetToken.actor.isOwner) {
+        const effect = targetToken.actor.effects.get(effectId);
         if (effect) await effect.update(updateData);
     } else {
         if (!game.modules.get("socketlib")?.active) {
@@ -564,11 +564,11 @@ async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
         }
 
         // Log the attempt
-        console.log("[DEBUG] Requesting GM to update effect", effectId, "on", targetActor.name, updateData);
+        console.log("[DEBUG] Requesting GM to update effect", effectId, "on token", targetToken.name, updateData);
 
         // CORRECT: Execute the function as GM using socketlib API
         try {
-            const result = await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetActor.id, effectId, updateData);
+            const result = await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetToken.id, effectId, updateData);
             console.log("[DEBUG] GM delegation result:", result);
         } catch (err) {
             console.error("[DEBUG] GM delegation failed:", err);
@@ -588,7 +588,7 @@ async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
                     "flags.statuscounter.value": newSlowdown,
                     "description": `Ralentissement par Empalement (-${newSlowdown} cases de vitesse)`
                 };
-                await updateEffectWithGMDelegation(target.actor, existingEffect.id, updateData);
+                await updateEffectWithGMDelegation(target.token, existingEffect.id, updateData);
                 console.log(`[DEBUG] Increased slowdown effect on ${target.name}: ${currentSlowdown} + ${finalSpeedReduction.total} = ${newSlowdown} speed reduction`);
                 continue;
             }
@@ -609,7 +609,7 @@ async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
                     }
                 }
             };
-            await applyEffectWithGMDelegation(target.actor, slowdownEffect);
+            await applyEffectWithGMDelegation(target.token, slowdownEffect);
             console.log(`[DEBUG] Applied slowdown effect to ${target.name}: -${finalSpeedReduction.total} speed`);
         } catch (error) {
             console.error(`[ERROR] Failed to apply slowdown effect to ${target.name}:`, error);

@@ -142,9 +142,9 @@
     }
 
     /**
-     * Applique un effet avec délégation GM
+     * Applique un effet avec délégation GM (token-based)
      */
-    async function applyEffectWithGMDelegation(targetActor, effectData) {
+    async function applyEffectWithGMDelegation(targetToken, effectData) {
         if (!globalThis.gmSocket) {
             const error = "GM Socket non disponible ! Assurez-vous que le module custom-status-effects est actif.";
             ui.notifications.error(error);
@@ -153,11 +153,11 @@
         }
 
         try {
-            console.log(`[DEBUG] Applying effect "${effectData.name}" to ${targetActor.name} via GM socket`);
-            const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.id, effectData);
+            console.log(`[DEBUG] Applying effect "${effectData.name}" to token ${targetToken.name} via GM socket`);
+            const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetToken.id, effectData);
 
             if (result?.success) {
-                console.log(`[DEBUG] Successfully applied effect "${effectData.name}" to ${targetActor.name}`);
+                console.log(`[DEBUG] Successfully applied effect "${effectData.name}" to token ${targetToken.name}`);
                 return { success: true, effects: result.effects };
             } else {
                 console.error(`[DEBUG] Failed to apply effect: ${result?.error}`);
@@ -170,9 +170,9 @@
     }
 
     /**
-     * Met à jour un effet avec délégation GM
+     * Met à jour un effet avec délégation GM (token-based)
      */
-    async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
+    async function updateEffectWithGMDelegation(targetToken, effectId, updateData) {
         if (!globalThis.gmSocket) {
             const error = "GM Socket non disponible ! Assurez-vous que le module custom-status-effects est actif.";
             ui.notifications.error(error);
@@ -181,11 +181,11 @@
         }
 
         try {
-            console.log(`[DEBUG] Updating effect ${effectId} on ${targetActor.name} via GM socket`);
-            const result = await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetActor.id, effectId, updateData);
+            console.log(`[DEBUG] Updating effect ${effectId} on token ${targetToken.name} via GM socket`);
+            const result = await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetToken.id, effectId, updateData);
 
             if (result?.success) {
-                console.log(`[DEBUG] Successfully updated effect ${effectId} on ${targetActor.name}`);
+                console.log(`[DEBUG] Successfully updated effect ${effectId} on token ${targetToken.name}`);
                 return { success: true };
             } else {
                 console.error(`[DEBUG] Failed to update effect: ${result?.error}`);
@@ -527,7 +527,7 @@
     /**
      * Gère l'accrochage du livre à la cible et met à jour le compteur de Urgen
      */
-    async function handleBookAttachment(targetActor) {
+    async function handleBookAttachment(targetActorInfo) {
         const counterValue = Math.floor(characteristicInfo.final / 2);
         const effectName = "Livre Monstrueux";
         let attachmentSuccess = false;
@@ -535,7 +535,7 @@
 
         // Vérifier si l'effet existe déjà sur la cible
         let existingEffect = null;
-        for (const effect of targetActor.effects) {
+        for (const effect of targetActorInfo.actor.effects) {
             if (effect.name === effectName) {
                 existingEffect = effect;
                 break;
@@ -564,11 +564,11 @@
                 "flags.BookCount.value": currentBookCount + 1
             };
 
-            const updateResult = await updateEffectWithGMDelegation(targetActor, existingEffect.id, updateData);
+            const updateResult = await updateEffectWithGMDelegation(targetActorInfo.token, existingEffect.id, updateData);
             if (updateResult.success) {
                 attachmentSuccess = true;
                 attachmentMessage = `📚 Livre supplémentaire attaché (${currentCounter} → ${newCounter})`;
-                console.log(`[DEBUG] Updated existing effect on ${targetActor.name}: counter ${currentCounter} → ${newCounter}`);
+                console.log(`[DEBUG] Updated existing effect on ${targetActorInfo.name}: counter ${currentCounter} → ${newCounter}`);
             } else {
                 console.error("Error updating existing effect:", updateResult.error);
                 attachmentMessage = `❌ Erreur mise à jour: ${updateResult.error}`;
@@ -594,11 +594,11 @@
                 changes: []
             };
 
-            const result = await applyEffectWithGMDelegation(targetActor, effectData);
+            const result = await applyEffectWithGMDelegation(targetActorInfo.token, effectData);
             if (result.success) {
                 attachmentSuccess = true;
-                attachmentMessage = `📖 Nouveau livre attaché (Counter: ${counterValue})`;
-                console.log(`[DEBUG] Applied new effect to ${targetActor.name}: counter ${counterValue}`);
+                attachmentMessage = `� Livre monstrueux attaché (Protection: ${counterValue})`;
+                console.log(`[DEBUG] Applied new effect to ${targetActorInfo.name}: counter ${counterValue}`);
             } else {
                 console.error(`[DEBUG] Failed to apply effect: ${result.error}`);
                 attachmentMessage = `❌ Erreur application: ${result.error}`;
@@ -629,7 +629,7 @@
                     "flags.statuscounter.visible": true
                 };
 
-                const urgenUpdateResult = await updateEffectWithGMDelegation(actor, urgenBookEffect.id, urgenUpdateData);
+                const urgenUpdateResult = await updateEffectWithGMDelegation(caster, urgenBookEffect.id, urgenUpdateData);
                 if (urgenUpdateResult.success) {
                     console.log(`[DEBUG] Updated Urgen's Book effect: ${currentUrgenCounter} → ${newUrgenCounter}`);
                 } else {
@@ -652,7 +652,7 @@
                     changes: []
                 };
 
-                const urgenResult = await applyEffectWithGMDelegation(actor, urgenBookData);
+                const urgenResult = await applyEffectWithGMDelegation(caster, urgenBookData);
                 if (urgenResult.success) {
                     console.log(`[DEBUG] Applied new Book effect to Urgen: counter 1`);
                 } else {
@@ -669,7 +669,7 @@
 
     // ===== BOOK ATTACHMENT SYSTEM =====
     if (attachBook && targetActor) {
-        bookAttachmentResult = await handleBookAttachment(targetActor.actor);
+        bookAttachmentResult = await handleBookAttachment(targetActor);
     }
 
     // Build enhanced flavor for the final dice roll message

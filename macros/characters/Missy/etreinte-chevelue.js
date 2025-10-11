@@ -297,9 +297,9 @@
     const targetActor = getActorAtLocation(target.x, target.y);
     const targetName = targetActor ? targetActor.name : 'position';
 
-    // Check if target already has an embrace
-    if (targetActor?.actor) {
-        const existingEmbrace = targetActor.actor.effects.find(e => e.name === SPELL_CONFIG.embraceEffect.name);
+    // Check if target already has an embrace (token-based check)
+    if (targetActor?.token) {
+        const existingEmbrace = targetActor.token.actor.effects.find(e => e.name === SPELL_CONFIG.embraceEffect.name);
         if (existingEmbrace) {
             ui.notifications.warn(`${targetName} est déjà enlacé par des cheveux magiques !`);
             return;
@@ -346,7 +346,7 @@
     await attackRoll.evaluate({ async: true });
 
     // ===== ADD ACTIVE EFFECT TO TARGET =====
-    if (targetActor?.actor) {
+    if (targetActor?.token) {
         // Create effect data with malus on all characteristics
         const effectData = {
             name: SPELL_CONFIG.embraceEffect.name,
@@ -372,20 +372,20 @@
         try {
             // Use GM delegation for effect application if available
             if (globalThis.gmSocket) {
-                console.log(`[DEBUG] Applying embrace effect to ${targetName} via GM socket`);
-                const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.actor.id, effectData);
+                console.log(`[DEBUG] Applying embrace effect to ${targetName} via GM socket (token-based)`);
+                const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.token.id, effectData);
 
                 if (result?.success) {
-                    console.log(`[DEBUG] Successfully applied embrace effect to ${targetName}`);
+                    console.log(`[DEBUG] Successfully applied embrace effect to ${targetName} (token)`);
                 } else {
                     console.error(`[DEBUG] Failed to apply embrace effect: ${result?.error}`);
                     ui.notifications.error(`Impossible d'appliquer l'effet d'étreinte : ${result?.error}`);
                 }
             } else {
-                // Fallback: direct application if GM socket not available
-                console.log(`[DEBUG] GM Socket not available, applying effect directly`);
-                await targetActor.actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
-                console.log(`[DEBUG] Successfully applied embrace effect to ${targetName} directly`);
+                // Fallback: direct application if GM socket not available (token-based)
+                console.log(`[DEBUG] GM Socket not available, applying effect directly to token`);
+                await targetActor.token.actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+                console.log(`[DEBUG] Successfully applied embrace effect to ${targetName} directly (token)`);
             }
         } catch (error) {
             console.error("Error applying embrace effect:", error);

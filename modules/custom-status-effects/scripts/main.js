@@ -142,74 +142,74 @@ function registerGMSocket() {
         // Register module with socketlib (following Sequencer pattern)
         const gmSocket = socketlib.registerModule("custom-status-effects");
         console.log("[DEBUG] Custom Status Effects | GM Socket registered:", gmSocket);
-        // Handler for applying new effects to actors
-        const applyEffectHandler = async (actorId, effectData) => {
-            console.log(`[GM Socket] Applying effect to actor ${actorId}:`, effectData);
+        // Handler for applying new effects to tokens
+        const applyEffectHandler = async (tokenId, effectData) => {
+            console.log(`[GM Socket] Applying effect to token ${tokenId}:`, effectData);
 
-            const actor = game.actors.get(actorId);
-            if (!actor) {
-                console.error(`[GM Socket] Actor with ID ${actorId} not found`);
-                return { success: false, error: "Actor not found" };
+            const token = canvas.tokens.get(tokenId);
+            if (!token) {
+                console.error(`[GM Socket] Token with ID ${tokenId} not found`);
+                return { success: false, error: "Token not found" };
             }
 
             try {
-                const createdEffects = await actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
-                console.log(`[GM Socket] Successfully applied effect "${effectData.name}" to ${actor.name}`);
+                const createdEffects = await token.actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+                console.log(`[GM Socket] Successfully applied effect "${effectData.name}" to ${token.name} (token actor)`);
                 return { success: true, effects: createdEffects };
             } catch (error) {
-                console.error(`[GM Socket] Failed to apply effect to ${actor.name}:`, error);
+                console.error(`[GM Socket] Failed to apply effect to ${token.name}:`, error);
                 return { success: false, error: error.message };
             }
         };
 
-        // Handler for updating existing effects on actors
-        const updateEffectHandler = async (actorId, effectId, updateData) => {
-            console.log(`[GM Socket] Updating effect ${effectId} on actor ${actorId}:`, updateData);
+        // Handler for updating existing effects on tokens
+        const updateEffectHandler = async (tokenId, effectId, updateData) => {
+            console.log(`[GM Socket] Updating effect ${effectId} on token ${tokenId}:`, updateData);
 
-            const actor = game.actors.get(actorId);
-            if (!actor) {
-                console.error(`[GM Socket] Actor with ID ${actorId} not found`);
-                return { success: false, error: "Actor not found" };
+            const token = canvas.tokens.get(tokenId);
+            if (!token) {
+                console.error(`[GM Socket] Token with ID ${tokenId} not found`);
+                return { success: false, error: "Token not found" };
             }
 
-            const effect = actor.effects.get(effectId);
+            const effect = token.actor.effects.get(effectId);
             if (!effect) {
-                console.error(`[GM Socket] Effect with ID ${effectId} not found on ${actor.name}`);
+                console.error(`[GM Socket] Effect with ID ${effectId} not found on ${token.name}`);
                 return { success: false, error: "Effect not found" };
             }
 
             try {
                 await effect.update(updateData);
-                console.log(`[GM Socket] Successfully updated effect "${effect.name}" on ${actor.name}`);
+                console.log(`[GM Socket] Successfully updated effect "${effect.name}" on ${token.name} (token actor)`);
                 return { success: true };
             } catch (error) {
-                console.error(`[GM Socket] Failed to update effect on ${actor.name}:`, error);
+                console.error(`[GM Socket] Failed to update effect on ${token.name}:`, error);
                 return { success: false, error: error.message };
             }
         };
 
-        // Handler for removing effects from actors
-        const removeEffectHandler = async (actorId, effectId) => {
-            console.log(`[GM Socket] Removing effect ${effectId} from actor ${actorId}`);
+        // Handler for removing effects from tokens
+        const removeEffectHandler = async (tokenId, effectId) => {
+            console.log(`[GM Socket] Removing effect ${effectId} from token ${tokenId}`);
 
-            const actor = game.actors.get(actorId);
-            if (!actor) {
-                console.error(`[GM Socket] Actor with ID ${actorId} not found`);
-                return { success: false, error: "Actor not found" };
+            const token = canvas.tokens.get(tokenId);
+            if (!token) {
+                console.error(`[GM Socket] Token with ID ${tokenId} not found`);
+                return { success: false, error: "Token not found" };
             }
 
-            const effect = actor.effects.get(effectId);
+            const effect = token.actor.effects.get(effectId);
             if (!effect) {
-                console.error(`[GM Socket] Effect with ID ${effectId} not found on ${actor.name}`);
+                console.error(`[GM Socket] Effect with ID ${effectId} not found on ${token.name}`);
                 return { success: false, error: "Effect not found" };
             }
 
             try {
                 await effect.delete();
-                console.log(`[GM Socket] Successfully removed effect "${effect.name}" from ${actor.name}`);
+                console.log(`[GM Socket] Successfully removed effect "${effect.name}" from ${token.name} (token actor)`);
                 return { success: true };
             } catch (error) {
-                console.error(`[GM Socket] Failed to remove effect from ${actor.name}:`, error);
+                console.error(`[GM Socket] Failed to remove effect from ${token.name}:`, error);
                 return { success: false, error: error.message };
             }
         };
@@ -226,9 +226,9 @@ function registerGMSocket() {
 
         console.log("[DEBUG] Custom Status Effects | GM Socket Handlers registered successfully");
         console.log("[GM Socket] Handlers registered:", {
-            "applyEffectToActor": "Creates new Active Effects",
-            "updateEffectOnActor": "Updates existing Active Effects",
-            "removeEffectFromActor": "Removes Active Effects"
+            "applyEffectToActor": "Creates new Active Effects on token actor (tokenId)",
+            "updateEffectOnActor": "Updates existing Active Effects on token actor (tokenId)",
+            "removeEffectFromActor": "Removes Active Effects from token actor (tokenId)"
         });
         gmSocketDone = true;
 

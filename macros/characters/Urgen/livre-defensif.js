@@ -159,9 +159,9 @@
     }
 
     /**
-     * Applique un effet avec délégation GM
+     * Applique un effet avec délégation GM (token-based)
      */
-    async function applyEffectWithGMDelegation(targetActor, effectData) {
+    async function applyEffectWithGMDelegation(targetToken, effectData) {
         if (!globalThis.gmSocket) {
             const error = "GM Socket non disponible ! Assurez-vous que le module custom-status-effects est actif.";
             ui.notifications.error(error);
@@ -170,11 +170,11 @@
         }
 
         try {
-            console.log(`[DEBUG] Applying effect "${effectData.name}" to ${targetActor.name} via GM socket`);
-            const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.id, effectData);
+            console.log(`[DEBUG] Applying effect "${effectData.name}" to token ${targetToken.name} via GM socket`);
+            const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetToken.id, effectData);
 
             if (result?.success) {
-                console.log(`[DEBUG] Successfully applied effect "${effectData.name}" to ${targetActor.name}`);
+                console.log(`[DEBUG] Successfully applied effect "${effectData.name}" to token ${targetToken.name}`);
                 return { success: true, effects: result.effects };
             } else {
                 console.error(`[DEBUG] Failed to apply effect: ${result?.error}`);
@@ -187,9 +187,9 @@
     }
 
     /**
-     * Met à jour un effet avec délégation GM
+     * Met à jour un effet avec délégation GM (token-based)
      */
-    async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
+    async function updateEffectWithGMDelegation(targetToken, effectId, updateData) {
         if (!globalThis.gmSocket) {
             const error = "GM Socket non disponible ! Assurez-vous que le module custom-status-effects est actif.";
             ui.notifications.error(error);
@@ -198,11 +198,11 @@
         }
 
         try {
-            console.log(`[DEBUG] Updating effect ${effectId} on ${targetActor.name} via GM socket`);
-            const result = await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetActor.id, effectId, updateData);
+            console.log(`[DEBUG] Updating effect ${effectId} on token ${targetToken.name} via GM socket`);
+            const result = await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetToken.id, effectId, updateData);
 
             if (result?.success) {
-                console.log(`[DEBUG] Successfully updated effect ${effectId} on ${targetActor.name}`);
+                console.log(`[DEBUG] Successfully updated effect ${effectId} on token ${targetToken.name}`);
                 return { success: true };
             } else {
                 console.error(`[DEBUG] Failed to update effect: ${result?.error}`);
@@ -534,7 +534,7 @@
                 "flags.BookCount.value": newBookCount
             };
 
-            const updateResult = await updateEffectWithGMDelegation(targetInfo.actor, existingEffect.id, updateData);
+            const updateResult = await updateEffectWithGMDelegation(targetInfo.token, existingEffect.id, updateData);
             if (updateResult.success) {
                 console.log(`[DEBUG] Updated existing defensive effect on ${targetInfo.name}: counter ${currentCounter} → ${newCounter}, books ${currentBookCount} → ${newBookCount}`);
                 return {
@@ -574,7 +574,7 @@
                 changes: []
             };
 
-            const result = await applyEffectWithGMDelegation(targetInfo.actor, effectData);
+            const result = await applyEffectWithGMDelegation(targetInfo.token, effectData);
             if (result.success) {
                 console.log(`[DEBUG] Applied new defensive effect to ${targetInfo.name}: counter ${counterValue}, books ${booksOnTarget}`);
                 return {
@@ -618,7 +618,7 @@
             "flags.statuscounter.value": newCounter
         };
 
-        const result = await updateEffectWithGMDelegation(actor, urgenBookEffect.id, updateData);
+        const result = await updateEffectWithGMDelegation(caster, urgenBookEffect.id, updateData);
         if (result.success) {
             urgenBookUpdateResult = {
                 success: true,
@@ -653,7 +653,7 @@
             changes: []
         };
 
-        const result = await applyEffectWithGMDelegation(actor, bookEffectData);
+        const result = await applyEffectWithGMDelegation(caster, bookEffectData);
         if (result.success) {
             urgenBookUpdateResult = {
                 success: true,

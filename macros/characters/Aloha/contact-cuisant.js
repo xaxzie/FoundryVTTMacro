@@ -623,14 +623,14 @@
 
             // Use GM delegation for effect application if available
             if (globalThis.gmSocket) {
-                console.log(`[DEBUG] Applying grapple effects via GM socket`);
-                await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.actor.id, targetEffectData);
-                await globalThis.gmSocket.executeAsGM("applyEffectToActor", actor.id, selfEffectData);
+                console.log(`[DEBUG] Applying grapple effects via GM socket with token IDs`);
+                await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.token.id, targetEffectData);
+                await globalThis.gmSocket.executeAsGM("applyEffectToActor", caster.id, selfEffectData);
             } else {
                 // Fallback: direct application if GM socket not available
-                console.log(`[DEBUG] GM Socket not available, applying effects directly`);
-                await targetActor.actor.createEmbeddedDocuments("ActiveEffect", [targetEffectData]);
-                await actor.createEmbeddedDocuments("ActiveEffect", [selfEffectData]);
+                console.log(`[DEBUG] GM Socket not available, applying effects directly to token actors`);
+                await targetActor.token.actor.createEmbeddedDocuments("ActiveEffect", [targetEffectData]);
+                await caster.actor.createEmbeddedDocuments("ActiveEffect", [selfEffectData]);
             }
 
             console.log(`[DEBUG] Successfully applied grapple effects`);

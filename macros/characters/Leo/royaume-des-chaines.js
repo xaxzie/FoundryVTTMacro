@@ -635,7 +635,7 @@
                 }
 
                 console.log(`[DEBUG] Applying multi-chain effect to ${targetActor.name} via GM socket`);
-                const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.actor.id, effectData);
+                const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.token.id, effectData);
 
                 if (result?.success) {
                     console.log(`[DEBUG] Successfully applied multi-chain effect to ${targetActor.name}`);
@@ -701,20 +701,14 @@
             };
 
             try {
-                // Utiliser socketlib pour déléguer au GM si nécessaire
-                if (game.modules.get('socketlib')?.active && !game.user.isGM) {
-                    // Délégation GM pour les effets sur la cible
-                    await game.socket.executeAsGM('createActiveEffect', {
-                        actorId: targetActor.actor.id,
-                        effectData: agilityEffectData
-                    });
-                    await game.socket.executeAsGM('createActiveEffect', {
-                        actorId: targetActor.actor.id,
-                        effectData: otherEffectData
-                    });
+                // Utiliser notre GM socket pour déléguer au GM si nécessaire
+                if (globalThis.gmSocket) {
+                    // Délégation GM pour les effets sur la cible (token-based)
+                    await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.token.id, agilityEffectData);
+                    await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.token.id, otherEffectData);
                 } else {
-                    // Application directe si on est GM ou si socketlib n'est pas disponible
-                    await targetActor.actor.createEmbeddedDocuments('ActiveEffect', [agilityEffectData, otherEffectData]);
+                    // Application directe si GM socket n'est pas disponible (token-based)
+                    await targetActor.token.actor.createEmbeddedDocuments('ActiveEffect', [agilityEffectData, otherEffectData]);
                 }
             } catch (error) {
                 console.error('[ROYAUME DES CHAINES] Erreur lors de la création des effets sur la cible:', error);
@@ -740,7 +734,7 @@
         };
 
         try {
-            await actor.createEmbeddedDocuments('ActiveEffect', [casterEffectData]);
+            await caster.actor.createEmbeddedDocuments('ActiveEffect', [casterEffectData]);
         } catch (error) {
             console.error('[ROYAUME DES CHAINES] Erreur lors de la création de l\'effet sur le lanceur:', error);
             ui.notifications.error("Erreur lors de l'application de l'effet sur le lanceur !");

@@ -483,10 +483,10 @@
         }
 
         // ===== APPLY SLOWDOWN EFFECT =====
-        async function applyEffectWithGMDelegation(targetActor, effectData) {
-            if (!targetActor || !effectData) return;
-            if (targetActor.isOwner) {
-                await targetActor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+        async function applyEffectWithGMDelegation(targetToken, effectData) {
+            if (!targetToken || !effectData) return;
+            if (targetToken.actor.isOwner) {
+                await targetToken.actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
             } else {
                 if (!game.modules.get("socketlib")?.active) {
                     ui.notifications.error("Socketlib module is required for GM delegation.");
@@ -498,10 +498,10 @@
                     return;
                 }
 
-                console.log("[DEBUG] Requesting GM to apply effect to", targetActor.name, effectData);
+                console.log("[DEBUG] Requesting GM to apply effect to token", targetToken.name, effectData);
 
                 try {
-                    const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.id, effectData);
+                    const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetToken.id, effectData);
                     console.log("[DEBUG] GM delegation result:", result);
                 } catch (err) {
                     console.error("[DEBUG] GM delegation failed:", err);
@@ -510,10 +510,10 @@
             }
         }
 
-        async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
-            if (!targetActor || !effectId || !updateData) return;
-            if (targetActor.isOwner) {
-                const effect = targetActor.effects.get(effectId);
+        async function updateEffectWithGMDelegation(targetToken, effectId, updateData) {
+            if (!targetToken || !effectId || !updateData) return;
+            if (targetToken.actor.isOwner) {
+                const effect = targetToken.actor.effects.get(effectId);
                 if (effect) await effect.update(updateData);
             } else {
                 if (!game.modules.get("socketlib")?.active) {
@@ -526,10 +526,10 @@
                     return;
                 }
 
-                console.log("[DEBUG] Requesting GM to update effect", effectId, "on", targetActor.name, updateData);
+                console.log("[DEBUG] Requesting GM to update effect", effectId, "on token", targetToken.name, updateData);
 
                 try {
-                    const result = await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetActor.id, effectId, updateData);
+                    const result = await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetToken.id, effectId, updateData);
                     console.log("[DEBUG] GM delegation result:", result);
                 } catch (err) {
                     console.error("[DEBUG] GM delegation failed:", err);
@@ -574,7 +574,7 @@
                     }
                 };
 
-                await applyEffectWithGMDelegation(targetActor.actor, slowdownEffect);
+                await applyEffectWithGMDelegation(targetActor.token, slowdownEffect);
                 slowdownApplied = true;
                 console.log(`[DEBUG] Applied new slowdown effect to ${targetName}: -${SPELL_CONFIG.speedReduction} speed`);
             }
@@ -651,10 +651,10 @@
     } else {
         // ===== DEFENSIVE MODE - RESISTANCE EFFECT =====
 
-        async function applyEffectWithGMDelegation(targetActor, effectData) {
-            if (!targetActor || !effectData) return;
-            if (targetActor.isOwner) {
-                await targetActor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+        async function applyEffectWithGMDelegation(targetToken, effectData) {
+            if (!targetToken || !effectData) return;
+            if (targetToken.actor.isOwner) {
+                await targetToken.actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
             } else {
                 if (!game.modules.get("socketlib")?.active) {
                     ui.notifications.error("Socketlib module is required for GM delegation.");
@@ -666,10 +666,10 @@
                     return;
                 }
 
-                console.log("[DEBUG] Requesting GM to apply effect to", targetActor.name, effectData);
+                console.log("[DEBUG] Requesting GM to apply effect to token", targetToken.name, effectData);
 
                 try {
-                    const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.id, effectData);
+                    const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetToken.id, effectData);
                     console.log("[DEBUG] GM delegation result:", result);
                 } catch (err) {
                     console.error("[DEBUG] GM delegation failed:", err);
@@ -716,7 +716,7 @@
                     }
                 };
 
-                await applyEffectWithGMDelegation(targetActor.actor, resistanceEffect);
+                await applyEffectWithGMDelegation(targetActor.token, resistanceEffect);
                 resistanceApplied = true;
                 appliedResistanceValue = resistanceValue;
                 console.log(`[DEBUG] Applied resistance effect to ${targetName}: +${resistanceValue} bonus, 3 uses, ${maxDuration} rounds max`);

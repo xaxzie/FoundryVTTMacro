@@ -359,7 +359,7 @@
             }
 
             console.log(`[DEBUG] Applying chain effect to ${targetName} via GM socket`);
-            const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.actor.id, effectData);
+            const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.token.id, effectData);
 
             if (result?.success) {
                 console.log(`[DEBUG] Successfully applied chain effect to ${targetName}`);

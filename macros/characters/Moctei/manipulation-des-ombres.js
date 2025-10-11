@@ -444,11 +444,11 @@
             // Use GM delegation for effect application if available
             if (globalThis.gmSocket) {
                 console.log(`[Moctei] Applying shadow manipulation to ${targetName} via GM socket`);
-                await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.actor.id, targetEffectData);
+                await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.token.id, targetEffectData);
             } else {
                 // Fallback: direct application if GM socket not available
                 console.log(`[Moctei] GM Socket not available, applying effect directly to ${targetName}`);
-                await targetActor.actor.createEmbeddedDocuments("ActiveEffect", [targetEffectData]);
+                await targetActor.token.actor.createEmbeddedDocuments("ActiveEffect", [targetEffectData]);
             }
             console.log(`[Moctei] Applied shadow manipulation to ${targetName}`);
         } catch (error) {
@@ -521,11 +521,11 @@
                 // Use GM delegation for effect application if available
                 if (globalThis.gmSocket) {
                     console.log(`[Moctei] Applying combo dark flame to ${targetName} via GM socket`);
-                    await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.actor.id, darkFlameEffectData);
+                    await globalThis.gmSocket.executeAsGM("applyEffectToActor", targetActor.token.id, darkFlameEffectData);
                 } else {
                     // Fallback: direct application if GM socket not available
                     console.log(`[Moctei] GM Socket not available, applying effect directly to ${targetName}`);
-                    await targetActor.actor.createEmbeddedDocuments("ActiveEffect", [darkFlameEffectData]);
+                    await targetActor.token.actor.createEmbeddedDocuments("ActiveEffect", [darkFlameEffectData]);
                 }
                 console.log(`[Moctei] Applied combo dark flame to ${targetName}`);
 

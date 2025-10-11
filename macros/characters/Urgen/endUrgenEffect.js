@@ -430,7 +430,7 @@
     };
 
     // Fonction de délégation GM pour suppression d'effets
-    async function removeEffectWithGMDelegation(targetActor, effectId) {
+    async function removeEffectWithGMDelegation(targetToken, effectId) {
         if (!globalThis.gmSocket) {
             const error = "GM Socket non disponible ! Assurez-vous que le module custom-status-effects est actif.";
             ui.notifications.error(error);
@@ -439,11 +439,11 @@
         }
 
         try {
-            console.log(`[DEBUG] Removing effect ${effectId} from ${targetActor.name} via GM socket`);
-            const result = await globalThis.gmSocket.executeAsGM("removeEffectFromActor", targetActor.id, effectId);
+            console.log(`[DEBUG] Removing effect ${effectId} from ${targetToken.name} via GM socket`);
+            const result = await globalThis.gmSocket.executeAsGM("removeEffectFromActor", targetToken.id, effectId);
 
             if (result?.success) {
-                console.log(`[DEBUG] Successfully removed effect ${effectId} from ${targetActor.name}`);
+                console.log(`[DEBUG] Successfully removed effect ${effectId} from ${targetToken.name}`);
                 return { success: true };
             } else {
                 console.error(`[DEBUG] Failed to remove effect: ${result?.error}`);
@@ -456,7 +456,7 @@
     }
 
     // Fonction de délégation GM pour mise à jour d'effets
-    async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
+    async function updateEffectWithGMDelegation(targetToken, effectId, updateData) {
         if (!globalThis.gmSocket) {
             const error = "GM Socket non disponible ! Assurez-vous que le module custom-status-effects est actif.";
             ui.notifications.error(error);
@@ -465,11 +465,11 @@
         }
 
         try {
-            console.log(`[DEBUG] Updating effect ${effectId} on ${targetActor.name} via GM socket`);
-            const result = await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetActor.id, effectId, updateData);
+            console.log(`[DEBUG] Updating effect ${effectId} on ${targetToken.name} via GM socket`);
+            const result = await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetToken.id, effectId, updateData);
 
             if (result?.success) {
-                console.log(`[DEBUG] Successfully updated effect ${effectId} on ${targetActor.name}`);
+                console.log(`[DEBUG] Successfully updated effect ${effectId} on ${targetToken.name}`);
                 return { success: true };
             } else {
                 console.error(`[DEBUG] Failed to update effect: ${result?.error}`);
@@ -504,7 +504,7 @@
 
         if (newCounter <= 0) {
             // Supprimer complètement l'effet Book
-            const result = await removeEffectWithGMDelegation(actor, urgenBookEffect.id);
+            const result = await removeEffectWithGMDelegation(caster, urgenBookEffect.id);
             if (result.success) {
                 console.log("[DEBUG] Removed Book effect from Urgen (counter reached zero)");
                 return { success: true, action: "removed", previousCount: currentCounter };
@@ -518,7 +518,7 @@
                 "flags.statuscounter.value": newCounter
             };
 
-            const result = await updateEffectWithGMDelegation(actor, urgenBookEffect.id, updateData);
+            const result = await updateEffectWithGMDelegation(caster, urgenBookEffect.id, updateData);
             if (result.success) {
                 console.log(`[DEBUG] Updated Urgen's Book counter to ${newCounter}`);
                 return { success: true, action: "updated", previousCount: currentCounter, newCount: newCounter };
@@ -542,7 +542,7 @@
             }
 
             // Supprimer l'effet actif via GM delegation
-            const result = await removeEffectWithGMDelegation(effectInfo.actor, effectInfo.effect.id);
+            const result = await removeEffectWithGMDelegation(effectInfo.token, effectInfo.effect.id);
 
             if (result.success) {
                 console.log(`[DEBUG] Successfully removed ${effectInfo.effectType} effect from ${effectInfo.name}`);

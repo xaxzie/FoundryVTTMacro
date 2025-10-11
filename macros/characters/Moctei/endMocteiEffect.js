@@ -186,21 +186,21 @@
     /**
      * Fonction de délégation GM pour suppression d'effets
      */
-    async function removeEffectWithGMDelegation(targetActor, effectId) {
+    async function removeEffectWithGMDelegation(targetToken, effectId) {
         if (!globalThis.gmSocket) {
             return { success: false, error: "GM Socket non disponible" };
         }
-        return await globalThis.gmSocket.executeAsGM("removeEffectFromActor", targetActor.id, effectId);
+        return await globalThis.gmSocket.executeAsGM("removeEffectFromActor", targetToken.id, effectId);
     }
 
     /**
      * Fonction de délégation GM pour mise à jour d'effets
      */
-    async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
+    async function updateEffectWithGMDelegation(targetToken, effectId, updateData) {
         if (!globalThis.gmSocket) {
             return { success: false, error: "GM Socket non disponible" };
         }
-        return await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetActor.id, effectId, updateData);
+        return await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetToken.id, effectId, updateData);
     }
 
     /**
@@ -284,7 +284,7 @@
             if (token.actor.isOwner) {
                 await effect.delete();
             } else {
-                await removeEffectWithGMDelegation(token.actor, effect.id);
+                await removeEffectWithGMDelegation(token, effect.id);
             }
 
             results.simple.push({
@@ -343,7 +343,7 @@
             if (token.actor.isOwner) {
                 await effect.delete();
             } else {
-                await removeEffectWithGMDelegation(token.actor, effect.id);
+                await removeEffectWithGMDelegation(token, effect.id);
             }
 
             // Supprimer l'effet de contrôle correspondant sur le lanceur
@@ -360,7 +360,7 @@
                             if (casterToken.actor.isOwner) {
                                 await controlEffect.delete();
                             } else {
-                                await removeEffectWithGMDelegation(casterToken.actor, controlEffect.id);
+                                await removeEffectWithGMDelegation(casterToken, controlEffect.id);
                             }
                             console.log(`[Moctei] Removed shadow manipulation control effect from ${casterToken.name}`);
                         } catch (error) {
@@ -430,7 +430,7 @@
             if (token.actor.isOwner) {
                 await effect.delete();
             } else {
-                await removeEffectWithGMDelegation(token.actor, effect.id);
+                await removeEffectWithGMDelegation(token, effect.id);
             }
 
             // Mettre à jour l'effet de contrôle correspondant sur le lanceur
@@ -469,7 +469,7 @@
                                     if (casterToken.actor.isOwner) {
                                         await controlEffect.delete();
                                     } else {
-                                        await removeEffectWithGMDelegation(casterToken.actor, controlEffect.id);
+                                        await removeEffectWithGMDelegation(casterToken, controlEffect.id);
                                     }
                                     console.log(`[Moctei] Removed dark flame control effect from ${casterToken.name} (no more sources)`);
                                 } else {
@@ -491,7 +491,7 @@
                                     if (casterToken.actor.isOwner) {
                                         await controlEffect.update(updateData);
                                     } else {
-                                        await updateEffectWithGMDelegation(casterToken.actor, controlEffect.id, updateData);
+                                        await updateEffectWithGMDelegation(casterToken, controlEffect.id, updateData);
                                     }
                                     console.log(`[Moctei] Updated dark flame control effect on ${casterToken.name}: ${updatedSources.length} sources remaining`);
                                 }
@@ -517,7 +517,7 @@
                                 if (casterToken.actor.isOwner) {
                                     await controlEffect.update(updateData);
                                 } else {
-                                    await updateEffectWithGMDelegation(casterToken.actor, controlEffect.id, updateData);
+                                    await updateEffectWithGMDelegation(casterToken, controlEffect.id, updateData);
                                 }
                                 console.log(`[Moctei] Removed extension flame from control effect on ${casterToken.name}: ${currentSources.length} sources still active`);
                             } else {
@@ -527,7 +527,7 @@
                                     if (casterToken.actor.isOwner) {
                                         await controlEffect.delete();
                                     } else {
-                                        await removeEffectWithGMDelegation(casterToken.actor, controlEffect.id);
+                                        await removeEffectWithGMDelegation(casterToken, controlEffect.id);
                                     }
                                     console.log(`[Moctei] Removed dark flame control effect from ${casterToken.name} (fallback)`);
                                 }
@@ -569,7 +569,7 @@
             if (token.actor.isOwner) {
                 await effect.delete();
             } else {
-                await removeEffectWithGMDelegation(token.actor, effect.id);
+                await removeEffectWithGMDelegation(token, effect.id);
             }
 
             results.simple.push({
