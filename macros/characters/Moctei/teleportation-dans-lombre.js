@@ -84,6 +84,83 @@
     const currentStance = getCurrentStance(actor);
     const manaInfo = getCurrentMana(actor);
 
+    // ===== DÉTECTION DES ZONES D'OMBRE ET MANIPULATION DES OMBRES =====
+    function detectShadowZones() {
+        // Trouver toutes les "Zone d'ombre" sur le terrain
+        const shadowZones = canvas.tokens.placeables.filter(token =>
+            token.name === "Zone d'ombre" ||
+            token.actor?.id === "3klSiU91i21Co71t"
+        );
+
+        console.log(`[Moctei] Trouvé ${shadowZones.length} zones d'ombre sur le terrain`);
+        return shadowZones;
+    }
+
+    function detectManipulationTargets() {
+        // Trouver tous les tokens avec l'effet "Manipulation des ombres"
+        const manipulatedTargets = canvas.tokens.placeables.filter(token => {
+            return token.actor?.effects?.contents?.some(effect =>
+                effect.name === "Manipulation des ombres"
+            );
+        });
+
+        console.log(`[Moctei] Trouvé ${manipulatedTargets.length} cibles sous Manipulation des ombres`);
+        return manipulatedTargets;
+    }
+
+    function checkDestinationForShadowFocus(targetX, targetY) {
+        const gridSize = canvas.grid.size;
+        const targetGridX = Math.floor(targetX / gridSize);
+        const targetGridY = Math.floor(targetY / gridSize);
+
+        const shadowZones = detectShadowZones();
+        const manipulationTargets = detectManipulationTargets();
+
+        // Vérifier si la destination est dans une zone d'ombre
+        const inShadowZone = shadowZones.some(shadowToken => {
+            const shadowGridX = Math.floor(shadowToken.x / gridSize);
+            const shadowGridY = Math.floor(shadowToken.y / gridSize);
+            return shadowGridX === targetGridX && shadowGridY === targetGridY;
+        });
+
+        // Vérifier si la destination est adjacente à une cible sous Manipulation des ombres
+        let adjacentToManipulation = false;
+        let manipulationTarget = null;
+
+        for (const token of manipulationTargets) {
+            const tokenGridX = Math.floor(token.x / gridSize);
+            const tokenGridY = Math.floor(token.y / gridSize);
+
+            // Vérifier les 8 cases adjacentes
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    if (dx === 0 && dy === 0) continue; // Ignorer la case du token lui-même
+
+                    const adjacentX = tokenGridX + dx;
+                    const adjacentY = tokenGridY + dy;
+
+                    if (adjacentX === targetGridX && adjacentY === targetGridY) {
+                        adjacentToManipulation = true;
+                        manipulationTarget = token.name;
+                        break;
+                    }
+                }
+                if (adjacentToManipulation) break;
+            }
+            if (adjacentToManipulation) break;
+        }
+
+        return {
+            inShadowZone,
+            adjacentToManipulation,
+            manipulationTarget,
+            shouldGetFocus: inShadowZone || adjacentToManipulation
+        };
+    }
+
+    const shadowZones = detectShadowZones();
+    const manipulationTargets = detectManipulationTargets();
+
     // ===== DÉTECTION DES ALLIÉS ADJACENTS =====
     function getAdjacentAllies() {
         const gridSize = canvas.grid.size;
@@ -214,6 +291,18 @@
                     ${transportOption}
                 </div>
 
+                <div style="background: #e8f5e8; padding: 10px; border-radius: 6px; margin: 10px 0; border-left: 4px solid #4caf50;">
+                    <h4 style="margin: 0 0 8px 0; color: #2e7d32;">🌟 Bonus Focus Automatique</h4>
+                    <div style="font-size: 0.9em; color: #1b5e20;">
+                        <strong>Si la destination est :</strong><br>
+                        🌫️ • Dans une Zone d'ombre (${shadowZones.length} détectée${shadowZones.length !== 1 ? 's' : ''})<br>
+                        🌑 • Adjacente à une cible sous Manipulation des ombres (${manipulationTargets.length} cible${manipulationTargets.length !== 1 ? 's' : ''})<br>
+                        <br>
+                        <strong>⚡ Alors le sort bénéficie automatiquement de l'effet Focus !</strong>
+                        <br><small style="font-style: italic;">(Même si Moctei n'est pas en position Focus)</small>
+                    </div>
+                </div>
+
                 <div style="text-align: center; margin-top: 15px; color: #666; font-size: 0.9em;">
                     Sélectionnez le type de téléportation
                 </div>
@@ -318,32 +407,75 @@
         return;
     }
 
-    // Stocker les informations pour le message final
-    const spellExecutionInfo = {
-        casterName: actor.name,
-        spellName: selectedSpell.name,
-        manaCost: actualManaCost,
-        originalCost: selectedSpell.manaCost,
-        focusReduction: focusReduction,
-        isTransport: isTransport,
-        allyName: selectedAlly?.name || null,
-        allyToken: selectedAlly?.token || null,
-        stance: currentStance,
-        executionTime: new Date().toLocaleTimeString()
-    };
-
     try {
         // Exécuter la macro de téléportation pour Moctei
         await teleportMacro.execute();
 
-        // Attendre un court délai puis envoyer le message récapitulatif unique
+        // Attendre un délai pour que la téléportation soit complète, puis vérifier la destination
         setTimeout(async () => {
+            // Vérifier la nouvelle position de Moctei pour l'effet Focus automatique
+            const newPosition = {
+                x: casterToken.document.x,
+                y: casterToken.document.y
+            };
+
+            const shadowFocusCheck = checkDestinationForShadowFocus(newPosition.x, newPosition.y);
+
+            // Recalculer le coût si l'effet Focus automatique s'applique
+            let finalManaCost = actualManaCost;
+            let shadowFocusApplied = false;
+
+            if (shadowFocusCheck.shouldGetFocus && currentStance !== 'focus') {
+                if (isTransport) {
+                    // Transport dans l'ombre avec Focus automatique
+                    finalManaCost = Math.max(1, Math.floor(selectedSpell.manaCost * selectedSpell.focusReduction));
+                } else {
+                    // Téléportation simple avec Focus automatique = GRATUIT
+                    finalManaCost = 0;
+                }
+                shadowFocusApplied = true;
+                console.log(`[Moctei] Focus automatique appliqué ! Coût: ${actualManaCost} → ${finalManaCost}`);
+            }
+
+            // Stocker les informations pour le message final
+            const spellExecutionInfo = {
+                casterName: actor.name,
+                spellName: selectedSpell.name,
+                manaCost: finalManaCost,
+                originalCost: selectedSpell.manaCost,
+                focusReduction: focusReduction || shadowFocusApplied,
+                isTransport: isTransport,
+                allyName: selectedAlly?.name || null,
+                allyToken: selectedAlly?.token || null,
+                stance: currentStance,
+                shadowFocusApplied: shadowFocusApplied,
+                shadowFocusReason: shadowFocusCheck.inShadowZone ? 'shadow_zone' :
+                                   shadowFocusCheck.adjacentToManipulation ? 'manipulation_target' : null,
+                manipulationTarget: shadowFocusCheck.manipulationTarget,
+                executionTime: new Date().toLocaleTimeString()
+            };
+
             await sendUnifiedMessage(spellExecutionInfo, true);
         }, 2000); // 2 secondes de délai
 
     } catch (error) {
         console.error("[Moctei] Erreur lors de l'exécution de la téléportation:", error);
         ui.notifications.error("Échec de l'exécution de la téléportation !");
+
+        // En cas d'erreur, utiliser les informations de base
+        const spellExecutionInfo = {
+            casterName: actor.name,
+            spellName: selectedSpell.name,
+            manaCost: actualManaCost,
+            originalCost: selectedSpell.manaCost,
+            focusReduction: focusReduction,
+            isTransport: isTransport,
+            allyName: selectedAlly?.name || null,
+            allyToken: selectedAlly?.token || null,
+            stance: currentStance,
+            shadowFocusApplied: false,
+            executionTime: new Date().toLocaleTimeString()
+        };
 
         await sendUnifiedMessage(spellExecutionInfo, false);
     }
@@ -357,8 +489,20 @@
         const statusIcon = success ? "✅" : "❌";
         const statusText = success ? "Lancé" : "Échec";
 
-        const focusInfo = info.focusReduction ?
-            (info.manaCost === 0 ? ` ⚡ Focus (GRATUIT)` : ` ⚡ Focus (${info.originalCost} → ${info.manaCost})`) : '';
+        let focusInfo = '';
+        if (info.focusReduction) {
+            if (info.shadowFocusApplied) {
+                // Focus automatique appliqué
+                focusInfo = info.manaCost === 0 ?
+                    ` ⚡ Focus Automatique (GRATUIT)` :
+                    ` ⚡ Focus Automatique (${info.originalCost} → ${info.manaCost})`;
+            } else {
+                // Focus normal de position
+                focusInfo = info.manaCost === 0 ?
+                    ` ⚡ Focus (GRATUIT)` :
+                    ` ⚡ Focus (${info.originalCost} → ${info.manaCost})`;
+            }
+        }
 
 
 
@@ -398,6 +542,21 @@
                 </div>
 
                 ${transportSection}
+
+                ${info.shadowFocusApplied ? `
+                    <div style="background: rgba(76, 175, 80, 0.1); padding: 10px; border-radius: 4px; margin: 10px 0; border-left: 3px solid #4caf50;">
+                        <div style="font-weight: bold; color: #2e7d32; margin-bottom: 5px;">
+                            🌟 Focus Automatique Activé !
+                        </div>
+                        <div style="font-size: 0.85em; color: #1b5e20;">
+                            ${info.shadowFocusReason === 'shadow_zone' ?
+                                '🌫️ Moctei s\'est téléporté dans une Zone d\'ombre' :
+                                `🌑 Moctei s'est téléporté à côté de ${info.manipulationTarget} (sous Manipulation des ombres)`
+                            }
+                            <br><strong>Réduction de coût appliquée automatiquement</strong>
+                        </div>
+                    </div>
+                ` : ''}
 
                 <div style="text-align: center; margin-top: 8px; font-size: 0.9em; font-style: italic; color: #555;">
                     ${success ?

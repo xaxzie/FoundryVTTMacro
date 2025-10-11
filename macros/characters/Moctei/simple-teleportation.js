@@ -114,7 +114,7 @@
     }
 
     // ===== VÉRIFICATION DE LA DESTINATION =====
-    // Vérifier si la destination est libre (pas d'autres tokens)
+    // Note: Téléportation autorisée sur zone occupée (magie des ombres de Moctei)
     const gridSize = canvas.grid.size;
     const tokensAtDestination = canvas.tokens.placeables.filter(token => {
         if (token.id === casterToken.id) return false; // Ignorer le lanceur
@@ -129,8 +129,8 @@
     });
 
     if (tokensAtDestination.length > 0) {
-        ui.notifications.warn("Impossible de se téléporter : la destination est occupée !");
-        return;
+        console.log(`[Moctei] Téléportation sur zone occupée autorisée - ${tokensAtDestination.length} token(s) présent(s)`);
+        ui.notifications.info(`🌑 Moctei se téléporte dans les ombres malgré la présence de ${tokensAtDestination.length} adversaire(s) !`);
     }
 
     // ===== STOCKAGE DE LA POSITION ORIGINALE =====
