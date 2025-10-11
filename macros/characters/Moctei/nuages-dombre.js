@@ -164,6 +164,12 @@
                     </div>
                 </div>
 
+                <div style="background: #fff3e0; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                    <strong>⚡ Effet :</strong><br>
+                    Moctei peut se téléporter gratuitement vers n'importe quelle zone d'ombre qu'il a créée.
+                    Peu déclencher "animation de brume" sur une zone existante pour la rendre offensive
+                </div>
+
                 <div style="text-align: center; margin-top: 15px; color: #666; font-size: 0.9em;">
                     Voulez-vous lancer ce sort ?
                 </div>
