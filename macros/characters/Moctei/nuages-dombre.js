@@ -167,7 +167,7 @@
                 <div style="background: #fff3e0; padding: 10px; border-radius: 4px; margin: 10px 0;">
                     <strong>⚡ Effet :</strong><br>
                     Moctei peut se téléporter gratuitement vers n'importe quelle zone d'ombre qu'il a créée.
-                    Peu déclencher "animation de brume" sur une zone existante pour la rendre offensive
+                    Si un ennemi reste dans la zone à la fin du tour, il peut déclencher "Brume offensive"
                 </div>
 
                 <div style="text-align: center; margin-top: 15px; color: #666; font-size: 0.9em;">
@@ -457,9 +457,11 @@
                         🎮 Contrôle des Nuages d'Ombre
                     </div>
                     <div style="font-size: 0.85em; color: #333;">
+                        <strong>🌑 Téléportation :</strong> Moctei peut se téléporter gratuitement vers n'importe quelle zone d'ombre qu'il a créée<br>
                         <strong>📍 Déplacement :</strong> Moctei peut déplacer jusqu'à 8 nuages, 1 fois par tour<br>
                         <strong>📏 Portée :</strong> Maximum 6 cases de déplacement par nuage<br>
                         <strong>💰 Coût :</strong> 1 mana par tranche de 2 nuages déplacés (focusable)<br>
+                        <strong>⚔️ Brume offensive :</strong> Si un ennemi reste dans la zone à la fin du tour, Moctei peut déclencher "Brume offensive"<br>
                     </div>
                 </div>
                 ` : ''}
