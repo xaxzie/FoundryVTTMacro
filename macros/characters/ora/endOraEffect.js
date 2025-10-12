@@ -107,6 +107,7 @@
                 const sourceSpell = effect.flags?.world?.spellName || "Bulles de glace";
                 return `Ralenti par ${sourceSpell} d'Ora (-${slowdown} case de vitesse)`;
             }
+
         },
 
         // Ora Faiblesse Électrique - Configuration importée depuis bubbles.js (water)
@@ -237,13 +238,17 @@
 
     /**
      * Vérifie si un effet correspond aux flags de configuration
+     * Tous les flags de détection doivent correspondre (AND logic, pas OR)
      */
     function checkEffectFlags(effect, config, casterId, targetId = null) {
+        let matchedChecks = 0;
+        let totalChecks = config.detectFlags.length;
+
         for (const flagCheck of config.detectFlags) {
             if (flagCheck.path === "name") {
                 // Vérification spéciale par nom d'effet
                 if (effect.name === flagCheck.matchValue) {
-                    return true;
+                    matchedChecks++;
                 }
             } else {
                 const flagValue = getProperty(effect, flagCheck.path);
@@ -254,11 +259,13 @@
                 if (expectedValue === "TARGET_ID") expectedValue = targetId;
 
                 if (flagValue === expectedValue) {
-                    return true;
+                    matchedChecks++;
                 }
             }
         }
-        return false;
+
+        // Tous les checks doivent correspondre pour considérer l'effet comme valide
+        return matchedChecks === totalChecks;
     }
 
     /**
@@ -435,11 +442,23 @@
                 await seq.play();
             }
 
+            // Vérifier que l'effet existe toujours avant de le supprimer
+            const currentEffect = token.actor.effects.get(effect.id);
+            if (!currentEffect) {
+                console.warn(`[Ora] Effect ${effect.name} no longer exists on ${token.name}, skipping deletion`);
+                results.failed.push({
+                    target: token.name,
+                    effect: effectType,
+                    error: "Effect no longer exists"
+                });
+                return;
+            }
+
             // Suppression de l'effet
             if (token.actor.isOwner) {
-                await effect.delete();
+                await currentEffect.delete();
             } else {
-                await removeEffectWithGMDelegation(token.actor, effect.id);
+                await removeEffectWithGMDelegation(token.actor, currentEffect.id);
             }
 
             results.simple.push({
@@ -512,11 +531,23 @@
                 await dissipationSeq.play();
             }
 
+            // Vérifier que l'effet existe toujours avant de le supprimer
+            const currentEffect = token.actor.effects.get(effect.id);
+            if (!currentEffect) {
+                console.warn(`[Ora] Vortex effect ${effect.name} no longer exists on ${token.name}, skipping deletion`);
+                results.failed.push({
+                    target: token.name,
+                    effect: effectType,
+                    error: "Vortex effect no longer exists"
+                });
+                return;
+            }
+
             // Suppression de l'effet sur la cible
             if (token.actor.isOwner) {
-                await effect.delete();
+                await currentEffect.delete();
             } else {
-                await removeEffectWithGMDelegation(token.actor, effect.id);
+                await removeEffectWithGMDelegation(token.actor, currentEffect.id);
             }
 
             results.vortexEffects.push({
@@ -567,10 +598,15 @@
 
             // Chercher les effets appliqués par Ora
             for (const effect of token.actor.effects.contents) {
-                // Vérifier chaque type d'effet configuré (validé)
+                let effectMatched = false;
+
+                // Vérifier chaque type d'effet configuré (validé) - sortir dès qu'un match est trouvé
                 for (const [effectType, config] of Object.entries(validatedConfigs)) {
                     // Skip les effets Sequencer-only qui n'ont pas d'effet d'acteur
                     if (config.isSequencerOnly) continue;
+
+                    // Skip si déjà traité
+                    if (effectMatched) break;
 
                     // Utiliser la logique de vérification des flags
                     if (checkEffectFlags(effect, config, actor.id, token.id)) {
@@ -590,8 +626,11 @@
                         console.log(`[Ora] Found ${effectType} on ${token.name}:`, {
                             effectName: effect.name,
                             flags: effect.flags?.world,
+                            statusCounter: effect.flags?.statuscounter,
                             extraData: extraData
                         });
+
+                        effectMatched = true; // Empêche les doublons pour le même effet
                     }
                 }
             }

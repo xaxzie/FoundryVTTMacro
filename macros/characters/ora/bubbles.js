@@ -171,7 +171,7 @@
                         damageType: "electric"
                     },
                     statuscounter: {
-                        value: 2
+                        value: 3
                     }
                 },
                 changes: [],
