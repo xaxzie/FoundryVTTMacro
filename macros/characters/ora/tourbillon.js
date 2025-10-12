@@ -43,7 +43,8 @@
                 count: 1,
                 damageFormula: "2d6",
                 statMultiplier: 1.0, // Esprit complet
-                damageDisplay: "2d6 + Esprit"
+                damageDisplay: "2d6 + Esprit",
+                effectType: "vortex"
             },
             divided: {
                 name: "Divisé",
@@ -51,7 +52,17 @@
                 count: 2,
                 damageFormula: "1d6",
                 statMultiplier: 0.5, // Esprit divisé par 2
-                damageDisplay: "1d6 + Esprit/2 chacun"
+                damageDisplay: "1d6 + Esprit/2 chacun",
+                effectType: "vortex"
+            },
+            iceDome: {
+                name: "Dôme de Glace",
+                description: "1 dôme défensif de glace",
+                count: 1,
+                damageFormula: "3d6", // PV du dôme
+                statMultiplier: 1.0, // Esprit complet
+                damageDisplay: "3d6 + Esprit PV",
+                effectType: "dome"
             }
         },
 
@@ -60,12 +71,16 @@
         animations: {
             cast: "jb2a.cast_generic.water.02.blue.0",
             vortex: "jb2a_patreon.whirlwind.blue",
+            iceDome: "jb2a.dome_of_force.blue",
             impact: "jb2a.impact.water.02.blue.0",
             splash: "animated-spell-effects-cartoon.water.water splash.01",
+            iceImpact: "jb2a.impact.frost.blue.02",
 
             // Propriétés d'animation
             vortexDuration: 120000, // 2 minutes (120 secondes)
+            domeDuration: 120000, // 2 minutes (120 secondes)
             vortexFadeOut: 3000, // 3 secondes de fade out
+            domeFadeOut: 3000, // 3 secondes de fade out
             castDuration: 3000,
             castScale: 0.9,
             impactDelay: 800,
@@ -88,45 +103,100 @@
         },
 
         // Configuration des effets appliqués
-        effectConfig: {
-            name: "Tourbillon",
-            icon: "icons/magic/water/vortex-water-whirlpool.webp",
-            description: "Pris dans un tourbillon d'eau d'Ora",
-            duration: {
-                seconds: 84600 // Permanent jusqu'à suppression manuelle
-            },
-            flags: {
-                world: {
-                    vortexCaster: "CASTER_ID", // Remplacé dynamiquement
-                    vortexTarget: "TARGET_ID", // Remplacé dynamiquement
-                    vortexIndex: "VORTEX_INDEX", // Remplacé dynamiquement
-                    spellName: "Tourbillon",
-                    createdAt: "TIMESTAMP" // Remplacé dynamiquement
+        effectConfigs: {
+            vortex: {
+                name: "Tourbillon",
+                icon: "icons/magic/water/vortex-water-whirlpool.webp",
+                description: "Pris dans un tourbillon d'eau d'Ora",
+                duration: {
+                    seconds: 84600 // Permanent jusqu'à suppression manuelle
+                },
+                flags: {
+                    world: {
+                        vortexCaster: "CASTER_ID", // Remplacé dynamiquement
+                        vortexTarget: "TARGET_ID", // Remplacé dynamiquement
+                        vortexIndex: "VORTEX_INDEX", // Remplacé dynamiquement
+                        spellName: "Tourbillon",
+                        createdAt: "TIMESTAMP" // Remplacé dynamiquement
+                    }
+                },
+                changes: [],
+                // Configuration pour endOraEffect
+                endEffectConfig: {
+                    displayName: "Tourbillon",
+                    sectionTitle: "🌊 Tourbillons",
+                    sectionIcon: "🌊",
+                    cssClass: "vortex-effect",
+                    borderColor: "#2196f3",
+                    bgColor: "#e3f2fd",
+                    mechanicType: "vortex",
+                    detectFlags: [
+                        { path: "name", matchValue: "Tourbillon" },
+                        { path: "flags.world.vortexCaster", matchValue: "CASTER_ID" }
+                    ],
+                    cleanup: {
+                        sequencerPatterns: ["tourbillon_*"] // Pattern pour nettoyer les animations
+                    },
+                    removeAnimation: {
+                        file: "jb2a.water_splash.blue",
+                        scale: 0.8,
+                        duration: 2000,
+                        fadeOut: 1000,
+                        tint: "#2196f3"
+                    }
                 }
             },
-            changes: [],
-            // Configuration pour endOraEffect
-            endEffectConfig: {
-                displayName: "Tourbillon",
-                sectionTitle: "🌊 Tourbillons",
-                sectionIcon: "🌊",
-                cssClass: "vortex-effect",
-                borderColor: "#2196f3",
-                bgColor: "#e3f2fd",
-                mechanicType: "vortex",
-                detectFlags: [
-                    { path: "name", matchValue: "Tourbillon" },
-                    { path: "flags.world.vortexCaster", matchValue: "CASTER_ID" }
-                ],
-                cleanup: {
-                    sequencerPatterns: ["tourbillon_*"] // Pattern pour nettoyer les animations
+            dome: {
+                name: "Dôme",
+                icon: "icons/magic/defensive/barrier-ice-crystal-wall-jagged-blue.webp",
+                description: "Enfermé dans un dôme de glace d'Ora - STATUS_COUNTER_VALUE PV",
+                duration: {
+                    seconds: 84600 // Permanent jusqu'à suppression manuelle
                 },
-                removeAnimation: {
-                    file: "jb2a.water_splash.blue",
-                    scale: 0.8,
-                    duration: 2000,
-                    fadeOut: 1000,
-                    tint: "#2196f3"
+                flags: {
+                    world: {
+                        domeCaster: "CASTER_ID", // Remplacé dynamiquement
+                        domeTarget: "TARGET_ID", // Remplacé dynamiquement
+                        domeIndex: "DOME_INDEX", // Remplacé dynamiquement
+                        spellName: "Dôme de Glace",
+                        createdAt: "TIMESTAMP" // Remplacé dynamiquement
+                    },
+                    statuscounter: {
+                        value: "DOME_HP" // PV du dôme, remplacé dynamiquement
+                    }
+                },
+                changes: [],
+                // Configuration pour endOraEffect
+                endEffectConfig: {
+                    displayName: "Dôme de Glace",
+                    sectionTitle: "🧊 Dômes de Glace",
+                    sectionIcon: "🧊",
+                    cssClass: "ice-dome-effect",
+                    borderColor: "#87ceeb",
+                    bgColor: "#f0f8ff",
+                    mechanicType: "dome",
+                    detectFlags: [
+                        { path: "name", matchValue: "Dôme" },
+                        { path: "flags.world.domeCaster", matchValue: "CASTER_ID" }
+                    ],
+                    cleanup: {
+                        sequencerPatterns: ["dome_*"] // Pattern pour nettoyer les animations
+                    },
+                    removeAnimation: {
+                        file: "jb2a.impact.frost.blue.02",
+                        scale: 1.0,
+                        duration: 2500,
+                        fadeOut: 1000,
+                        tint: "#87ceeb"
+                    },
+                    getExtraData: (effect) => ({
+                        currentHP: effect.flags?.statuscounter?.value || 0,
+                        maxHP: effect.flags?.world?.maxHP || 0
+                    }),
+                    getDynamicDescription: (effect) => {
+                        const currentHP = effect.flags?.statuscounter?.value || 0;
+                        return `Enfermé dans un dôme de glace d'Ora (${currentHP} PV)`;
+                    }
                 }
             }
         }
@@ -188,25 +258,29 @@
             : "<strong>Coût en Mana :</strong> 4 mana";
 
         const damageInfo = currentStance === 'offensif'
-            ? `Dégâts de traversée : <strong>Maximisés en Position Offensive</strong>`
-            : `Dégâts de traversée : <strong>Normaux (lancer de dés)</strong>`;
+            ? `Effets : <strong>Maximisés en Position Offensive</strong>`
+            : `Effets : <strong>Normaux (lancer de dés)</strong>`;
 
         return new Promise((resolve) => {
             const vortexTypeOptions = Object.keys(SPELL_CONFIG.vortexTypes).map(key => {
                 const vortexType = SPELL_CONFIG.vortexTypes[key];
+                const displayInfo = vortexType.effectType === "dome"
+                    ? `${vortexType.description} (${vortexType.damageDisplay})`
+                    : `${vortexType.description} (${vortexType.damageDisplay} de traversée)`;
+
                 return `<label><input type="radio" name="vortexType" value="${key}" ${key === 'single' ? 'checked' : ''}>
-                    <strong>${vortexType.name} :</strong> ${vortexType.description} (${vortexType.damageDisplay})</label>`;
+                    <strong>${vortexType.name} :</strong> ${displayInfo}</label>`;
             }).join('<br>');
 
             new Dialog({
                 title: `Sort de ${SPELL_CONFIG.name}${currentStance ? ` (Position: ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : ''}`,
                 content: `
-                    <h3>Configuration du Tourbillon :</h3>
+                    <h3>Configuration du Sort d'Eau :</h3>
                     <p>${manaInfo}</p>
                     <p><strong>Caractéristique ${SPELL_CONFIG.characteristicDisplay} :</strong> ${characteristicInfo.final}${characteristicInfo.injuries > 0 || characteristicInfo.effectBonus !== 0 ? ` <em>(${characteristicInfo.base}${characteristicInfo.injuries > 0 ? ` - ${characteristicInfo.injuries} blessures` : ''}${characteristicInfo.effectBonus !== 0 ? ` + ${characteristicInfo.effectBonus} effets` : ''})</em>` : ''}</p>
 
                     <div style="margin: 10px 0; border: 1px solid #ccc; padding: 10px; background: #f9f9f9;">
-                        <h4>Type de Tourbillon</h4>
+                        <h4>Type d'Effet d'Eau</h4>
                         ${vortexTypeOptions}
                     </div>
 
@@ -239,6 +313,12 @@
                     <p>${damageInfo}</p>
                     <p><strong>Jet d'attaque :</strong> <span id="finalAttack">${characteristicInfo.final}d7 + ${2 * SPELL_CONFIG.spellLevel}</span></p>
 
+                    <div id="effectNotes" style="margin: 10px 0; padding: 8px; background: #fff3e0; border-radius: 4px; border-left: 4px solid #ff6f00;">
+                        <div style="font-size: 0.9em; color: #e65100;">
+                            <strong>⚠️ Note :</strong> <span id="noteText">Dégâts appliqués lors de la traversée. Ora peut choisir de bloquer les attaques traversantes.</span>
+                        </div>
+                    </div>
+
                     <script>
                         document.getElementById('attackBonus').addEventListener('input', function() {
                             const base = ${characteristicInfo.final};
@@ -246,6 +326,26 @@
                             const total = base + bonus;
                             document.getElementById('finalAttack').textContent = total + 'd7 + ${2 * SPELL_CONFIG.spellLevel}';
                         });
+
+                        // Mettre à jour les notes selon le type sélectionné
+                        function updateEffectNotes() {
+                            const selectedType = document.querySelector('input[name="vortexType"]:checked').value;
+                            const noteElement = document.getElementById('noteText');
+
+                            if (selectedType === 'iceDome') {
+                                noteElement.textContent = "Le dôme possède des PV et doit être brisé pour être traversé. Ne peut pas être traversé sans destruction.";
+                            } else {
+                                noteElement.textContent = "Dégâts appliqués lors de la traversée. Ora peut choisir de bloquer les attaques traversantes.";
+                            }
+                        }
+
+                        // Mettre à jour au changement de sélection
+                        document.querySelectorAll('input[name="vortexType"]').forEach(radio => {
+                            radio.addEventListener('change', updateEffectNotes);
+                        });
+
+                        // Initialiser
+                        updateEffectNotes();
                     </script>
                 `,
                 buttons: {
@@ -436,30 +536,80 @@
         }
     }
 
-    // ===== APPLICATION DE L'EFFET TOURBILLON =====
-    async function applyVortexEffect(targetInfo, vortexIndex) {
+    // ===== APPLICATION DES EFFETS =====
+    async function applyEffect(targetInfo, effectIndex, effectType, hpValue = null) {
         if (!targetInfo || !targetInfo.token) return;
+
+        // Sélectionner la bonne configuration d'effet
+        const effectConfig = SPELL_CONFIG.effectConfigs[effectType];
+        if (!effectConfig) {
+            console.error(`Unknown effect type: ${effectType}`);
+            return;
+        }
 
         // Définir les remplacements dynamiques pour la configuration
         const replacements = {
             "CASTER_ID": caster.id,
             "TARGET_ID": targetInfo.token.id,
-            "VORTEX_INDEX": vortexIndex,
+            "VORTEX_INDEX": effectIndex,
+            "DOME_INDEX": effectIndex,
             "TIMESTAMP": Date.now()
         };
 
-        // Utiliser la fonction générique avec la configuration centralisée
-        const success = await applyGenericEffect(targetInfo, SPELL_CONFIG.effectConfig, replacements);
+        // Pour les dômes, ajouter les PV
+        if (effectType === "dome" && hpValue !== null) {
+            replacements["DOME_HP"] = hpValue;
+            // Aussi ajouter maxHP aux flags du monde pour référence
+            const modifiedConfig = JSON.parse(JSON.stringify(effectConfig));
+            modifiedConfig.flags.world.maxHP = hpValue;
+            modifiedConfig.description = modifiedConfig.description.replace("STATUS_COUNTER_VALUE", hpValue);
 
-        if (!success) {
-            ui.notifications.error(`Impossible d'appliquer l'effet de tourbillon sur ${targetInfo.token.name}`);
+            const success = await applyGenericEffect(targetInfo, modifiedConfig, replacements);
+            if (!success) {
+                ui.notifications.error(`Impossible d'appliquer l'effet de dôme sur ${targetInfo.token.name}`);
+            }
+        } else {
+            // Utiliser la fonction générique avec la configuration centralisée
+            const success = await applyGenericEffect(targetInfo, effectConfig, replacements);
+            if (!success) {
+                const effectName = effectType === "dome" ? "dôme" : "tourbillon";
+                ui.notifications.error(`Impossible d'appliquer l'effet de ${effectName} sur ${targetInfo.token.name}`);
+            }
         }
     }
 
-    // Appliquer les effets de tourbillon sur les cibles
+    // Calculer les valeurs pour les effets (PV des dômes ou dégâts des tourbillons)
+    async function calculateEffectValues() {
+        const values = [];
+        const effectType = vortexTypeConfig.effectType;
+
+        if (effectType === "dome") {
+            // Calculer les PV du dôme
+            const statBonus = Math.floor(characteristicInfo.final * vortexTypeConfig.statMultiplier);
+
+            if (currentStance === 'offensif') {
+                // PV maximisés en position offensive
+                const maxBaseDamage = 18; // 3d6 max = 18
+                const maxHP = maxBaseDamage + statBonus;
+                values.push(maxHP);
+            } else {
+                // Lancer les dés normalement pour les PV
+                const roll = new Roll(`${vortexTypeConfig.damageFormula} + @statBonus`, { statBonus: statBonus });
+                await roll.evaluate({ async: true });
+                values.push(roll.total);
+            }
+        }
+
+        return values;
+    }
+
+    const effectValues = await calculateEffectValues();
+
+    // Appliquer les effets sur les cibles
     for (let i = 0; i < targetActors.length; i++) {
         if (targetActors[i]) {
-            await applyVortexEffect(targetActors[i], i);
+            const hpValue = vortexTypeConfig.effectType === "dome" ? effectValues[0] : null;
+            await applyEffect(targetActors[i], i, vortexTypeConfig.effectType, hpValue);
         }
     }
 
@@ -468,6 +618,16 @@
         const damages = [];
         // Note: Sorts indirects ne bénéficient PAS des bonus d'effets actifs sur les dégâts
         const statBonus = Math.floor((characteristicInfo.final * vortexTypeConfig.statMultiplier) + damageBonus);
+
+        if (vortexTypeConfig.effectType === "dome") {
+            // Pour les dômes, on affiche les PV au lieu des dégâts
+            return effectValues.map(hp => ({
+                total: hp,
+                formula: `${vortexTypeConfig.damageFormula} + ${characteristicInfo.final}`,
+                result: `${hp} PV`,
+                isHP: true
+            }));
+        }
 
         if (currentStance === 'offensif') {
             // Dégâts maximisés en position offensive
@@ -507,7 +667,7 @@
             .scale(SPELL_CONFIG.animations.castScale)
             .duration(SPELL_CONFIG.animations.castDuration);
 
-        // Créer les effets de tourbillon pour chaque cible
+        // Créer les effets pour chaque cible
         for (let i = 0; i < targets.length; i++) {
             const target = targets[i];
 
@@ -516,58 +676,92 @@
             const targetToken = targetTokenInfo ? targetTokenInfo.token : null;
 
             // Calculer l'échelle adaptative
-            let vortexScale;
+            let effectScale;
             if (targetToken) {
                 const tokenSize = Math.max(targetToken.document.width, targetToken.document.height) * 0.5;
-                vortexScale = (tokenSize * SPELL_CONFIG.scaling.tokenSizeMultiplier) *
+                effectScale = (tokenSize * SPELL_CONFIG.scaling.tokenSizeMultiplier) *
                     (vortexType === 'divided' ? SPELL_CONFIG.scaling.dividedReduction : 1.0);
             } else {
-                vortexScale = defaultScale *
+                effectScale = defaultScale *
                     (vortexType === 'divided' ? SPELL_CONFIG.scaling.dividedReduction : 1.0);
             }
 
-            // Effet de tourbillon principal - PERSISTANT
-            let vortexEffect = sequence.effect()
-                .file(SPELL_CONFIG.animations.vortex)
-                .scale(vortexScale)
-                .belowTokens() // Place l'effet sous les tokens
-                .duration(SPELL_CONFIG.animations.vortexDuration)
-                .fadeOut(SPELL_CONFIG.animations.vortexFadeOut)
-                .persist() // Rend persistant jusqu'à suppression manuelle
-                .name(`tourbillon_${i + 1}_${Date.now()}`) // Identifiant unique pour destruction
-                .delay(SPELL_CONFIG.animations.impactDelay);
+            if (vortexTypeConfig.effectType === "dome") {
+                // Animation du dôme de glace
+                let domeEffect = sequence.effect()
+                    .file(SPELL_CONFIG.animations.iceDome)
+                    .scale(effectScale * 1.2) // Dômes légèrement plus grands
+                    .belowTokens() // Place l'effet sous les tokens
+                    .duration(SPELL_CONFIG.animations.domeDuration)
+                    .fadeOut(SPELL_CONFIG.animations.domeFadeOut)
+                    .persist() // Rend persistant jusqu'à suppression manuelle
+                    .name(`dome_${i + 1}_${Date.now()}`) // Identifiant unique pour destruction
+                    .delay(SPELL_CONFIG.animations.impactDelay);
 
-            // Attacher au token s'il existe, sinon position fixe
-            if (targetToken) {
-                vortexEffect.attachTo(targetToken);
+                // Attacher au token s'il existe, sinon position fixe
+                if (targetToken) {
+                    domeEffect.attachTo(targetToken);
+                } else {
+                    domeEffect.atLocation(target);
+                }
+
+                // Effet d'impact de glace
+                let iceImpactEffect = sequence.effect()
+                    .file(SPELL_CONFIG.animations.iceImpact)
+                    .scale(effectScale * SPELL_CONFIG.scaling.impactReduction)
+                    .belowTokens()
+                    .delay(SPELL_CONFIG.animations.impactDelay);
+
+                if (targetToken) {
+                    iceImpactEffect.attachTo(targetToken);
+                } else {
+                    iceImpactEffect.atLocation(target);
+                }
+
             } else {
-                vortexEffect.atLocation(target);
-            }
+                // Animation du tourbillon classique
+                let vortexEffect = sequence.effect()
+                    .file(SPELL_CONFIG.animations.vortex)
+                    .scale(effectScale)
+                    .belowTokens() // Place l'effet sous les tokens
+                    .duration(SPELL_CONFIG.animations.vortexDuration)
+                    .fadeOut(SPELL_CONFIG.animations.vortexFadeOut)
+                    .persist() // Rend persistant jusqu'à suppression manuelle
+                    .name(`tourbillon_${i + 1}_${Date.now()}`) // Identifiant unique pour destruction
+                    .delay(SPELL_CONFIG.animations.impactDelay);
 
-            // Effet d'impact initial
-            let impactEffect = sequence.effect()
-                .file(SPELL_CONFIG.animations.impact)
-                .scale(vortexScale * SPELL_CONFIG.scaling.impactReduction)
-                .belowTokens()
-                .delay(SPELL_CONFIG.animations.impactDelay);
+                // Attacher au token s'il existe, sinon position fixe
+                if (targetToken) {
+                    vortexEffect.attachTo(targetToken);
+                } else {
+                    vortexEffect.atLocation(target);
+                }
 
-            if (targetToken) {
-                impactEffect.attachTo(targetToken);
-            } else {
-                impactEffect.atLocation(target);
-            }
+                // Effet d'impact initial
+                let impactEffect = sequence.effect()
+                    .file(SPELL_CONFIG.animations.impact)
+                    .scale(effectScale * SPELL_CONFIG.scaling.impactReduction)
+                    .belowTokens()
+                    .delay(SPELL_CONFIG.animations.impactDelay);
 
-            // Effet d'éclaboussure d'eau
-            let splashEffect = sequence.effect()
-                .file(SPELL_CONFIG.animations.splash)
-                .scale(vortexScale * SPELL_CONFIG.scaling.splashReduction)
-                .belowTokens()
-                .delay(SPELL_CONFIG.animations.splashDelay);
+                if (targetToken) {
+                    impactEffect.attachTo(targetToken);
+                } else {
+                    impactEffect.atLocation(target);
+                }
 
-            if (targetToken) {
-                splashEffect.attachTo(targetToken);
-            } else {
-                splashEffect.atLocation(target);
+                // Effet d'éclaboussure d'eau
+                let splashEffect = sequence.effect()
+                    .file(SPELL_CONFIG.animations.splash)
+                    .scale(effectScale * SPELL_CONFIG.scaling.splashReduction)
+                    .belowTokens()
+                    .delay(SPELL_CONFIG.animations.splashDelay);
+
+                if (targetToken) {
+                    splashEffect.attachTo(targetToken);
+                } else {
+                    splashEffect.atLocation(target);
+                }
             }
         }
 
@@ -581,8 +775,8 @@
     const levelBonus = 2 * SPELL_CONFIG.spellLevel;
     let combinedParts = [`${totalAttackDice}d7 + ${levelBonus}`];
 
-    if (currentStance !== 'offensif') {
-        // Ajouter les dés de dégâts si pas maximisé
+    if (currentStance !== 'offensif' && vortexTypeConfig.effectType !== "dome") {
+        // Ajouter les dés de dégâts si pas maximisé et si ce n'est pas un dôme
         const statBonus = Math.floor((characteristicInfo.final * vortexTypeConfig.statMultiplier) + damageBonus);
 
         for (let i = 0; i < vortexTypeConfig.count; i++) {
@@ -600,18 +794,31 @@
         ? targetActors.map((actor, i) => actor?.name || `position ${i + 1}`).join(' et ')
         : targetActors[0]?.name || "position";
 
-    const totalDamage = damages.reduce((sum, dmg) => sum + dmg.total, 0);
+    const totalValue = damages.reduce((sum, dmg) => sum + dmg.total, 0);
     const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
+    const isDome = vortexTypeConfig.effectType === "dome";
 
     const actualManaCost = currentStance === 'focus'
         ? 'GRATUIT (Position Focus)'
         : `${SPELL_CONFIG.manaCost} mana`;
 
     function createFlavor() {
+        const effectIcon = isDome ? "🧊" : "🌊";
+        const borderColor = isDome ? "#87ceeb" : "#2196f3";
+        const bgGradient = isDome ? "linear-gradient(135deg, #f0f8ff, #e3f2fd)" : "linear-gradient(135deg, #e3f2fd, #f3e5f5)";
+
+        const valueText = isDome
+            ? `💎 POINTS DE VIE DU DÔME: ${totalValue}`
+            : `💥 DÉGÂTS DE TRAVERSÉE: ${totalValue}`;
+
+        const noteText = isDome
+            ? "Le dôme possède des PV et doit être brisé pour être traversé. Ne peut pas être traversé sans destruction."
+            : "Dégâts appliqués lors de la traversée. Ora peut choisir de bloquer les attaques traversantes.";
+
         return `
-            <div style="background: linear-gradient(135deg, #e3f2fd, #f3e5f5); padding: 12px; border-radius: 8px; border: 2px solid #2196f3; margin: 8px 0;">
+            <div style="background: ${bgGradient}; padding: 12px; border-radius: 8px; border: 2px solid ${borderColor}; margin: 8px 0;">
                 <div style="text-align: center; margin-bottom: 8px;">
-                    <h3 style="margin: 0; color: #1976d2;">🌊 Sort de ${SPELL_CONFIG.name} - ${vortexTypeConfig.name}</h3>
+                    <h3 style="margin: 0; color: #1976d2;">${effectIcon} Sort de ${SPELL_CONFIG.name} - ${vortexTypeConfig.name}</h3>
                     <div style="margin-top: 3px; font-size: 0.9em;">
                         <strong>Personnage:</strong> ${actor.name} | <strong>Coût:</strong> ${actualManaCost}
                     </div>
@@ -620,13 +827,13 @@
                     <div style="font-size: 1.4em; color: #e65100; font-weight: bold;">🎯 ATTAQUE: ${attackResult.result}</div>
                 </div>
                 <div style="text-align: center; margin: 8px 0; padding: 10px; background: #e7f3ff; border-radius: 4px;">
-                    <div style="font-size: 1.1em; color: #0066cc; margin-bottom: 6px;"><strong>🌊 ${vortexTypeConfig.name}${stanceNote}</strong></div>
+                    <div style="font-size: 1.1em; color: #0066cc; margin-bottom: 6px;"><strong>${effectIcon} ${vortexTypeConfig.name}${stanceNote}</strong></div>
                     <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cible(s):</strong> ${targetText}</div>
-                    <div style="font-size: 1.4em; color: #d32f2f; font-weight: bold;">💥 DÉGÂTS DE TRAVERSÉE: ${totalDamage}</div>
+                    <div style="font-size: 1.4em; color: #d32f2f; font-weight: bold;">${valueText}</div>
                     ${vortexTypeConfig.count > 1 ? `<div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${damages.map(d => d.total).join(' + ')})</div>` : ''}
                 </div>
                 <div style="text-align: center; margin: 6px 0; padding: 6px; background: #f0f4ff; border-radius: 4px;">
-                    <div style="font-size: 0.9em; color: #1976d2;"><strong>⚠️ Notes:</strong> Dégâts appliqués lors de la traversée. Ora peut choisir de bloquer les attaques traversantes.</div>
+                    <div style="font-size: 0.9em; color: #1976d2;"><strong>⚠️ Notes:</strong> ${noteText}</div>
                 </div>
             </div>
         `;
@@ -639,9 +846,11 @@
     });
 
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
-    const vortexInfo = vortexTypeConfig.count > 1 ? `${vortexTypeConfig.count} tourbillons créés` : `Tourbillon puissant créé`;
+    const effectInfo = isDome
+        ? (vortexTypeConfig.count > 1 ? `${vortexTypeConfig.count} dômes créés` : `Dôme de glace créé`)
+        : (vortexTypeConfig.count > 1 ? `${vortexTypeConfig.count} tourbillons créés` : `Tourbillon puissant créé`);
     const maximizedInfo = currentStance === 'offensif' ? ' MAXIMISÉ' : '';
 
-    ui.notifications.info(`Sort de ${SPELL_CONFIG.name} lancé !${stanceInfo} ${vortexInfo}${maximizedInfo}. Jet d'attaque : ${attackResult.result}.`);
+    ui.notifications.info(`Sort de ${SPELL_CONFIG.name} lancé !${stanceInfo} ${effectInfo}${maximizedInfo}. Jet d'attaque : ${attackResult.result}.`);
 
 })();

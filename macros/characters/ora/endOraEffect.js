@@ -83,6 +83,41 @@
             }
         },
 
+        // Dôme de Glace - Configuration importée depuis tourbillon.js (option dôme)
+        "Dôme": {
+            displayName: "Dôme de Glace",
+            icon: "icons/magic/defensive/barrier-ice-crystal-wall-jagged-blue.webp",
+            description: "Enfermé dans un dôme de glace d'Ora",
+            sectionTitle: "🧊 Dômes de Glace",
+            sectionIcon: "🧊",
+            cssClass: "ice-dome-effect",
+            borderColor: "#87ceeb",
+            bgColor: "#f0f8ff",
+            detectFlags: [
+                { path: "name", matchValue: "Dôme" },
+                { path: "flags.world.domeCaster", matchValue: "CASTER_ID" }
+            ],
+            cleanup: {
+                sequencerPatterns: ["dome_*"] // Pattern pour nettoyer les animations
+            },
+            mechanicType: "dome",
+            removeAnimation: {
+                file: "jb2a.impact.frost.blue.02",
+                scale: 1.0,
+                duration: 2500,
+                fadeOut: 1000,
+                tint: "#87ceeb"
+            },
+            getExtraData: (effect) => ({
+                currentHP: effect.flags?.statuscounter?.value || 0,
+                maxHP: effect.flags?.world?.maxHP || 0
+            }),
+            getDynamicDescription: (effect) => {
+                const currentHP = effect.flags?.statuscounter?.value || 0;
+                return `Enfermé dans un dôme de glace d'Ora (${currentHP} PV)`;
+            }
+        },
+
         // Ora Ralentissement - Configuration importée depuis bubbles.js (ice)
         "Ora Ralentissement": {
             displayName: "Ora Ralentissement",
