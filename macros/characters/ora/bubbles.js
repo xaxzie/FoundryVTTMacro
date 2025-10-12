@@ -113,7 +113,7 @@
         statusEffects: {
             ice: {
                 name: "Ora Ralentissement",
-                icon: "icons/magic/water/ice-snowflake.webp",
+                icon: "icons/magic/water/snowflake-ice-snow-white.webp",
                 description: "Ralenti par la glace d'Ora",
                 duration: { // Permanent jusqu'à suppression manuelle
                     seconds: 84600
@@ -202,7 +202,7 @@
             },
             oil: {
                 name: "Ora Faiblesse Feu",
-                icon: "icons/magic/fire/flame-burning-creature-orange.webp",
+                icon: "icons/magic/water/orb-water-bubbles-blue.webp",
                 description: "Vulnérable aux dégâts de feu (+2 prochaine attaque de feu)",
                 duration: { // Permanent jusqu'à suppression manuelle
                     seconds: 84600

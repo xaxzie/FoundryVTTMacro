@@ -86,7 +86,7 @@
         // Ora Ralentissement - Configuration importée depuis bubbles.js (ice)
         "Ora Ralentissement": {
             displayName: "Ora Ralentissement",
-            icon: "icons/magic/water/ice-snowflake.webp",
+            icon: "icons/magic/water/snowflake-ice-snow-white.webp",
             description: "Ralenti par la glace d'Ora",
             sectionTitle: "❄️ Ralentissement",
             sectionIcon: "❄️",
@@ -139,7 +139,7 @@
         // Ora Faiblesse Feu - Configuration importée depuis bubbles.js (oil)
         "Ora Faiblesse Feu": {
             displayName: "Ora Faiblesse Feu",
-            icon: "icons/magic/fire/flame-burning-creature-orange.webp",
+            icon: "icons/magic/water/orb-water-bubbles-blue.webp",
             description: "Vulnérable aux dégâts de feu (+2 prochaine attaque de feu)",
             sectionTitle: "🔥 Faiblesse Feu",
             sectionIcon: "🔥",
