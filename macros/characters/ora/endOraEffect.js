@@ -272,35 +272,40 @@
     }
 
     /**
-     * Vérifie si un effet correspond aux flags de configuration
-     * Tous les flags de détection doivent correspondre (AND logic, pas OR)
+     * Vérifie si un effet correspond aux critères de configuration
+     * Simplifiée : se base principalement sur le nom de l'effet
      */
     function checkEffectFlags(effect, config, casterId, targetId = null) {
-        let matchedChecks = 0;
-        let totalChecks = config.detectFlags.length;
+        // Pour les effets d'Ora, on vérifie principalement le nom
+        const expectedName = config.detectFlags.find(flag => flag.path === "name")?.matchValue;
 
-        for (const flagCheck of config.detectFlags) {
-            if (flagCheck.path === "name") {
-                // Vérification spéciale par nom d'effet
-                if (effect.name === flagCheck.matchValue) {
-                    matchedChecks++;
-                }
-            } else {
-                const flagValue = getProperty(effect, flagCheck.path);
-                let expectedValue = flagCheck.matchValue;
-
-                // Remplacements dynamiques
-                if (expectedValue === "CASTER_ID") expectedValue = casterId;
-                if (expectedValue === "TARGET_ID") expectedValue = targetId;
-
-                if (flagValue === expectedValue) {
-                    matchedChecks++;
-                }
-            }
+        if (!expectedName) {
+            console.warn(`[Ora Debug] No name detection configured for effect type`);
+            return false;
         }
 
-        // Tous les checks doivent correspondre pour considérer l'effet comme valide
-        return matchedChecks === totalChecks;
+        const nameMatches = effect.name === expectedName;
+        console.log(`[Ora Debug] Checking effect "${effect.name}" against expected "${expectedName}": ${nameMatches}`);
+
+        if (!nameMatches) {
+            return false;
+        }
+
+        // Vérification optionnelle du lanceur pour plus de sécurité
+        // Mais pas obligatoire si le nom correspond déjà
+        const casterFlags = [
+            effect.flags?.world?.vortexCaster,
+            effect.flags?.world?.domeCaster,
+            effect.flags?.world?.oraCaster
+        ];
+
+        const hasCasterFlag = casterFlags.some(flag => flag === casterId);
+
+        console.log(`[Ora Debug] Effect "${effect.name}" - Name match: ${nameMatches}, Caster flags:`, casterFlags, `Matches caster ${casterId}:`, hasCasterFlag);
+
+        // Si le nom correspond, c'est suffisant (comme pour les bulles qui marchent)
+        // La vérification du caster est optionnelle pour plus de robustesse
+        return nameMatches;
     }
 
     /**
@@ -719,14 +724,25 @@
     function findCharacterEffectsOnCanvas() {
         const characterEffects = [];
 
+        console.log(`[Ora Debug] Starting detection. Caster ID: ${caster.id}, Available configs:`, Object.keys(validatedConfigs));
+
         // Parcourir tous les tokens sur la scène pour les effets d'acteur
         for (const token of canvas.tokens.placeables) {
             if (!token.actor) continue;
             if (token.id === caster.id) continue; // Skip Ora elle-même
 
+            console.log(`[Ora Debug] Checking token ${token.name} (${token.id}) - Found ${token.actor.effects.contents.length} effects`);
+
             // Chercher les effets appliqués par Ora
             for (const effect of token.actor.effects.contents) {
                 let effectMatched = false;
+
+                console.log(`[Ora Debug] Checking effect "${effect.name}" on token ${token.name}:`, {
+                    effectName: effect.name,
+                    effectId: effect.id,
+                    flags: effect.flags?.world,
+                    statusCounter: effect.flags?.statuscounter?.value
+                });
 
                 // Vérifier chaque type d'effet configuré (validé) - sortir dès qu'un match est trouvé
                 for (const [effectType, config] of Object.entries(validatedConfigs)) {
@@ -735,6 +751,8 @@
 
                     // Skip si déjà traité
                     if (effectMatched) break;
+
+                    console.log(`[Ora Debug] Testing config for ${effectType} - Looking for effect name "${config.detectFlags.find(f => f.path === "name")?.matchValue}"`);
 
                     // Utiliser la logique de vérification des flags
                     if (checkEffectFlags(effect, config, actor.id, token.id)) {
@@ -751,18 +769,26 @@
                             extraData: extraData
                         });
 
-                        console.log(`[Ora] Found ${effectType} on ${token.name}:`, {
+                        console.log(`[Ora Debug] ✓ Found ${effectType} on ${token.name}:`, {
                             effectName: effect.name,
                             flags: effect.flags?.world,
-                            statusCounter: effect.flags?.statuscounter,
+                            statusCounter: effect.flags?.statuscounter?.value,
                             extraData: extraData
                         });
 
                         effectMatched = true; // Empêche les doublons pour le même effet
+                    } else {
+                        console.log(`[Ora Debug] ✗ No match for ${effectType} on ${effect.name}`);
                     }
+                }
+
+                if (!effectMatched) {
+                    console.log(`[Ora Debug] ⚠️ Effect "${effect.name}" on ${token.name} didn't match any configuration`);
                 }
             }
         }
+
+        console.log(`[Ora Debug] Detection complete. Found ${characterEffects.length} effects:`, characterEffects.map(e => `${e.effectType} on ${e.token.name}`));
 
         // Détecter les tourbillons orphelins (animations sans token cible)
         try {
