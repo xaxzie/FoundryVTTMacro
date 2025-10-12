@@ -24,9 +24,8 @@
     const ANIMATION_CONFIG = {
         // Animation d'éclair électrique
         lightning: {
-            file: "jb2a.chain_lightning.secondary.blue", // Éclair simple
-            scale: 0.8,
-            tint: "#00bfff" // Bleu électrique
+            file: "jb2a_patreon.chain_lightning.primary.red", // Éclair simple
+            scale: 0.8// Bleu électrique
         },
 
         // Configuration Portal pour le ciblage
@@ -139,7 +138,6 @@
             .atLocation(originalCenter)
             .stretchTo(destinationCenter, { onlyX: false })
             .scale(ANIMATION_CONFIG.lightning.scale)
-            .tint(ANIMATION_CONFIG.lightning.tint)
             .duration(800); // Durée courte pour un effet rapide
 
         // Jouer l'animation
