@@ -447,6 +447,181 @@
 
     const targetActors = targets.map(target => getActorAtLocation(target.x, target.y));
 
+    // ===== FUNCTIONS FOR EFFECT MANAGEMENT =====
+
+    /**
+     * Supprime les anciens effets d'Ora avant d'appliquer de nouveaux
+     */
+    async function removeExistingOraEffects(targetActor, casterId) {
+        const oraEffectsToRemove = [];
+
+        // Chercher tous les effets d'Ora sur la cible
+        for (const effect of targetActor.effects.contents) {
+            const isOraEffect = (
+                effect.name === "Ora Ralentissement" ||
+                effect.name === "Ora Faiblesse Électrique" ||
+                effect.name === "Ora Faiblesse Feu"
+            );
+
+            if (isOraEffect) {
+                const effectCaster = effect.flags?.world?.oraCaster;
+                if (effectCaster === casterId) {
+                    oraEffectsToRemove.push(effect);
+                }
+            }
+        }
+
+        // Supprimer les effets trouvés
+        for (const effect of oraEffectsToRemove) {
+            try {
+                if (targetActor.isOwner) {
+                    await effect.delete();
+                } else {
+                    // Délégation GM
+                    if (globalThis.gmSocket) {
+                        await globalThis.gmSocket.executeAsGM("removeEffectFromActor", targetActor.id, effect.id);
+                    }
+                }
+                console.log(`[Ora Bubbles] Removed existing effect ${effect.name} from ${targetActor.name}`);
+            } catch (error) {
+                console.error(`[Ora Bubbles] Error removing effect ${effect.name}:`, error);
+            }
+        }
+
+        return oraEffectsToRemove.length;
+    }
+
+    /**
+     * Applique un effet de statut sur un acteur cible
+     */
+    async function applyStatusEffect(targetActor, targetToken, effectType, casterId, spellName) {
+        if (!targetActor) return false;
+
+        // D'abord supprimer les anciens effets d'Ora
+        const removedCount = await removeExistingOraEffects(targetActor, casterId);
+        if (removedCount > 0) {
+            console.log(`[Ora Bubbles] Removed ${removedCount} existing Ora effect(s) from ${targetActor.name}`);
+        }
+
+        let effectData = null;
+
+        switch (effectType) {
+            case 'ice':
+                // Effet de ralentissement pour la glace
+                effectData = {
+                    name: "Ora Ralentissement",
+                    icon: "icons/magic/water/ice-snowflake.webp",
+                    origin: casterId,
+                    disabled: false,
+                    duration: {
+                        rounds: null, // Permanent jusqu'à suppression manuelle
+                        seconds: null,
+                        startRound: null,
+                        startTime: null
+                    },
+                    flags: {
+                        world: {
+                            oraCaster: casterId,
+                            spellName: spellName,
+                            effectType: "slowdown",
+                            appliedAt: Date.now()
+                        },
+                        statuscounter: {
+                            value: 1
+                        }
+                    },
+                    changes: [],
+                    tint: "#87ceeb"
+                };
+                break;
+
+            case 'water':
+                // Effet de faiblesse électrique pour l'eau
+                effectData = {
+                    name: "Ora Faiblesse Électrique",
+                    icon: "icons/magic/lightning/bolt-strike-blue.webp",
+                    origin: casterId,
+                    disabled: false,
+                    duration: {
+                        rounds: null, // Permanent jusqu'à suppression ou utilisation
+                        seconds: null,
+                        startRound: null,
+                        startTime: null
+                    },
+                    flags: {
+                        world: {
+                            oraCaster: casterId,
+                            spellName: spellName,
+                            effectType: "weakness",
+                            appliedAt: Date.now(),
+                            damageType: "electric"
+                        },
+                        statuscounter: {
+                            value: 3
+                        }
+                    },
+                    changes: [],
+                    tint: "#0080ff"
+                };
+                break;
+
+            case 'oil':
+                // Effet de faiblesse au feu pour l'huile
+                effectData = {
+                    name: "Ora Faiblesse Feu",
+                    icon: "icons/magic/fire/flame-burning-creature-orange.webp",
+                    origin: casterId,
+                    disabled: false,
+                    duration: {
+                        rounds: null, // Permanent jusqu'à suppression ou utilisation
+                        seconds: null,
+                        startRound: null,
+                        startTime: null
+                    },
+                    flags: {
+                        world: {
+                            oraCaster: casterId,
+                            spellName: spellName,
+                            effectType: "weakness",
+                            appliedAt: Date.now(),
+                            damageType: "fire"
+                        },
+                        statuscounter: {
+                            value: 2
+                        }
+                    },
+                    changes: [],
+                    tint: "#ff8c00"
+                };
+                break;
+
+            default:
+                return false;
+        }
+
+        try {
+            // Appliquer l'effet
+            if (targetActor.isOwner) {
+                await targetActor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+            } else {
+                // Délégation GM
+                if (globalThis.gmSocket) {
+                    await globalThis.gmSocket.executeAsGM("createEffectOnActor", targetActor.id, effectData);
+                } else {
+                    console.warn(`[Ora Bubbles] Cannot apply effect to ${targetActor.name} - no GM socket`);
+                    return false;
+                }
+            }
+
+            console.log(`[Ora Bubbles] Applied ${effectData.name} to ${targetActor.name}`);
+            return true;
+
+        } catch (error) {
+            console.error(`[Ora Bubbles] Error applying effect to ${targetActor.name}:`, error);
+            return false;
+        }
+    }
+
     // ===== DAMAGE CALCULATION =====
     async function calculateDamage() {
         const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
@@ -600,6 +775,54 @@
             flavor: createAttackFlavor(),
             rollMode: game.settings.get('core', 'rollMode')
         });
+
+        // ===== APPLICATION DES EFFETS DE STATUT =====
+        if (selectedElement !== 'living_water') {
+            const appliedEffects = [];
+            const failedEffects = [];
+
+            // Appliquer les effets sur chaque cible touchée
+            for (let i = 0; i < targetActors.length; i++) {
+                const targetInfo = targetActors[i];
+                if (targetInfo && targetInfo.actor) {
+                    const success = await applyStatusEffect(
+                        targetInfo.actor,
+                        targetInfo.token,
+                        selectedElement,
+                        actor.id,
+                        SPELL_CONFIG.name
+                    );
+
+                    if (success) {
+                        appliedEffects.push(targetInfo.name);
+                    } else {
+                        failedEffects.push(targetInfo.name);
+                    }
+                }
+            }
+
+            // Notification des effets appliqués
+            if (appliedEffects.length > 0) {
+                let effectName = "";
+                switch (selectedElement) {
+                    case 'ice':
+                        effectName = "Ralentissement";
+                        break;
+                    case 'water':
+                        effectName = "Faiblesse Électrique";
+                        break;
+                    case 'oil':
+                        effectName = "Faiblesse Feu";
+                        break;
+                }
+
+                ui.notifications.info(`✨ Effet ${effectName} appliqué sur: ${appliedEffects.join(', ')}`);
+            }
+
+            if (failedEffects.length > 0) {
+                ui.notifications.warn(`⚠️ Impossible d'appliquer l'effet sur: ${failedEffects.join(', ')}`);
+            }
+        }
 
         ui.notifications.info(`${SPELL_CONFIG.name} lancé ! Cible: ${targetText}. Attaque: ${attackResult.result}, Dégâts: ${totalDamage}.`);
 

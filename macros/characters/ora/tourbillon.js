@@ -343,6 +343,55 @@
 
     const targetActors = targets.map(target => getActorAtLocation(target.x, target.y));
 
+    // ===== APPLICATION DE L'EFFET TOURBILLON =====
+    async function applyVortexEffect(targetInfo, vortexIndex) {
+        if (!targetInfo || !targetInfo.token) return;
+
+        const effectData = {
+            name: "Tourbillon",
+            icon: "icons/magic/water/vortex-water-whirlpool.webp",
+            duration: {
+                rounds: null // Permanent jusqu'à suppression manuelle
+            },
+            flags: {
+                world: {
+                    vortexCaster: caster.id,
+                    vortexTarget: targetInfo.token.id,
+                    vortexIndex: vortexIndex,
+                    spellName: SPELL_CONFIG.name,
+                    createdAt: Date.now()
+                }
+            },
+            changes: []
+        };
+
+        try {
+            // Utiliser la délégation GM comme dans empalement
+            if (targetInfo.token.actor.isOwner) {
+                await targetInfo.token.actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+            } else {
+                if (!globalThis.gmSocket) {
+                    ui.notifications.error("GM Socket non disponible pour appliquer l'effet !");
+                    return;
+                }
+                const result = await globalThis.gmSocket.executeAsGM("createActiveEffectOnActor", targetInfo.token.actor.id, effectData);
+                if (!result.success) {
+                    console.error(`Failed to create vortex effect: ${result.error}`);
+                }
+            }
+            console.log(`[Ora] Applied vortex effect to ${targetInfo.token.name}`);
+        } catch (error) {
+            console.error(`[Ora] Error applying vortex effect to ${targetInfo.token.name}:`, error);
+        }
+    }
+
+    // Appliquer les effets de tourbillon sur les cibles
+    for (let i = 0; i < targetActors.length; i++) {
+        if (targetActors[i]) {
+            await applyVortexEffect(targetActors[i], i);
+        }
+    }
+
     // ===== DAMAGE CALCULATION =====
     async function calculateDamage() {
         const damages = [];

@@ -1,0 +1,820 @@
+/**
+ * End Ora Effects (Terminer Effets d'Ora) - Ora (Maîtresse de l'Eau)
+ *
+ * Macro pour terminer les effets qu'Ora a appliqués sur d'autres tokens.
+ * Spécialisé pour les effets d'eau et de magie aquatique d'Ora.
+ *
+ * Fonctionnalités :
+ * - Configuration centralisée des effets via EFFECT_CONFIG
+ * - Détecte automatiquement tous les effets appliqués par Ora sur le canvas
+ * - Interface de sélection pour choisir quels effets supprimer
+ * - Supprime les animations Sequencer associées si applicable
+ * - Gestion par délégation GM pour les tokens non possédés
+ * - Facilement extensible pour de nouveaux effets via EFFECT_CONFIG
+ * - Spécialisé pour les mécaniques aquatiques d'Ora
+ *
+ * Pour ajouter un nouvel effet :
+ * 1. Ajouter l'entrée dans EFFECT_CONFIG avec les paramètres appropriés
+ * 2. Le système détectera automatiquement le nouvel effet
+ *
+ * Usage : Sélectionner le token d'Ora et lancer cette macro
+ */
+
+(async () => {
+    // ===== CONFIGURATION DU PERSONNAGE =====
+    const CHARACTER_CONFIG = {
+        name: "Ora",
+        displayName: "Ora (Maîtresse de l'Eau)",
+        icon: "🌊",
+        color: "#2196f3",
+        noEffectsMessage: "Pas d'effets d'eau détectés à supprimer !",
+        dialogTitle: "Terminer Effets d'Ora",
+        chatTitle: "Effets d'Eau d'Ora Terminés"
+    };
+
+    // ===== CONFIGURATION DES EFFETS =====
+    const EFFECT_CONFIG = {
+        // Tourbillon - Effet principal de zone
+        "Tourbillon": {
+            displayName: "Tourbillon",
+            icon: "icons/magic/water/vortex-water-whirlpool.webp",
+            description: "Pris dans un tourbillon d'eau d'Ora",
+            sectionTitle: "🌊 Tourbillons",
+            sectionIcon: "🌊",
+            cssClass: "vortex-effect",
+            borderColor: "#2196f3",
+            bgColor: "#e3f2fd",
+            detectFlags: [
+                { path: "name", matchValue: "Tourbillon" },
+                { path: "flags.world.vortexCaster", matchValue: "CASTER_ID" }
+            ],
+            cleanup: {
+                sequencerNames: [
+                    "tourbillonSequenceName" // Animation de tourbillon
+                ]
+            },
+            mechanicType: "vortex"
+        },
+
+        // Ora Ralentissement - Effet de glace
+        "Ora Ralentissement": {
+            displayName: "Ora Ralentissement",
+            icon: "icons/magic/water/ice-snowflake.webp",
+            description: "Ralenti par la glace d'Ora",
+            sectionTitle: "❄️ Ralentissement",
+            sectionIcon: "❄️",
+            cssClass: "ice-slowdown-effect",
+            borderColor: "#87ceeb",
+            bgColor: "#f0f8ff",
+            detectFlags: [
+                { path: "name", matchValue: "Ora Ralentissement" },
+                { path: "flags.world.oraCaster", matchValue: "CASTER_ID" }
+            ],
+            mechanicType: "slowdown",
+            getExtraData: (effect) => ({
+                slowdownAmount: effect.flags?.statuscounter?.value || 1,
+                sourceSpell: effect.flags?.world?.spellName || "Bulles de glace"
+            }),
+            getDynamicDescription: (effect) => {
+                const slowdown = effect.flags?.statuscounter?.value || 1;
+                const sourceSpell = effect.flags?.world?.spellName || "Bulles de glace";
+                return `Ralenti par ${sourceSpell} d'Ora (-${slowdown} case de vitesse)`;
+            }
+        },
+
+        // Ora Faiblesse Électrique - Effet d'eau
+        "Ora Faiblesse Électrique": {
+            displayName: "Ora Faiblesse Électrique",
+            icon: "icons/magic/lightning/bolt-strike-blue.webp",
+            description: "Vulnérable aux dégâts électriques (+2 prochaine attaque électrique)",
+            sectionTitle: "⚡ Faiblesse Électrique",
+            sectionIcon: "⚡",
+            cssClass: "electric-weakness-effect",
+            borderColor: "#0080ff",
+            bgColor: "#e3f2fd",
+            detectFlags: [
+                { path: "name", matchValue: "Ora Faiblesse Électrique" },
+                { path: "flags.world.oraCaster", matchValue: "CASTER_ID" }
+            ],
+            mechanicType: "weakness",
+            getExtraData: (effect) => ({
+                bonusDamage: effect.flags?.statuscounter?.value || 2,
+                sourceSpell: effect.flags?.world?.spellName || "Bulles d'eau"
+            }),
+            getDynamicDescription: (effect) => {
+                const bonus = effect.flags?.statuscounter?.value || 2;
+                const sourceSpell = effect.flags?.world?.spellName || "Bulles d'eau";
+                return `Vulnérable aux dégâts électriques par ${sourceSpell} d'Ora (+${bonus} prochaine attaque électrique)`;
+            }
+        },
+
+        // Ora Faiblesse Feu - Effet d'huile
+        "Ora Faiblesse Feu": {
+            displayName: "Ora Faiblesse Feu",
+            icon: "icons/magic/fire/flame-burning-creature-orange.webp",
+            description: "Vulnérable aux dégâts de feu (+2 prochaine attaque de feu)",
+            sectionTitle: "🔥 Faiblesse Feu",
+            sectionIcon: "🔥",
+            cssClass: "fire-weakness-effect",
+            borderColor: "#ff8c00",
+            bgColor: "#fff3e0",
+            detectFlags: [
+                { path: "name", matchValue: "Ora Faiblesse Feu" },
+                { path: "flags.world.oraCaster", matchValue: "CASTER_ID" }
+            ],
+            mechanicType: "weakness",
+            getExtraData: (effect) => ({
+                bonusDamage: effect.flags?.statuscounter?.value || 2,
+                sourceSpell: effect.flags?.world?.spellName || "Bulles d'huile"
+            }),
+            getDynamicDescription: (effect) => {
+                const bonus = effect.flags?.statuscounter?.value || 2;
+                const sourceSpell = effect.flags?.world?.spellName || "Bulles d'huile";
+                return `Vulnérable aux dégâts de feu par ${sourceSpell} d'Ora (+${bonus} prochaine attaque de feu)`;
+            }
+        },
+
+        // TODO: Add more Ora's specific water effects here
+        // Future effects like water healing, tsunami, etc.
+    };
+
+    // ===== FONCTIONS UTILITAIRES =====
+
+    /**
+     * Vérifie si un effet correspond aux flags de configuration
+     */
+    function checkEffectFlags(effect, config, casterId, targetId = null) {
+        for (const flagCheck of config.detectFlags) {
+            if (flagCheck.path === "name") {
+                // Vérification spéciale par nom d'effet
+                if (effect.name === flagCheck.matchValue) {
+                    return true;
+                }
+            } else {
+                const flagValue = getProperty(effect, flagCheck.path);
+                let expectedValue = flagCheck.matchValue;
+
+                // Remplacements dynamiques
+                if (expectedValue === "CASTER_ID") expectedValue = casterId;
+                if (expectedValue === "TARGET_ID") expectedValue = targetId;
+
+                if (flagValue === expectedValue) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Fonction de délégation GM pour suppression d'effets
+     */
+    async function removeEffectWithGMDelegation(targetActor, effectId) {
+        if (!globalThis.gmSocket) {
+            return { success: false, error: "GM Socket non disponible" };
+        }
+        return await globalThis.gmSocket.executeAsGM("removeEffectFromActor", targetActor.id, effectId);
+    }
+
+    /**
+     * Fonction de délégation GM pour mise à jour d'effets
+     */
+    async function updateEffectWithGMDelegation(targetActor, effectId, updateData) {
+        if (!globalThis.gmSocket) {
+            return { success: false, error: "GM Socket non disponible" };
+        }
+        return await globalThis.gmSocket.executeAsGM("updateEffectOnActor", targetActor.id, effectId, updateData);
+    }
+
+    /**
+     * Nettoie les animations Sequencer
+     */
+    function cleanupSequencerAnimations(effect, config) {
+        if (config.cleanup?.sequencerName) {
+            const sequenceName = getProperty(effect, config.cleanup.sequencerName);
+            if (sequenceName) {
+                try {
+                    Sequencer.EffectManager.endEffects({ name: sequenceName });
+                    console.log(`[Ora] Cleaned up sequencer effect: ${sequenceName}`);
+                } catch (seqError) {
+                    console.warn(`[Ora] Could not clean up sequencer effect ${sequenceName}:`, seqError);
+                }
+            }
+        }
+
+        if (config.cleanup?.sequencerNames) {
+            for (const sequencerPath of config.cleanup.sequencerNames) {
+                const sequenceName = getProperty(effect, sequencerPath);
+                if (sequenceName) {
+                    try {
+                        Sequencer.EffectManager.endEffects({ name: sequenceName });
+                        console.log(`[Ora] Cleaned up sequencer effect: ${sequenceName}`);
+                    } catch (seqError) {
+                        console.warn(`[Ora] Could not clean up sequencer effect ${sequenceName}:`, seqError);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Nettoie les filtres Token Magic FX
+     */
+    async function cleanupTokenMagicFilters(token, config) {
+        if (config.cleanup?.removeTokenMagicFilters && config.transformationConfig?.tokenMagicFilters) {
+            for (const filterType of config.transformationConfig.tokenMagicFilters) {
+                try {
+                    await TokenMagic.deleteFilters(token, filterType);
+                    console.log(`[Ora] Removed ${filterType} filter from ${token.name}`);
+                } catch (tmfxError) {
+                    console.warn(`[Ora] Could not remove ${filterType} filter:`, tmfxError);
+                }
+            }
+        }
+    }
+
+    /**
+     * Traite la suppression d'un effet simple
+     */
+    async function handleSimpleEffectRemoval(effectInfo, results) {
+        const { token, effect, effectType, config } = effectInfo;
+
+        try {
+            // Cleanup des animations Sequencer
+            cleanupSequencerAnimations(effect, config);
+
+            // Cleanup des filtres Token Magic FX
+            await cleanupTokenMagicFilters(token, config);
+
+            // Animation de suppression
+            if (config.removeAnimation) {
+                const seq = new Sequence();
+                seq.effect()
+                    .file(config.removeAnimation.file)
+                    .attachTo(token)
+                    .scale(config.removeAnimation.scale || 1.0)
+                    .duration(config.removeAnimation.duration || 2000)
+                    .fadeOut(config.removeAnimation.fadeOut || 1000);
+
+                if (config.removeAnimation.tint) {
+                    seq.tint(config.removeAnimation.tint);
+                }
+
+                await seq.play();
+            }
+
+            // Suppression de l'effet
+            if (token.actor.isOwner) {
+                await effect.delete();
+            } else {
+                await removeEffectWithGMDelegation(token.actor, effect.id);
+            }
+
+            results.simple.push({
+                target: token.name,
+                effect: effectType
+            });
+            console.log(`[Ora] Removed ${effectType} from ${token.name}`);
+
+        } catch (error) {
+            console.error(`[Ora] Error removing ${effectType} from ${token.name}:`, error);
+            results.failed.push({
+                target: token.name,
+                effect: effectType,
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Traite la suppression d'un effet de tourbillon
+     */
+    async function handleVortexRemoval(effectInfo, results) {
+        const { token, effect, effectType, config } = effectInfo;
+
+        try {
+            // Récupérer l'index du tourbillon pour supprimer l'animation correspondante
+            const vortexIndex = effect.flags?.world?.vortexIndex || 0;
+            const casterId = effect.flags?.world?.vortexCaster;
+
+            // Cleanup des animations Sequencer spécifiques
+            if (config.cleanup?.sequencerNames) {
+                for (const sequencerKey of config.cleanup.sequencerNames) {
+                    const sequencerName = effect.flags?.world?.[sequencerKey];
+                    if (sequencerName) {
+                        try {
+                            Sequencer.EffectManager.endEffects({ name: sequencerName });
+                            console.log(`[Ora] Cleaned up vortex sequencer effect: ${sequencerName}`);
+                        } catch (seqError) {
+                            console.warn(`[Ora] Could not clean up vortex sequencer effect ${sequencerName}:`, seqError);
+                        }
+                    }
+                }
+            }
+
+            // Supprimer l'animation de tourbillon par pattern
+            try {
+                const vortexPattern = `tourbillon_${vortexIndex + 1}_*`;
+                Sequencer.EffectManager.endEffects({ name: vortexPattern });
+                console.log(`[Ora] Ended vortex animation with pattern: ${vortexPattern}`);
+            } catch (seqError) {
+                console.warn(`[Ora] Could not end vortex animation:`, seqError);
+            }
+
+            // Animation de dissipation du tourbillon
+            const dissipationSeq = new Sequence();
+            dissipationSeq.effect()
+                .file("jb2a.water_splash.blue")
+                .attachTo(token)
+                .scale(0.8)
+                .duration(2000)
+                .fadeOut(1000)
+                .tint("#2196f3");
+
+            await dissipationSeq.play();
+
+            // Suppression de l'effet sur la cible
+            if (token.actor.isOwner) {
+                await effect.delete();
+            } else {
+                await removeEffectWithGMDelegation(token.actor, effect.id);
+            }
+
+            results.vortexEffects.push({
+                target: token.name,
+                effect: effectType
+            });
+            console.log(`[Ora] Removed vortex from ${token.name}`);
+
+        } catch (error) {
+            console.error(`[Ora] Error removing vortex from ${token.name}:`, error);
+            results.failed.push({
+                target: token.name,
+                effect: effectType,
+                error: error.message
+            });
+        }
+    }
+
+    // ===== VALIDATION INITIALE =====
+    if (!canvas.tokens.controlled.length) {
+        ui.notifications.error(`Veuillez d'abord sélectionner le jeton de ${CHARACTER_CONFIG.displayName} !`);
+        return;
+    }
+
+    const caster = canvas.tokens.controlled[0];
+    const actor = caster.actor;
+
+    if (!actor) {
+        ui.notifications.error("Aucun acteur valide trouvé !");
+        return;
+    }
+
+    // ===== DÉTECTION DES EFFETS SUR LE CANVAS =====
+    function findCharacterEffectsOnCanvas() {
+        const characterEffects = [];
+
+        // Parcourir tous les tokens sur la scène pour les effets d'acteur
+        for (const token of canvas.tokens.placeables) {
+            if (!token.actor) continue;
+            if (token.id === caster.id) continue; // Skip Ora elle-même
+
+            // Chercher les effets appliqués par Ora
+            for (const effect of token.actor.effects.contents) {
+                // Vérifier chaque type d'effet configuré
+                for (const [effectType, config] of Object.entries(EFFECT_CONFIG)) {
+                    // Skip les effets Sequencer-only qui n'ont pas d'effet d'acteur
+                    if (config.isSequencerOnly) continue;
+
+                    // Utiliser la logique de vérification des flags
+                    if (checkEffectFlags(effect, config, actor.id, token.id)) {
+                        const extraData = config.getExtraData ? config.getExtraData(effect) : {};
+                        const description = config.getDynamicDescription ?
+                            config.getDynamicDescription(effect) : config.description;
+
+                        characterEffects.push({
+                            token: token,
+                            effect: effect,
+                            effectType: effectType,
+                            config: config,
+                            description: description,
+                            extraData: extraData
+                        });
+
+                        console.log(`[Ora] Found ${effectType} on ${token.name}:`, {
+                            effectName: effect.name,
+                            flags: effect.flags?.world,
+                            extraData: extraData
+                        });
+                    }
+                }
+            }
+        }
+
+        // Détecter les tourbillons orphelins (animations sans token cible)
+        try {
+            // Rechercher les effets Sequencer actifs avec pattern de tourbillon
+            const activeSequencerEffects = Sequencer.EffectManager.getEffects();
+            for (const seqEffect of activeSequencerEffects) {
+                if (seqEffect.data?.name?.startsWith('tourbillon_')) {
+                    // Vérifier si le tourbillon a encore un token cible valide
+                    const hasValidTarget = characterEffects.some(effect =>
+                        effect.effectType === "Tourbillon" &&
+                        effect.effect.flags?.world?.vortexIndex === parseInt(seqEffect.data.name.split('_')[1]) - 1
+                    );
+
+                    if (!hasValidTarget) {
+                        // Tourbillon orphelin détecté
+                        const config = EFFECT_CONFIG["Tourbillon"];
+                        characterEffects.push({
+                            token: null, // Pas de token
+                            effect: null, // Pas d'effet d'acteur
+                            effectType: "Tourbillon Orphelin",
+                            config: { ...config, displayName: "Tourbillon Orphelin", mechanicType: "orphanVortex" },
+                            description: "Tourbillon sans cible associée",
+                            extraData: { sequencerName: seqEffect.data.name },
+                            orphanSequencer: seqEffect
+                        });
+
+                        console.log(`[Ora] Found orphan vortex: ${seqEffect.data.name}`);
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn(`[Ora] Could not check for orphan vortexes:`, error);
+        }
+
+        return characterEffects;
+    }
+
+    const characterEffects = findCharacterEffectsOnCanvas();
+
+    if (characterEffects.length === 0) {
+        ui.notifications.info(`${CHARACTER_CONFIG.icon} ${CHARACTER_CONFIG.noEffectsMessage}`);
+        return;
+    }
+
+    // ===== DIALOG DE SÉLECTION DES EFFETS =====
+    async function showEffectSelectionDialog() {
+        let dialogContent = `
+            <h3>${CHARACTER_CONFIG.icon} ${CHARACTER_CONFIG.dialogTitle}</h3>
+            <p><strong>Lanceur:</strong> ${actor.name}</p>
+            <p>Sélectionnez le(s) effet(s) d'eau à supprimer :</p>
+
+            <style>
+                .effect-item {
+                    margin: 8px 0;
+                    padding: 12px;
+                    border: 1px solid #ddd;
+                    border-radius: 6px;
+                    background: #f9f9f9;
+                    display: flex;
+                    align-items: center;
+                }
+                .effect-icon {
+                    width: 32px;
+                    height: 32px;
+                    margin-right: 12px;
+                    background-size: cover;
+                    background-position: center;
+                    border-radius: 4px;
+                    flex-shrink: 0;
+                }
+                .effect-content {
+                    flex-grow: 1;
+                }
+                .effect-type {
+                    font-weight: bold;
+                    color: ${CHARACTER_CONFIG.color};
+                }
+                .effect-target {
+                    font-size: 1.1em;
+                    font-weight: bold;
+                    margin: 2px 0;
+                }
+                .effect-description {
+                    font-size: 0.9em;
+                    color: #666;
+                }
+                ${Object.entries(EFFECT_CONFIG).map(([effectType, config]) => `
+                .${config.cssClass} {
+                    border-left: 4px solid ${config.borderColor};
+                }`).join('')}
+            </style>
+
+            <div style="margin: 15px 0; max-height: 400px; overflow-y: auto;">
+        `;
+
+        // Organiser les effets par type configuré
+        const effectsByType = {};
+        for (const effectInfo of characterEffects) {
+            if (!effectsByType[effectInfo.effectType]) {
+                effectsByType[effectInfo.effectType] = [];
+            }
+            effectsByType[effectInfo.effectType].push(effectInfo);
+        }
+
+        let effectIndex = 0;
+
+        // Générer les sections pour chaque type d'effet
+        for (const [effectType, effects] of Object.entries(effectsByType)) {
+            const config = effects[0].config; // Prendre la config du premier effet
+            if (!config) continue;
+
+            dialogContent += `<h4 style="color: ${config.borderColor}; margin: 15px 0 10px 0;">${config.sectionTitle}</h4>`;
+
+            for (const effectInfo of effects) {
+                const { token, effect, description, extraData } = effectInfo;
+                let extraInfo = '';
+                let targetName = '';
+
+                // Formatage des données supplémentaires selon le type
+                if (extraData.stacks) extraInfo += ` (${extraData.stacks} stacks)`;
+                if (extraData.counter) extraInfo += ` (${extraData.counter})`;
+                if (extraData.power) extraInfo += ` (Puissance: ${extraData.power})`;
+                if (extraData.usageCount) extraInfo += ` (${extraData.usageCount} utilisation(s))`;
+                if (extraData.bonusDamage) extraInfo += ` (+${extraData.bonusDamage} dégâts)`;
+                if (extraData.slowdownAmount) extraInfo += ` (-${extraData.slowdownAmount} vitesse)`;
+
+                // Gestion du nom de la cible (token ou orphelin)
+                if (token) {
+                    targetName = token.name;
+                } else if (effectInfo.orphanSequencer) {
+                    targetName = `Animation orpheline`;
+                } else {
+                    targetName = "Position inconnue";
+                }
+
+                dialogContent += `
+                    <div class="effect-item ${config.cssClass}">
+                        <input type="checkbox" id="effect-${effectIndex}" value="${effectIndex}" style="margin-right: 12px;">
+                        <div class="effect-icon" style="background-image: url('${config.icon}');"></div>
+                        <div class="effect-content">
+                            <div class="effect-type">${config.displayName}${extraInfo}</div>
+                            <div class="effect-target">${targetName}</div>
+                            <div class="effect-description">${description}</div>
+                        </div>
+                    </div>
+                `;
+                effectIndex++;
+            }
+        }
+
+        dialogContent += `</div>`;
+
+        return new Promise(resolve => {
+            new Dialog({
+                title: CHARACTER_CONFIG.dialogTitle,
+                content: dialogContent,
+                buttons: {
+                    removeSelected: {
+                        icon: '<i class="fas fa-eraser"></i>',
+                        label: `${CHARACTER_CONFIG.icon} Retirer Sélectionnés`,
+                        callback: (html) => {
+                            const selectedIndices = [];
+                            html.find('input[type="checkbox"]:checked').each(function () {
+                                selectedIndices.push(parseInt($(this).val()));
+                            });
+                            if (selectedIndices.length === 0) {
+                                ui.notifications.warn("Aucun effet sélectionné !");
+                                return;
+                            }
+                            resolve({ selectedIndices });
+                        }
+                    },
+                    removeAll: {
+                        icon: '<i class="fas fa-ban"></i>',
+                        label: `${CHARACTER_CONFIG.icon} Retirer Tous`,
+                        callback: () => {
+                            const allIndices = characterEffects.map((_, index) => index);
+                            resolve({ selectedIndices: allIndices });
+                        }
+                    },
+                    cancel: {
+                        icon: '<i class="fas fa-times"></i>',
+                        label: "❌ Annuler",
+                        callback: () => resolve(null)
+                    }
+                },
+                default: "removeSelected",
+                close: () => resolve(null)
+            }, {
+                width: 600,
+                height: 800,
+                resizable: true,
+                top: window.innerHeight * 0.1
+            }).render(true);
+        });
+    }
+
+    const selection = await showEffectSelectionDialog();
+    if (!selection) {
+        ui.notifications.info("Opération annulée.");
+        return;
+    }
+
+    // ===== SUPPRESSION DES EFFETS SÉLECTIONNÉS =====
+    const { selectedIndices } = selection;
+    const effectsToRemove = selectedIndices.map(index => characterEffects[index]);
+    const removedEffects = {
+        simple: [],
+        vortexEffects: [],
+        orphanVortexes: [],
+        casterEffects: [],
+        failed: []
+    };
+
+    for (const effectInfo of effectsToRemove) {
+        try {
+            const { config } = effectInfo;
+
+            // Traiter selon le type de mécanique
+            switch (config.mechanicType) {
+                case "vortex":
+                    await handleVortexRemoval(effectInfo, removedEffects);
+                    break;
+                case "orphanVortex":
+                    // Supprimer directement l'animation orpheline
+                    try {
+                        if (effectInfo.orphanSequencer) {
+                            Sequencer.EffectManager.endEffects({ name: effectInfo.extraData.sequencerName });
+                            removedEffects.orphanVortexes.push({
+                                target: "Animation orpheline",
+                                effect: effectInfo.effectType
+                            });
+                            console.log(`[Ora] Removed orphan vortex: ${effectInfo.extraData.sequencerName}`);
+                        }
+                    } catch (error) {
+                        console.error(`[Ora] Error removing orphan vortex:`, error);
+                        removedEffects.failed.push({
+                            target: "Animation orpheline",
+                            effect: effectInfo.effectType,
+                            error: error.message
+                        });
+                    }
+                    break;
+                case "slowdown":
+                case "weakness":
+                case "simple":
+                default:
+                    await handleSimpleEffectRemoval(effectInfo, removedEffects);
+                    break;
+            }
+
+        } catch (error) {
+            console.error(`[Ora] Error processing effect removal:`, error);
+            const targetName = effectInfo.token ? effectInfo.token.name :
+                effectInfo.orphanSequencer ? "Animation orpheline" : "Cible inconnue";
+            removedEffects.failed.push({
+                target: targetName,
+                effect: effectInfo.config.displayName,
+                error: error.message
+            });
+        }
+    }
+
+    // ===== ANIMATIONS DE LIBÉRATION =====
+    const liberationSeq = new Sequence();
+    let hasAnimations = false;
+
+    for (const effectInfo of effectsToRemove) {
+        const { token, config } = effectInfo;
+
+        if (config.removeAnimation && token && !removedEffects.failed.some(f => f.target === token.name)) {
+            liberationSeq.effect()
+                .file(config.removeAnimation.file)
+                .attachTo(token)
+                .scale(config.removeAnimation.scale || 0.6)
+                .duration(config.removeAnimation.duration || 1500)
+                .fadeOut(config.removeAnimation.fadeOut || 500);
+
+            if (config.removeAnimation.tint) {
+                liberationSeq.tint(config.removeAnimation.tint);
+            }
+
+            hasAnimations = true;
+        }
+    }
+
+    if (hasAnimations) {
+        await liberationSeq.play();
+    }
+
+    // ===== RÉSULTATS ET FEEDBACK =====
+    const totalRemoved = Object.values(removedEffects).reduce((sum, arr) => {
+        return sum + (Array.isArray(arr) ? arr.length : 0);
+    }, 0) - removedEffects.failed.length;
+    const totalFailed = removedEffects.failed.length;
+
+    if (totalRemoved > 0) {
+        // Message dans le chat
+        let chatContent = `
+            <div style="background: linear-gradient(135deg, #e3f2fd, #f9f9f9); padding: 12px; border-radius: 8px; border: 2px solid ${CHARACTER_CONFIG.color}; margin: 8px 0;">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; color: ${CHARACTER_CONFIG.color};">${CHARACTER_CONFIG.icon} ${CHARACTER_CONFIG.chatTitle}</h3>
+                    <div style="margin-top: 3px; font-size: 0.9em;">
+                        <strong>Maîtresse de l'Eau:</strong> ${actor.name}
+                    </div>
+                </div>
+        `;
+
+        // Sections pour chaque type d'effet supprimé
+        for (const [categoryKey, effects] of Object.entries(removedEffects)) {
+            if (categoryKey === 'failed' || categoryKey === 'casterEffects' || !Array.isArray(effects) || effects.length === 0) continue;
+
+            let categoryTitle = "";
+            let categoryColor = CHARACTER_CONFIG.color;
+            let categoryBg = "#e3f2fd";
+
+            switch (categoryKey) {
+                case 'simple':
+                    categoryTitle = "🌊 Effets d'Eau Simples Supprimés";
+                    break;
+                case 'vortexEffects':
+                    categoryTitle = "🌊 Tourbillons Terminés";
+                    categoryColor = "#2196f3";
+                    categoryBg = "#e3f2fd";
+                    break;
+                case 'orphanVortexes':
+                    categoryTitle = "🌀 Tourbillons Orphelins Supprimés";
+                    categoryColor = "#1976d2";
+                    categoryBg = "#e8f5e8";
+                    break;
+                default:
+                    categoryTitle = `${categoryKey} Supprimés`;
+                    break;
+            }
+
+            chatContent += `
+                <div style="text-align: center; margin: 8px 0; padding: 10px; background: ${categoryBg}; border-radius: 4px;">
+                    <div style="font-size: 1.1em; color: ${categoryColor}; margin-bottom: 6px;"><strong>${categoryTitle}</strong></div>
+            `;
+            for (const removed of effects) {
+                const extraInfo = removed.extraInfo ? ` - ${removed.extraInfo}` : '';
+                chatContent += `<div style="font-size: 0.9em; margin: 2px 0;">${removed.target}: ${removed.effect}${extraInfo}</div>`;
+            }
+            chatContent += `</div>`;
+        }
+
+        // Effets de lanceur supprimés
+        if (removedEffects.casterEffects && removedEffects.casterEffects.length > 0) {
+            chatContent += `
+                <div style="text-align: center; margin: 8px 0; padding: 10px; background: #e8f5e8; border-radius: 4px;">
+                    <div style="font-size: 1.1em; color: #2e7d32; margin-bottom: 6px;"><strong>${CHARACTER_CONFIG.icon} Effets de Lanceur Supprimés</strong></div>
+            `;
+            for (const removed of removedEffects.casterEffects) {
+                chatContent += `<div style="font-size: 0.9em; margin: 2px 0;">${removed.target}: ${removed.effect}</div>`;
+            }
+            chatContent += `</div>`;
+        }
+
+        // Erreurs s'il y en a
+        if (removedEffects.failed.length > 0) {
+            chatContent += `
+                <div style="text-align: center; margin: 8px 0; padding: 10px; background: #ffcdd2; border-radius: 4px;">
+                    <div style="font-size: 1.1em; color: #d32f2f; margin-bottom: 6px;"><strong>❌ Erreurs</strong></div>
+            `;
+            for (const failed of removedEffects.failed) {
+                chatContent += `<div style="font-size: 0.9em; margin: 2px 0;">${failed.target}: ${failed.effect} (${failed.error})</div>`;
+            }
+            chatContent += `</div>`;
+        }
+
+        chatContent += `</div>`;
+
+        await ChatMessage.create({
+            speaker: ChatMessage.getSpeaker({ token: caster }),
+            content: chatContent,
+            rollMode: game.settings.get("core", "rollMode")
+        });
+
+        // Notification de succès
+        let notificationText = `${CHARACTER_CONFIG.icon} Effets d'eau supprimés : `;
+        const parts = [];
+
+        if (removedEffects.simple.length > 0) parts.push(`${removedEffects.simple.length} effet(s) simple(s)`);
+        if (removedEffects.vortexEffects.length > 0) parts.push(`${removedEffects.vortexEffects.length} tourbillon(s)`);
+        if (removedEffects.orphanVortexes.length > 0) parts.push(`${removedEffects.orphanVortexes.length} animation(s) orpheline(s)`);
+
+        notificationText += parts.join(', ');
+
+        if (totalFailed > 0) {
+            notificationText += ` (${totalFailed} échec(s))`;
+        }
+
+        ui.notifications.info(notificationText);
+
+    } else {
+        ui.notifications.error(`❌ Aucun effet d'eau n'a pu être supprimé !`);
+
+        // Afficher les erreurs si il y en a
+        if (removedEffects.failed.length > 0) {
+            let errorMsg = "Erreurs rencontrées:\n";
+            for (const failed of removedEffects.failed) {
+                errorMsg += `- ${failed.target}: ${failed.error}\n`;
+            }
+            ui.notifications.error(errorMsg);
+        }
+    }
+
+})();
