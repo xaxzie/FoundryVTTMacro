@@ -381,6 +381,9 @@
                 case "vortex":
                     await handleVortexRemoval(effectInfo, results);
                     break;
+                case "dome":
+                    await handleDomeRemoval(effectInfo, results);
+                    break;
                 case "orphanVortex":
                     await handleOrphanVortexRemoval(effectInfo, results);
                     break;
@@ -593,6 +596,96 @@
 
         } catch (error) {
             console.error(`[Ora] Error removing vortex from ${token.name}:`, error);
+            results.failed.push({
+                target: token.name,
+                effect: effectType,
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Traite la suppression d'un effet de dôme de glace (spécialisé)
+     */
+    async function handleDomeRemoval(effectInfo, results) {
+        const { token, effect, effectType, config } = effectInfo;
+
+        try {
+            // Récupérer l'index du dôme pour supprimer l'animation correspondante
+            const domeIndex = effect.flags?.world?.domeIndex || 0;
+            const casterId = effect.flags?.world?.domeCaster;
+
+            // Cleanup des animations Sequencer avec patterns configurés
+            if (config.cleanup?.sequencerPatterns) {
+                for (const pattern of config.cleanup.sequencerPatterns) {
+                    try {
+                        // Remplacer les variables dans le pattern
+                        let resolvedPattern = pattern
+                            .replace("DOME_INDEX", domeIndex + 1)
+                            .replace("*", "*"); // Garder les wildcards
+
+                        Sequencer.EffectManager.endEffects({ name: resolvedPattern });
+                        console.log(`[Ora] Ended dome animations with pattern: ${resolvedPattern}`);
+                    } catch (seqError) {
+                        console.warn(`[Ora] Could not end dome animation with pattern ${pattern}:`, seqError);
+                    }
+                }
+            }
+
+            // Supprimer l'animation de dôme par pattern spécifique (fallback)
+            try {
+                const domePattern = `dome_${domeIndex + 1}_*`;
+                Sequencer.EffectManager.endEffects({ name: domePattern });
+                console.log(`[Ora] Ended dome animation with fallback pattern: ${domePattern}`);
+            } catch (seqError) {
+                console.warn(`[Ora] Could not end dome animation with fallback:`, seqError);
+            }
+
+            // Animation de brisure de glace configurée
+            if (config.removeAnimation && token) {
+                const iceBreakSeq = new Sequence();
+                let iceBreakEffect = iceBreakSeq.effect()
+                    .file(config.removeAnimation.file)
+                    .attachTo(token)
+                    .scale(config.removeAnimation.scale || 1.0)
+                    .duration(config.removeAnimation.duration || 2500)
+                    .fadeOut(config.removeAnimation.fadeOut || 1000);
+
+                if (config.removeAnimation.tint) {
+                    iceBreakEffect.tint(config.removeAnimation.tint);
+                }
+
+                await iceBreakSeq.play();
+            }
+
+            // Vérifier que l'effet existe toujours avant de le supprimer
+            const currentEffect = token.actor.effects.get(effect.id);
+            if (!currentEffect) {
+                console.warn(`[Ora] Dome effect ${effect.name} no longer exists on ${token.name}, skipping deletion`);
+                results.failed.push({
+                    target: token.name,
+                    effect: effectType,
+                    error: "Dome effect no longer exists"
+                });
+                return;
+            }
+
+            // Suppression de l'effet sur la cible
+            if (token.actor.isOwner) {
+                await currentEffect.delete();
+            } else {
+                await removeEffectWithGMDelegation(token.actor, currentEffect.id);
+            }
+
+            // Ajouter à la bonne catégorie de résultats (utiliser vortexEffects pour les dômes aussi)
+            results.vortexEffects.push({
+                target: token.name,
+                effect: effectType
+            });
+            console.log(`[Ora] Removed dome from ${token.name}`);
+
+        } catch (error) {
+            console.error(`[Ora] Error removing dome from ${token.name}:`, error);
             results.failed.push({
                 target: token.name,
                 effect: effectType,
