@@ -186,9 +186,9 @@
                         <h4>Échelle d'Animation</h4>
                         <div style="margin: 5px 0;">
                             <label>Échelle par défaut des tourbillons :
-                                <input type="number" id="defaultScale" value="0.5" min="0.1" max="2.0" step="0.1" style="width: 60px;">
+                                <input type="number" id="defaultScale" value="0.5" min="0.1" max="20.0" step="0.1" style="width: 60px;">
                             </label>
-                            <small style="display: block; margin-left: 20px;">Taille de base des tourbillons (0.1 à 2.0)</small>
+                            <small style="display: block; margin-left: 20px;">Taille de base des tourbillons (0.1 à 20.0)</small>
                         </div>
                     </div>
 
