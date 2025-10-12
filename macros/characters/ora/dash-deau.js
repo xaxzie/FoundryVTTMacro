@@ -24,9 +24,8 @@
     const ANIMATION_CONFIG = {
         // Animation de jet d'eau
         water: {
-            file: "jb2a.water_bolt.blue", // Jet d'eau simple
-            scale: 0.8,
-            tint: "#00bfff" // Bleu aquatique
+            file: "animated-spell-effects-cartoon.water.splash", // Jet d'eau simple
+            scale: 0.8// Bleu aquatique
         },
 
         // Configuration Portal pour le ciblage
@@ -139,7 +138,6 @@
             .atLocation(originalCenter)
             .stretchTo(destinationCenter, { onlyX: false })
             .scale(ANIMATION_CONFIG.water.scale)
-            .tint(ANIMATION_CONFIG.water.tint)
             .duration(800); // Durée courte pour un effet rapide
 
         // Jouer l'animation
