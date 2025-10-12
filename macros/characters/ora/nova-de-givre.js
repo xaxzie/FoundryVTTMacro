@@ -173,13 +173,13 @@
                         const turns = parseInt(html.find("#immobilityTurns").val()) || 1;
                         const manaCost = calculateManaCost(SPELL_CONFIG.baseMana, turns, currentStance, SPELL_CONFIG.isFocusable);
                         const manaCostDisplay = manaCost === 0 ? 'GRATUIT (Focus)' : `${manaCost} mana`;
-                        const damageBonus = Math.floor(characteristicInfo.final / 2) * turns;
+                        const damageBonus = Math.ceil((characteristicInfo.final / 2) * turns);
 
                         const calcHtml = `
                             <strong>Coût:</strong> ${SPELL_CONFIG.baseMana} × ${turns} = ${manaCostDisplay}<br>
                             <strong>Zone:</strong> ${turns} case${turns > 1 ? 's' : ''} de rayon<br>
                             <strong>Dégâts:</strong> ${SPELL_CONFIG.damageFormula} + ${damageBonus}<br>
-                            <strong>Formule:</strong> 2d8 + ((${characteristicInfo.final}/2) × ${turns})
+                            <strong>Formule:</strong> 2d8 + ceil((${characteristicInfo.final}/2) × ${turns})
                         `;
                         html.find("#calculations").html(calcHtml);
                     }
@@ -294,7 +294,7 @@
     // ===== DAMAGE CALCULATION =====
     async function calculateDamage() {
         // Nova de Givre ne bénéficie d'aucun bonus d'effet actif
-        const spiritBonus = Math.floor(characteristicInfo.final / 2) * immobilityTurns;
+        const spiritBonus = Math.ceil((characteristicInfo.final / 2) * immobilityTurns);
 
         let damageFormula = `${SPELL_CONFIG.damageFormula} + ${spiritBonus}`;
 
@@ -329,8 +329,7 @@
         sequence.effect()
             .file(SPELL_CONFIG.animations.nova)
             .attachTo(caster)
-            .scale(areaRadius * 0.5) // Scale based on area radius
-            .duration(2000)
+            .scale(areaRadius * 0.5) // Scale
             .belowTokens(false);
 
         if (SPELL_CONFIG.animations.sound) {
@@ -354,7 +353,7 @@
 
     // Add damage roll to the combined formula (only if not maximized)
     if (currentStance !== 'offensif') {
-        const spiritBonus = Math.floor(characteristicInfo.final / 2) * immobilityTurns;
+        const spiritBonus = Math.ceil((characteristicInfo.final / 2) * immobilityTurns);
         combinedRollParts.push(`${SPELL_CONFIG.damageFormula} + ${spiritBonus}`);
     }
 
@@ -368,7 +367,7 @@
     if (currentStance !== 'offensif') {
         // Extract damage result from dice roll
         const damageRollResult = combinedRoll.terms[0].results[1];
-        const spiritBonus = Math.floor(characteristicInfo.final / 2) * immobilityTurns;
+        const spiritBonus = Math.ceil((characteristicInfo.final / 2) * immobilityTurns);
         const displayFormula = `${SPELL_CONFIG.damageFormula} + ${spiritBonus}`;
 
         finalDamageResult = {
@@ -396,7 +395,7 @@
                 <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Immobilité:</strong> ${immobilityTurns} tour${immobilityTurns > 1 ? 's' : ''} | <strong>Zone:</strong> ${areaRadius} case${areaRadius > 1 ? 's' : ''}</div>
                 <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cibles:</strong> ${targetNames}</div>
                 <div style="font-size: 1.4em; color: #0ea5e9; font-weight: bold;">💥 DÉGÂTS: ${finalDamageResult.total}</div>
-                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(2d8 + ((Esprit/2) × ${immobilityTurns}))</div>
+                <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(2d8 + ceil((Esprit/2) × ${immobilityTurns}))</div>
             </div>
         `;
 
