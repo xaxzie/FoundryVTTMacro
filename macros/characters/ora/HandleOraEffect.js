@@ -78,6 +78,63 @@
                     console.warn(`[HandleOraEffect] Could not stop Pilonnement preparation animation: ${error.message}`);
                 }
             }
+        },
+        "Cast DC": {
+            name: "Cast DC",
+            icon: "icons/magic/control/hypnosis-mesmerism-eye.webp",
+            flags: [
+                // La préparation Dead Calm n'ajoute pas de bonus de stats
+            ],
+            description: "Préparation du Dead Calm - Interruptible, ne peut pas esquiver",
+            category: "custom",
+            increasable: true,
+            counterName: "Préparation",
+            defaultValue: 1,
+            maxValue: 1,
+            tags: ["increasable"], // Tag spécial pour manipulation avancée
+            // Configuration spéciale - pas d'animation persistante pour Cast DC
+            hasSpecialRemoval: false
+        },
+        "DC": {
+            name: "DC",
+            icon: "icons/magic/control/voodoo-doll-pain-damage-red.webp",
+            flags: [
+                // L'effet DC n'ajoute pas directement de bonus de stats (géré par Ora Eyes - Supérieur)
+            ],
+            description: "Zone de contrôle Dead Calm active (6 cases de rayon)",
+            category: "custom",
+            increasable: true,
+            counterName: "Contrôle",
+            defaultValue: 1,
+            maxValue: 1,
+            tags: ["increasable"], // Tag spécial pour manipulation avancée
+            // Configuration spéciale pour la suppression des animations persistantes
+            hasSpecialRemoval: true,
+            onRemoval: async (effect, actor) => {
+                // Callback pour arrêter les animations persistantes lors de la suppression
+                try {
+                    if (typeof Sequencer !== "undefined") {
+                        await Sequencer.EffectManager.endEffects({
+                            name: [`DeadCalm_Zone_${actor.id}`, `DeadCalm_Particles_${actor.id}`]
+                        });
+                        console.log(`[HandleOraEffect] Stopped Dead Calm zone animations for ${actor.name}`);
+                    }
+                } catch (error) {
+                    console.warn(`[HandleOraEffect] Could not stop Dead Calm zone animations: ${error.message}`);
+                }
+            }
+        },
+        "Ora Eyes - Supérieur": {
+            name: "Ora Eyes - Supérieur",
+            icon: "icons/svg/eye.svg",
+            flags: [
+                { key: "damage", value: 6 },
+                { key: "esprit", value: 2 }
+            ],
+            description: "Vision mystique supérieure d'Ora (+6 Dégâts, +2 Esprit)",
+            category: "custom",
+            increasable: false,
+            tags: ["increasable"] // Tag spécial pour manipulation avancée même si non-increasable
         }
 
         // TODO: Add more Ora-specific water magic effects here
