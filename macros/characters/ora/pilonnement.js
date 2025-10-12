@@ -191,7 +191,7 @@
         sequence.effect()
             .file(SPELL_CONFIG.animations.preparation)
             .attachTo(caster)
-            .scale(1.2)
+            .scale(0.6)
             .fadeIn(1000)
             .fadeOut(1000)
             .persist(true)
@@ -609,8 +609,31 @@
 
         // Build combined roll formula
         let combinedRollParts = [`${totalAttackDice}d7 + ${levelBonus}`];
+        let finalDamageResult = damageResult;
 
-        if (currentStance !== 'offensif') {
+        if (currentStance === 'offensif') {
+            // Position Offensive : Demi-offensif (moitié des dés maximisés, moitié jetés)
+            const totalCharacteristic = characteristicInfo.final + characteristicBonus + getActiveEffectBonus(actor, "damage");
+            const baseDiceCount = valueX * 2;
+            const maximizedDice = Math.floor(baseDiceCount / 2);
+            const normalDice = baseDiceCount - maximizedDice;
+
+            if (normalDice > 0) {
+                // Ajouter les dés normaux au jet combiné
+                combinedRollParts.push(`${normalDice}d6 + ${maximizedDice * 6} + ${totalCharacteristic}`);
+            } else {
+                // Tous les dés sont maximisés - pas de jet de dés nécessaire
+                const maxDamage = (maximizedDice * 6) + totalCharacteristic;
+                finalDamageResult = {
+                    total: maxDamage,
+                    formula: `${maximizedDice * 6} + ${totalCharacteristic}`,
+                    isHalfMaximized: true,
+                    normalDice: 0,
+                    maximizedDice: maximizedDice
+                };
+            }
+        } else {
+            // Position normale : tous les dés sont jetés
             const totalCharacteristic = characteristicInfo.final + characteristicBonus + getActiveEffectBonus(actor, "damage");
             const baseDiceCount = valueX * 2;
             combinedRollParts.push(`${baseDiceCount}d6 + ${totalCharacteristic}`);
@@ -621,9 +644,26 @@
 
         // Extract results from the combined roll
         const attackResult = combinedRoll.terms[0].results[0];
-        let finalDamageResult = damageResult;
 
-        if (currentStance !== 'offensif') {
+        // Traiter le résultat des dégâts selon la position
+        if (currentStance === 'offensif' && combinedRoll.terms[0].results.length > 1) {
+            // Position offensive avec dés jetés
+            const damageRollResult = combinedRoll.terms[0].results[1];
+            const totalCharacteristic = characteristicInfo.final + characteristicBonus + getActiveEffectBonus(actor, "damage");
+            const baseDiceCount = valueX * 2;
+            const maximizedDice = Math.floor(baseDiceCount / 2);
+            const normalDice = baseDiceCount - maximizedDice;
+
+            finalDamageResult = {
+                total: damageRollResult.result,
+                formula: `${normalDice}d6 + ${maximizedDice * 6} + ${totalCharacteristic}`,
+                isHalfMaximized: true,
+                normalDice: normalDice,
+                maximizedDice: maximizedDice,
+                result: damageRollResult.result
+            };
+        } else if (currentStance !== 'offensif') {
+            // Position normale
             const damageRollResult = combinedRoll.terms[0].results[1];
             const totalCharacteristic = characteristicInfo.final + characteristicBonus + getActiveEffectBonus(actor, "damage");
             const baseDiceCount = valueX * 2;

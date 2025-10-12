@@ -31,7 +31,7 @@
             category: "custom",
             increasable: true,
             counterName: "Charges",
-            defaultValue: 3,
+            defaultValue: 0,
             maxValue: 10,
             tags: ["increasable"], // Tag spécial pour manipulation avancée
             // Configuration spéciale pour la suppression
@@ -58,11 +58,11 @@
             ],
             description: "Préparation du sort Pilonnement - Interruptible par dégâts",
             category: "custom",
-            increasable: true,
+            increasable: false,
             counterName: "Niveau",
             defaultValue: 1,
             maxValue: 4,
-            tags: ["increasable"], // Tag spécial pour manipulation avancée
+            tags: [], // Tag spécial pour manipulation avancée
             // Configuration spéciale pour la suppression
             hasSpecialRemoval: true,
             onRemoval: async (effect, actor) => {
