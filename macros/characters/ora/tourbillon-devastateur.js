@@ -40,8 +40,7 @@
 
         animations: {
             explosion: "jb2a_patreon.explosion.05.bluewhite",
-            explosionDuration: 2000,
-            explosionScale: 1.0
+            explosionScale: 0.5
         },
 
         targeting: {
@@ -287,7 +286,6 @@
             .file(SPELL_CONFIG.animations.explosion)
             .attachTo(target.token)
             .scale(SPELL_CONFIG.animations.explosionScale)
-            .duration(SPELL_CONFIG.animations.explosionDuration);
 
         await sequence.play();
     }
