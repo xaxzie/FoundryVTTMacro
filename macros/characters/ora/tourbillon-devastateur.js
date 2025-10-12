@@ -28,7 +28,7 @@
         characteristic: "esprit",
         characteristicDisplay: "Esprit",
         manaCost: 3,
-        spellLevel: 2,
+        spellLevel: 1,
         isDirect: true, // Sort direct - bénéficie des bonus d'effets actifs sur les dégâts
         isFocusable: false, // Non focalisable
 

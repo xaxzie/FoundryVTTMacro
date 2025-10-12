@@ -411,9 +411,6 @@
                 </div>
                 ${attackDisplay}
                 ${damageDisplay}
-                <div style="text-align: center; margin-top: 8px; padding: 8px; background: #fef3c7; border-radius: 4px; border: 1px solid #f59e0b;">
-                    <div style="font-size: 0.9em; color: #92400e;"><strong>⚠️ Ora immobilisée pendant ${immobilityTurns} tour${immobilityTurns > 1 ? 's' : ''} !</strong></div>
-                </div>
             </div>
         `;
     }
