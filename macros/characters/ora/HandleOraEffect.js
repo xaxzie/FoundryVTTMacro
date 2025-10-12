@@ -20,6 +20,35 @@
             description: "Bonus de +3 aux dégâts",
             category: "custom",
             increasable: false
+        },
+        "SDF": {
+            name: "SDF",
+            icon: "icons/magic/perception/eye-ringed-glow-angry-small-red.webp",
+            flags: [
+                // SDF n'ajoute pas de bonus de stats, juste un effet de détection
+            ],
+            description: "Small Detection Field - Champ de détection actif",
+            category: "custom",
+            increasable: true,
+            counterName: "Charges",
+            defaultValue: 3,
+            maxValue: 10,
+            tags: ["increasable"], // Tag spécial pour manipulation avancée
+            // Configuration spéciale pour la suppression
+            hasSpecialRemoval: true,
+            onRemoval: async (effect, actor) => {
+                // Callback pour arrêter l'animation persistante lors de la suppression
+                try {
+                    if (typeof Sequencer !== "undefined") {
+                        await Sequencer.EffectManager.endEffects({
+                            name: `SDF_Field_${actor.id}`
+                        });
+                        console.log(`[HandleOraEffect] Stopped SDF persistent animation for ${actor.name}`);
+                    }
+                } catch (error) {
+                    console.warn(`[HandleOraEffect] Could not stop SDF animation: ${error.message}`);
+                }
+            }
         }
 
         // TODO: Add more Ora-specific water magic effects here
@@ -832,6 +861,16 @@
 
             if (newValue !== currentValue) {
                 if (newValue === 0 && currentCustomEffect) {
+                    // Handle special removal callback for effects like SDF
+                    if (customData.hasSpecialRemoval && customData.onRemoval) {
+                        try {
+                            await customData.onRemoval(currentCustomEffect, actor);
+                            console.log(`[Ora] Executed special removal callback for increasable ${customData.name}`);
+                        } catch (error) {
+                            console.warn(`[Ora] Error in special removal callback for increasable ${customData.name}:`, error);
+                        }
+                    }
+
                     await currentCustomEffect.delete();
                     removedEffects.push(customData.name);
                     console.log(`[Ora] Removed increasable effect: ${customData.name}`);
@@ -1053,6 +1092,16 @@
                 } else if (action === 'remove') {
                     const existing = currentState.customEffects[effectKey];
                     if (existing) {
+                        // Handle special removal callback for effects like SDF
+                        if (effectData.hasSpecialRemoval && effectData.onRemoval) {
+                            try {
+                                await effectData.onRemoval(existing, actor);
+                                console.log(`[Ora] Executed special removal callback for ${effectData.name}`);
+                            } catch (error) {
+                                console.warn(`[Ora] Error in special removal callback for ${effectData.name}:`, error);
+                            }
+                        }
+
                         // Handle special effects removal - For future use
                         if (canvas.tokens.controlled.length > 0) {
                             const token = canvas.tokens.controlled[0];
