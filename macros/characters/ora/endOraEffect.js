@@ -13,9 +13,27 @@
  * - Facilement extensible pour de nouveaux effets via EFFECT_CONFIG
  * - Spécialisé pour les mécaniques aquatiques d'Ora
  *
- * Pour ajouter un nouvel effet :
- * 1. Ajouter l'entrée dans EFFECT_CONFIG avec les paramètres appropriés
- * 2. Le système détectera automatiquement le nouvel effet
+ * GUIDE D'EXTENSION POUR DE NOUVEAUX SORTS :
+ *
+ * 1. Configuration dans le nouveau sort :
+ *    - Ajouter une section `effectConfig` ou `statusEffects` dans SPELL_CONFIG
+ *    - Inclure une sous-section `endEffectConfig` avec les propriétés suivantes :
+ *      * displayName, sectionTitle, sectionIcon, cssClass
+ *      * borderColor, bgColor, mechanicType
+ *      * detectFlags (pour identifier l'effet)
+ *      * removeAnimation (animation de suppression)
+ *      * cleanup (patterns Sequencer à nettoyer)
+ *      * getExtraData, getDynamicDescription (optionnel)
+ *
+ * 2. Mise à jour d'endOraEffect.js :
+ *    - Ajouter l'entrée dans EFFECT_CONFIG en important la config du sort
+ *    - Le système détectera automatiquement le nouvel effet
+ *
+ * 3. Mécaniques supportées :
+ *    - "simple" : Effet d'acteur standard avec animation de retrait
+ *    - "vortex" : Effet de zone avec cleanup d'animations Sequencer
+ *    - "orphanVortex" : Animation Sequencer sans effet d'acteur
+ *    - "slowdown"/"weakness" : Effets avec Status Counter
  *
  * Usage : Sélectionner le token d'Ora et lancer cette macro
  */
@@ -32,9 +50,13 @@
         chatTitle: "Effets d'Eau d'Ora Terminés"
     };
 
-    // ===== CONFIGURATION DES EFFETS =====
+    // ===== CONFIGURATION CENTRALISÉE DES EFFETS =====
+    /**
+     * Configuration centralisée qui réunit toutes les configurations d'effets d'Ora
+     * provenant des différents sorts (tourbillon.js, bubbles.js, etc.)
+     */
     const EFFECT_CONFIG = {
-        // Tourbillon - Effet principal de zone
+        // Tourbillon - Configuration importée depuis tourbillon.js
         "Tourbillon": {
             displayName: "Tourbillon",
             icon: "icons/magic/water/vortex-water-whirlpool.webp",
@@ -49,14 +71,19 @@
                 { path: "flags.world.vortexCaster", matchValue: "CASTER_ID" }
             ],
             cleanup: {
-                sequencerNames: [
-                    "tourbillonSequenceName" // Animation de tourbillon
-                ]
+                sequencerPatterns: ["tourbillon_*"] // Pattern pour nettoyer les animations
             },
-            mechanicType: "vortex"
+            mechanicType: "vortex",
+            removeAnimation: {
+                file: "jb2a.water_splash.blue",
+                scale: 0.8,
+                duration: 2000,
+                fadeOut: 1000,
+                tint: "#2196f3"
+            }
         },
 
-        // Ora Ralentissement - Effet de glace
+        // Ora Ralentissement - Configuration importée depuis bubbles.js (ice)
         "Ora Ralentissement": {
             displayName: "Ora Ralentissement",
             icon: "icons/magic/water/ice-snowflake.webp",
@@ -79,10 +106,17 @@
                 const slowdown = effect.flags?.statuscounter?.value || 1;
                 const sourceSpell = effect.flags?.world?.spellName || "Bulles de glace";
                 return `Ralenti par ${sourceSpell} d'Ora (-${slowdown} case de vitesse)`;
+            },
+            removeAnimation: {
+                file: "jb2a.ice_shards.burst.blue",
+                scale: 0.6,
+                duration: 1500,
+                fadeOut: 500,
+                tint: "#87ceeb"
             }
         },
 
-        // Ora Faiblesse Électrique - Effet d'eau
+        // Ora Faiblesse Électrique - Configuration importée depuis bubbles.js (water)
         "Ora Faiblesse Électrique": {
             displayName: "Ora Faiblesse Électrique",
             icon: "icons/magic/lightning/bolt-strike-blue.webp",
@@ -105,10 +139,17 @@
                 const bonus = effect.flags?.statuscounter?.value || 2;
                 const sourceSpell = effect.flags?.world?.spellName || "Bulles d'eau";
                 return `Vulnérable aux dégâts électriques par ${sourceSpell} d'Ora (+${bonus} prochaine attaque électrique)`;
+            },
+            removeAnimation: {
+                file: "jb2a.electric_ball.blue",
+                scale: 0.5,
+                duration: 1200,
+                fadeOut: 400,
+                tint: "#0080ff"
             }
         },
 
-        // Ora Faiblesse Feu - Effet d'huile
+        // Ora Faiblesse Feu - Configuration importée depuis bubbles.js (oil)
         "Ora Faiblesse Feu": {
             displayName: "Ora Faiblesse Feu",
             icon: "icons/magic/fire/flame-burning-creature-orange.webp",
@@ -131,14 +172,89 @@
                 const bonus = effect.flags?.statuscounter?.value || 2;
                 const sourceSpell = effect.flags?.world?.spellName || "Bulles d'huile";
                 return `Vulnérable aux dégâts de feu par ${sourceSpell} d'Ora (+${bonus} prochaine attaque de feu)`;
+            },
+            removeAnimation: {
+                file: "jb2a.fire_bolt.orange",
+                scale: 0.4,
+                duration: 1000,
+                fadeOut: 300,
+                tint: "#ff8c00"
             }
-        },
+        }
 
-        // TODO: Add more Ora's specific water effects here
-        // Future effects like water healing, tsunami, etc.
+        // TODO: Les futurs sorts d'Ora peuvent étendre cette configuration
+        // via la fonction registerOraEffect() ou en ajoutant directement ici
     };
 
+    /**
+     * Fonction utilitaire pour enregistrer de nouveaux effets d'Ora dynamiquement
+     * Peut être appelée par d'autres macros pour étendre les configurations
+     */
+    function registerOraEffect(effectName, effectConfig) {
+        if (validateEffectConfig(effectName, effectConfig)) {
+            EFFECT_CONFIG[effectName] = effectConfig;
+            console.log(`[Ora] Registered new effect configuration: ${effectName}`);
+            return true;
+        } else {
+            console.error(`[Ora] Failed to register effect configuration: ${effectName}`);
+            return false;
+        }
+    }
+
+    // Exposer la fonction d'enregistrement globalement pour autres macros
+    if (!globalThis.OraEffectRegistry) {
+        globalThis.OraEffectRegistry = {
+            register: registerOraEffect,
+            getConfigs: () => ({ ...EFFECT_CONFIG }),
+            validate: validateEffectConfig
+        };
+    }
+
     // ===== FONCTIONS UTILITAIRES =====
+
+    /**
+     * Valide la configuration d'un effet pour s'assurer qu'elle est complète
+     */
+    function validateEffectConfig(effectName, config) {
+        const requiredFields = [
+            'displayName', 'icon', 'description', 'sectionTitle',
+            'cssClass', 'borderColor', 'bgColor', 'detectFlags', 'mechanicType'
+        ];
+
+        const missingFields = requiredFields.filter(field => !config[field]);
+
+        if (missingFields.length > 0) {
+            console.warn(`[Ora] Effect config for '${effectName}' is missing fields:`, missingFields);
+            return false;
+        }
+
+        if (!Array.isArray(config.detectFlags) || config.detectFlags.length === 0) {
+            console.warn(`[Ora] Effect config for '${effectName}' has invalid detectFlags`);
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Initialise et valide toutes les configurations d'effets
+     */
+    function initializeEffectConfigs() {
+        const validConfigs = {};
+        let validCount = 0;
+        let totalCount = 0;
+
+        for (const [effectName, config] of Object.entries(EFFECT_CONFIG)) {
+            totalCount++;
+            if (validateEffectConfig(effectName, config)) {
+                validConfigs[effectName] = config;
+                validCount++;
+            }
+        }
+
+        console.log(`[Ora] Initialized ${validCount}/${totalCount} valid effect configurations`);
+        return validConfigs;
+    }
 
     /**
      * Vérifie si un effet correspond aux flags de configuration
@@ -234,30 +350,107 @@
     }
 
     /**
-     * Traite la suppression d'un effet simple
+     * Fonction générique unifiée pour traiter la suppression de tous types d'effets
+     */
+    async function handleGenericEffectRemoval(effectInfo, results) {
+        const { config } = effectInfo;
+
+        try {
+            switch (config.mechanicType) {
+                case "vortex":
+                    await handleVortexRemoval(effectInfo, results);
+                    break;
+                case "orphanVortex":
+                    await handleOrphanVortexRemoval(effectInfo, results);
+                    break;
+                case "slowdown":
+                case "weakness":
+                case "simple":
+                default:
+                    await handleSimpleEffectRemoval(effectInfo, results);
+                    break;
+            }
+        } catch (error) {
+            console.error(`[Ora] Error in generic effect removal:`, error);
+            const targetName = effectInfo.token ? effectInfo.token.name :
+                effectInfo.orphanSequencer ? "Animation orpheline" : "Cible inconnue";
+            results.failed.push({
+                target: targetName,
+                effect: effectInfo.config.displayName,
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Traite la suppression d'animations orphelines (Sequencer seulement)
+     */
+    async function handleOrphanVortexRemoval(effectInfo, results) {
+        try {
+            if (effectInfo.orphanSequencer) {
+                Sequencer.EffectManager.endEffects({ name: effectInfo.extraData.sequencerName });
+                results.orphanVortexes.push({
+                    target: "Animation orpheline",
+                    effect: effectInfo.effectType
+                });
+                console.log(`[Ora] Removed orphan vortex: ${effectInfo.extraData.sequencerName}`);
+            }
+        } catch (error) {
+            console.error(`[Ora] Error removing orphan vortex:`, error);
+            results.failed.push({
+                target: "Animation orpheline",
+                effect: effectInfo.effectType,
+                error: error.message
+            });
+        }
+    }
+
+    /**
+     * Traite la suppression d'un effet simple (générique)
      */
     async function handleSimpleEffectRemoval(effectInfo, results) {
         const { token, effect, effectType, config } = effectInfo;
 
         try {
-            // Cleanup des animations Sequencer
-            cleanupSequencerAnimations(effect, config);
+            // Cleanup des animations Sequencer si configuré
+            if (config.cleanup?.sequencerNames) {
+                for (const sequencerPath of config.cleanup.sequencerNames) {
+                    const sequenceName = getProperty(effect, sequencerPath);
+                    if (sequenceName) {
+                        try {
+                            Sequencer.EffectManager.endEffects({ name: sequenceName });
+                            console.log(`[Ora] Cleaned up sequencer effect: ${sequenceName}`);
+                        } catch (seqError) {
+                            console.warn(`[Ora] Could not clean up sequencer effect ${sequenceName}:`, seqError);
+                        }
+                    }
+                }
+            }
 
-            // Cleanup des filtres Token Magic FX
-            await cleanupTokenMagicFilters(token, config);
+            // Cleanup des filtres Token Magic FX si configuré
+            if (config.cleanup?.removeTokenMagicFilters && config.transformationConfig?.tokenMagicFilters) {
+                for (const filterType of config.transformationConfig.tokenMagicFilters) {
+                    try {
+                        await TokenMagic.deleteFilters(token, filterType);
+                        console.log(`[Ora] Removed ${filterType} filter from ${token.name}`);
+                    } catch (tmfxError) {
+                        console.warn(`[Ora] Could not remove ${filterType} filter:`, tmfxError);
+                    }
+                }
+            }
 
-            // Animation de suppression
-            if (config.removeAnimation) {
+            // Animation de suppression généralisée
+            if (config.removeAnimation && token) {
                 const seq = new Sequence();
-                seq.effect()
+                let removeEffect = seq.effect()
                     .file(config.removeAnimation.file)
                     .attachTo(token)
-                    .scale(config.removeAnimation.scale || 1.0)
-                    .duration(config.removeAnimation.duration || 2000)
-                    .fadeOut(config.removeAnimation.fadeOut || 1000);
+                    .scale(config.removeAnimation.scale || 0.6)
+                    .duration(config.removeAnimation.duration || 1500)
+                    .fadeOut(config.removeAnimation.fadeOut || 500);
 
                 if (config.removeAnimation.tint) {
-                    seq.tint(config.removeAnimation.tint);
+                    removeEffect.tint(config.removeAnimation.tint);
                 }
 
                 await seq.play();
@@ -287,7 +480,7 @@
     }
 
     /**
-     * Traite la suppression d'un effet de tourbillon
+     * Traite la suppression d'un effet de tourbillon (spécialisé)
      */
     async function handleVortexRemoval(effectInfo, results) {
         const { token, effect, effectType, config } = effectInfo;
@@ -297,41 +490,48 @@
             const vortexIndex = effect.flags?.world?.vortexIndex || 0;
             const casterId = effect.flags?.world?.vortexCaster;
 
-            // Cleanup des animations Sequencer spécifiques
-            if (config.cleanup?.sequencerNames) {
-                for (const sequencerKey of config.cleanup.sequencerNames) {
-                    const sequencerName = effect.flags?.world?.[sequencerKey];
-                    if (sequencerName) {
-                        try {
-                            Sequencer.EffectManager.endEffects({ name: sequencerName });
-                            console.log(`[Ora] Cleaned up vortex sequencer effect: ${sequencerName}`);
-                        } catch (seqError) {
-                            console.warn(`[Ora] Could not clean up vortex sequencer effect ${sequencerName}:`, seqError);
-                        }
+            // Cleanup des animations Sequencer avec patterns configurés
+            if (config.cleanup?.sequencerPatterns) {
+                for (const pattern of config.cleanup.sequencerPatterns) {
+                    try {
+                        // Remplacer les variables dans le pattern
+                        let resolvedPattern = pattern
+                            .replace("VORTEX_INDEX", vortexIndex + 1)
+                            .replace("*", "*"); // Garder les wildcards
+
+                        Sequencer.EffectManager.endEffects({ name: resolvedPattern });
+                        console.log(`[Ora] Ended vortex animations with pattern: ${resolvedPattern}`);
+                    } catch (seqError) {
+                        console.warn(`[Ora] Could not end vortex animation with pattern ${pattern}:`, seqError);
                     }
                 }
             }
 
-            // Supprimer l'animation de tourbillon par pattern
+            // Supprimer l'animation de tourbillon par pattern spécifique (fallback)
             try {
                 const vortexPattern = `tourbillon_${vortexIndex + 1}_*`;
                 Sequencer.EffectManager.endEffects({ name: vortexPattern });
-                console.log(`[Ora] Ended vortex animation with pattern: ${vortexPattern}`);
+                console.log(`[Ora] Ended vortex animation with fallback pattern: ${vortexPattern}`);
             } catch (seqError) {
-                console.warn(`[Ora] Could not end vortex animation:`, seqError);
+                console.warn(`[Ora] Could not end vortex animation with fallback:`, seqError);
             }
 
-            // Animation de dissipation du tourbillon
-            const dissipationSeq = new Sequence();
-            dissipationSeq.effect()
-                .file("jb2a.water_splash.blue")
-                .attachTo(token)
-                .scale(0.8)
-                .duration(2000)
-                .fadeOut(1000)
-                .tint("#2196f3");
+            // Animation de dissipation configurée
+            if (config.removeAnimation && token) {
+                const dissipationSeq = new Sequence();
+                let dissipationEffect = dissipationSeq.effect()
+                    .file(config.removeAnimation.file)
+                    .attachTo(token)
+                    .scale(config.removeAnimation.scale || 0.8)
+                    .duration(config.removeAnimation.duration || 2000)
+                    .fadeOut(config.removeAnimation.fadeOut || 1000);
 
-            await dissipationSeq.play();
+                if (config.removeAnimation.tint) {
+                    dissipationEffect.tint(config.removeAnimation.tint);
+                }
+
+                await dissipationSeq.play();
+            }
 
             // Suppression de l'effet sur la cible
             if (token.actor.isOwner) {
@@ -356,7 +556,14 @@
         }
     }
 
-    // ===== VALIDATION INITIALE =====
+    // ===== VALIDATION ET INITIALISATION =====
+    // Valider les configurations d'effets
+    const validatedConfigs = initializeEffectConfigs();
+    if (Object.keys(validatedConfigs).length === 0) {
+        ui.notifications.error("Aucune configuration d'effet valide trouvée !");
+        return;
+    }
+
     if (!canvas.tokens.controlled.length) {
         ui.notifications.error(`Veuillez d'abord sélectionner le jeton de ${CHARACTER_CONFIG.displayName} !`);
         return;
@@ -381,8 +588,8 @@
 
             // Chercher les effets appliqués par Ora
             for (const effect of token.actor.effects.contents) {
-                // Vérifier chaque type d'effet configuré
-                for (const [effectType, config] of Object.entries(EFFECT_CONFIG)) {
+                // Vérifier chaque type d'effet configuré (validé)
+                for (const [effectType, config] of Object.entries(validatedConfigs)) {
                     // Skip les effets Sequencer-only qui n'ont pas d'effet d'acteur
                     if (config.isSequencerOnly) continue;
 
@@ -628,38 +835,8 @@
         try {
             const { config } = effectInfo;
 
-            // Traiter selon le type de mécanique
-            switch (config.mechanicType) {
-                case "vortex":
-                    await handleVortexRemoval(effectInfo, removedEffects);
-                    break;
-                case "orphanVortex":
-                    // Supprimer directement l'animation orpheline
-                    try {
-                        if (effectInfo.orphanSequencer) {
-                            Sequencer.EffectManager.endEffects({ name: effectInfo.extraData.sequencerName });
-                            removedEffects.orphanVortexes.push({
-                                target: "Animation orpheline",
-                                effect: effectInfo.effectType
-                            });
-                            console.log(`[Ora] Removed orphan vortex: ${effectInfo.extraData.sequencerName}`);
-                        }
-                    } catch (error) {
-                        console.error(`[Ora] Error removing orphan vortex:`, error);
-                        removedEffects.failed.push({
-                            target: "Animation orpheline",
-                            effect: effectInfo.effectType,
-                            error: error.message
-                        });
-                    }
-                    break;
-                case "slowdown":
-                case "weakness":
-                case "simple":
-                default:
-                    await handleSimpleEffectRemoval(effectInfo, removedEffects);
-                    break;
-            }
+            // Utiliser la fonction de suppression générique selon le type de mécanique
+            await handleGenericEffectRemoval(effectInfo, removedEffects);
 
         } catch (error) {
             console.error(`[Ora] Error processing effect removal:`, error);
@@ -673,31 +850,31 @@
         }
     }
 
-    // ===== ANIMATIONS DE LIBÉRATION =====
-    const liberationSeq = new Sequence();
-    let hasAnimations = false;
+    // ===== ANIMATIONS DE LIBÉRATION GROUPÉES =====
+    // Note: Les animations individuelles sont gérées dans les fonctions de suppression spécialisées
+    // Cette section peut être utilisée pour des animations globales ou de célébration
 
-    for (const effectInfo of effectsToRemove) {
-        const { token, config } = effectInfo;
+    const totalEffectsRemoved = Object.values(removedEffects).reduce((sum, arr) => {
+        return sum + (Array.isArray(arr) ? arr.length : 0);
+    }, 0) - removedEffects.failed.length;
 
-        if (config.removeAnimation && token && !removedEffects.failed.some(f => f.target === token.name)) {
-            liberationSeq.effect()
-                .file(config.removeAnimation.file)
-                .attachTo(token)
-                .scale(config.removeAnimation.scale || 0.6)
-                .duration(config.removeAnimation.duration || 1500)
-                .fadeOut(config.removeAnimation.fadeOut || 500);
+    // Animation de célébration si plusieurs effets supprimés
+    if (totalEffectsRemoved > 2) {
+        try {
+            const celebrationSeq = new Sequence();
+            celebrationSeq.effect()
+                .file("jb2a.water_splash.blue")
+                .atLocation(caster)
+                .scale(1.2)
+                .duration(2500)
+                .fadeOut(800)
+                .tint("#2196f3");
 
-            if (config.removeAnimation.tint) {
-                liberationSeq.tint(config.removeAnimation.tint);
-            }
-
-            hasAnimations = true;
+            await celebrationSeq.play();
+            console.log(`[Ora] Played celebration animation for ${totalEffectsRemoved} effects removed`);
+        } catch (error) {
+            console.warn(`[Ora] Could not play celebration animation:`, error);
         }
-    }
-
-    if (hasAnimations) {
-        await liberationSeq.play();
     }
 
     // ===== RÉSULTATS ET FEEDBACK =====

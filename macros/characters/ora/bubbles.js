@@ -107,6 +107,180 @@
         targeting: {
             range: 120,
             selfTargetTolerance: 50 // Distance pour se cibler soi-même
+        },
+
+        // Configuration des effets de statut générés par les éléments
+        statusEffects: {
+            ice: {
+                name: "Ora Ralentissement",
+                icon: "icons/magic/water/ice-snowflake.webp",
+                description: "Ralenti par la glace d'Ora",
+                duration: {
+                    rounds: null, // Permanent jusqu'à suppression manuelle
+                    seconds: null,
+                    startRound: null,
+                    startTime: null
+                },
+                flags: {
+                    world: {
+                        oraCaster: "CASTER_ID", // Remplacé dynamiquement
+                        spellName: "SPELL_NAME", // Remplacé dynamiquement
+                        effectType: "slowdown",
+                        appliedAt: "TIMESTAMP" // Remplacé dynamiquement
+                    },
+                    statuscounter: {
+                        value: 1, // -1 case de vitesse
+                        max: 10,
+                        min: 0
+                    }
+                },
+                changes: [],
+                tint: "#87ceeb",
+                // Configuration pour endOraEffect
+                endEffectConfig: {
+                    displayName: "Ora Ralentissement",
+                    sectionTitle: "❄️ Ralentissement",
+                    sectionIcon: "❄️",
+                    cssClass: "ice-slowdown-effect",
+                    borderColor: "#87ceeb",
+                    bgColor: "#f0f8ff",
+                    mechanicType: "slowdown",
+                    detectFlags: [
+                        { path: "name", matchValue: "Ora Ralentissement" },
+                        { path: "flags.world.oraCaster", matchValue: "CASTER_ID" }
+                    ],
+                    getExtraData: (effect) => ({
+                        slowdownAmount: effect.flags?.statuscounter?.value || 1,
+                        sourceSpell: effect.flags?.world?.spellName || "Bulles de glace"
+                    }),
+                    getDynamicDescription: (effect) => {
+                        const slowdown = effect.flags?.statuscounter?.value || 1;
+                        const sourceSpell = effect.flags?.world?.spellName || "Bulles de glace";
+                        return `Ralenti par ${sourceSpell} d'Ora (-${slowdown} case de vitesse)`;
+                    },
+                    removeAnimation: {
+                        file: "jb2a.ice_shards.burst.blue",
+                        scale: 0.6,
+                        duration: 1500,
+                        fadeOut: 500,
+                        tint: "#87ceeb"
+                    }
+                }
+            },
+            water: {
+                name: "Ora Faiblesse Électrique",
+                icon: "icons/magic/lightning/bolt-strike-blue.webp",
+                description: "Vulnérable aux dégâts électriques (+2 prochaine attaque électrique)",
+                duration: {
+                    rounds: null, // Permanent jusqu'à suppression ou utilisation
+                    seconds: null,
+                    startRound: null,
+                    startTime: null
+                },
+                flags: {
+                    world: {
+                        oraCaster: "CASTER_ID", // Remplacé dynamiquement
+                        spellName: "SPELL_NAME", // Remplacé dynamiquement
+                        effectType: "weakness",
+                        appliedAt: "TIMESTAMP", // Remplacé dynamiquement
+                        damageType: "electric"
+                    },
+                    statuscounter: {
+                        value: 2, // +2 dégâts électriques
+                        max: 10,
+                        min: 0
+                    }
+                },
+                changes: [],
+                tint: "#0080ff",
+                // Configuration pour endOraEffect
+                endEffectConfig: {
+                    displayName: "Ora Faiblesse Électrique",
+                    sectionTitle: "⚡ Faiblesse Électrique",
+                    sectionIcon: "⚡",
+                    cssClass: "electric-weakness-effect",
+                    borderColor: "#0080ff",
+                    bgColor: "#e3f2fd",
+                    mechanicType: "weakness",
+                    detectFlags: [
+                        { path: "name", matchValue: "Ora Faiblesse Électrique" },
+                        { path: "flags.world.oraCaster", matchValue: "CASTER_ID" }
+                    ],
+                    getExtraData: (effect) => ({
+                        bonusDamage: effect.flags?.statuscounter?.value || 2,
+                        sourceSpell: effect.flags?.world?.spellName || "Bulles d'eau"
+                    }),
+                    getDynamicDescription: (effect) => {
+                        const bonus = effect.flags?.statuscounter?.value || 2;
+                        const sourceSpell = effect.flags?.world?.spellName || "Bulles d'eau";
+                        return `Vulnérable aux dégâts électriques par ${sourceSpell} d'Ora (+${bonus} prochaine attaque électrique)`;
+                    },
+                    removeAnimation: {
+                        file: "jb2a.electric_ball.blue",
+                        scale: 0.5,
+                        duration: 1200,
+                        fadeOut: 400,
+                        tint: "#0080ff"
+                    }
+                }
+            },
+            oil: {
+                name: "Ora Faiblesse Feu",
+                icon: "icons/magic/fire/flame-burning-creature-orange.webp",
+                description: "Vulnérable aux dégâts de feu (+2 prochaine attaque de feu)",
+                duration: {
+                    rounds: null, // Permanent jusqu'à suppression ou utilisation
+                    seconds: null,
+                    startRound: null,
+                    startTime: null
+                },
+                flags: {
+                    world: {
+                        oraCaster: "CASTER_ID", // Remplacé dynamiquement
+                        spellName: "SPELL_NAME", // Remplacé dynamiquement
+                        effectType: "weakness",
+                        appliedAt: "TIMESTAMP", // Remplacé dynamiquement
+                        damageType: "fire"
+                    },
+                    statuscounter: {
+                        value: 2, // +2 dégâts de feu
+                        max: 10,
+                        min: 0
+                    }
+                },
+                changes: [],
+                tint: "#ff8c00",
+                // Configuration pour endOraEffect
+                endEffectConfig: {
+                    displayName: "Ora Faiblesse Feu",
+                    sectionTitle: "🔥 Faiblesse Feu",
+                    sectionIcon: "🔥",
+                    cssClass: "fire-weakness-effect",
+                    borderColor: "#ff8c00",
+                    bgColor: "#fff3e0",
+                    mechanicType: "weakness",
+                    detectFlags: [
+                        { path: "name", matchValue: "Ora Faiblesse Feu" },
+                        { path: "flags.world.oraCaster", matchValue: "CASTER_ID" }
+                    ],
+                    getExtraData: (effect) => ({
+                        bonusDamage: effect.flags?.statuscounter?.value || 2,
+                        sourceSpell: effect.flags?.world?.spellName || "Bulles d'huile"
+                    }),
+                    getDynamicDescription: (effect) => {
+                        const bonus = effect.flags?.statuscounter?.value || 2;
+                        const sourceSpell = effect.flags?.world?.spellName || "Bulles d'huile";
+                        return `Vulnérable aux dégâts de feu par ${sourceSpell} d'Ora (+${bonus} prochaine attaque de feu)`;
+                    },
+                    removeAnimation: {
+                        file: "jb2a.fire_bolt.orange",
+                        scale: 0.4,
+                        duration: 1000,
+                        fadeOut: 300,
+                        tint: "#ff8c00"
+                    }
+                }
+            }
         }
     };
 
@@ -447,6 +621,55 @@
 
     const targetActors = targets.map(target => getActorAtLocation(target.x, target.y));
 
+    // ===== FONCTIONS GÉNÉRIQUES D'APPLICATION D'EFFETS =====
+    /**
+     * Fonction générique pour appliquer un effet configuré sur un token/acteur
+     */
+    async function applyGenericEffect(targetActor, effectConfig, replacements = {}) {
+        if (!targetActor || !effectConfig) return false;
+
+        try {
+            // Construire les données d'effet à partir de la configuration
+            const effectData = {
+                name: effectConfig.name,
+                icon: effectConfig.icon,
+                origin: replacements.CASTER_ID || null,
+                disabled: false,
+                duration: { ...effectConfig.duration },
+                flags: JSON.parse(JSON.stringify(effectConfig.flags)), // Deep clone
+                changes: [...effectConfig.changes],
+                tint: effectConfig.tint
+            };
+
+            // Appliquer les remplacements dynamiques dans les flags
+            if (effectData.flags.world) {
+                for (const [key, value] of Object.entries(effectData.flags.world)) {
+                    if (typeof value === 'string' && replacements[value]) {
+                        effectData.flags.world[key] = replacements[value];
+                    }
+                }
+            }
+
+            // Délégation GM si nécessaire
+            if (targetActor.isOwner) {
+                await targetActor.createEmbeddedDocuments("ActiveEffect", [effectData]);
+            } else {
+                if (globalThis.gmSocket) {
+                    await globalThis.gmSocket.executeAsGM("createEffectOnActor", targetActor.id, effectData);
+                } else {
+                    console.warn(`[Ora Bubbles] Cannot apply effect to ${targetActor.name} - no GM socket`);
+                    return false;
+                }
+            }
+
+            console.log(`[Ora Bubbles] Applied ${effectData.name} to ${targetActor.name}`);
+            return true;
+        } catch (error) {
+            console.error(`[Ora Bubbles] Error applying effect to ${targetActor.name}:`, error);
+            return false;
+        }
+    }
+
     // ===== FUNCTIONS FOR EFFECT MANAGEMENT =====
 
     /**
@@ -503,123 +726,22 @@
             console.log(`[Ora Bubbles] Removed ${removedCount} existing Ora effect(s) from ${targetActor.name}`);
         }
 
-        let effectData = null;
-
-        switch (effectType) {
-            case 'ice':
-                // Effet de ralentissement pour la glace
-                effectData = {
-                    name: "Ora Ralentissement",
-                    icon: "icons/magic/water/ice-snowflake.webp",
-                    origin: casterId,
-                    disabled: false,
-                    duration: {
-                        rounds: null, // Permanent jusqu'à suppression manuelle
-                        seconds: null,
-                        startRound: null,
-                        startTime: null
-                    },
-                    flags: {
-                        world: {
-                            oraCaster: casterId,
-                            spellName: spellName,
-                            effectType: "slowdown",
-                            appliedAt: Date.now()
-                        },
-                        statuscounter: {
-                            value: 1
-                        }
-                    },
-                    changes: [],
-                    tint: "#87ceeb"
-                };
-                break;
-
-            case 'water':
-                // Effet de faiblesse électrique pour l'eau
-                effectData = {
-                    name: "Ora Faiblesse Électrique",
-                    icon: "icons/magic/lightning/bolt-strike-blue.webp",
-                    origin: casterId,
-                    disabled: false,
-                    duration: {
-                        rounds: null, // Permanent jusqu'à suppression ou utilisation
-                        seconds: null,
-                        startRound: null,
-                        startTime: null
-                    },
-                    flags: {
-                        world: {
-                            oraCaster: casterId,
-                            spellName: spellName,
-                            effectType: "weakness",
-                            appliedAt: Date.now(),
-                            damageType: "electric"
-                        },
-                        statuscounter: {
-                            value: 3
-                        }
-                    },
-                    changes: [],
-                    tint: "#0080ff"
-                };
-                break;
-
-            case 'oil':
-                // Effet de faiblesse au feu pour l'huile
-                effectData = {
-                    name: "Ora Faiblesse Feu",
-                    icon: "icons/magic/fire/flame-burning-creature-orange.webp",
-                    origin: casterId,
-                    disabled: false,
-                    duration: {
-                        rounds: null, // Permanent jusqu'à suppression ou utilisation
-                        seconds: null,
-                        startRound: null,
-                        startTime: null
-                    },
-                    flags: {
-                        world: {
-                            oraCaster: casterId,
-                            spellName: spellName,
-                            effectType: "weakness",
-                            appliedAt: Date.now(),
-                            damageType: "fire"
-                        },
-                        statuscounter: {
-                            value: 2
-                        }
-                    },
-                    changes: [],
-                    tint: "#ff8c00"
-                };
-                break;
-
-            default:
-                return false;
-        }
-
-        try {
-            // Appliquer l'effet
-            if (targetActor.isOwner) {
-                await targetActor.createEmbeddedDocuments("ActiveEffect", [effectData]);
-            } else {
-                // Délégation GM
-                if (globalThis.gmSocket) {
-                    await globalThis.gmSocket.executeAsGM("createEffectOnActor", targetActor.id, effectData);
-                } else {
-                    console.warn(`[Ora Bubbles] Cannot apply effect to ${targetActor.name} - no GM socket`);
-                    return false;
-                }
-            }
-
-            console.log(`[Ora Bubbles] Applied ${effectData.name} to ${targetActor.name}`);
-            return true;
-
-        } catch (error) {
-            console.error(`[Ora Bubbles] Error applying effect to ${targetActor.name}:`, error);
+        // Obtenir la configuration de l'effet à partir de SPELL_CONFIG
+        const statusConfig = SPELL_CONFIG.statusEffects[effectType];
+        if (!statusConfig) {
+            console.error(`[Ora Bubbles] Unknown effect type: ${effectType}`);
             return false;
         }
+
+        // Définir les remplacements dynamiques pour la configuration
+        const replacements = {
+            "CASTER_ID": casterId,
+            "SPELL_NAME": spellName,
+            "TIMESTAMP": Date.now()
+        };
+
+        // Utiliser la fonction générique avec la configuration centralisée
+        return await applyGenericEffect(targetActor, statusConfig, replacements);
     }
 
     // ===== DAMAGE CALCULATION =====

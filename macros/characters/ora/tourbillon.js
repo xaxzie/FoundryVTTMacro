@@ -85,6 +85,50 @@
             tokenSizeMultiplier: 1.3, // 30% plus grand que le token
             impactReduction: 0.8,
             splashReduction: 0.6
+        },
+
+        // Configuration des effets appliqués
+        effectConfig: {
+            name: "Tourbillon",
+            icon: "icons/magic/water/vortex-water-whirlpool.webp",
+            description: "Pris dans un tourbillon d'eau d'Ora",
+            duration: {
+                seconds: 84600 // Permanent jusqu'à suppression manuelle
+            },
+            flags: {
+                world: {
+                    vortexCaster: "CASTER_ID", // Remplacé dynamiquement
+                    vortexTarget: "TARGET_ID", // Remplacé dynamiquement
+                    vortexIndex: "VORTEX_INDEX", // Remplacé dynamiquement
+                    spellName: "Tourbillon",
+                    createdAt: "TIMESTAMP" // Remplacé dynamiquement
+                }
+            },
+            changes: [],
+            // Configuration pour endOraEffect
+            endEffectConfig: {
+                displayName: "Tourbillon",
+                sectionTitle: "🌊 Tourbillons",
+                sectionIcon: "🌊",
+                cssClass: "vortex-effect",
+                borderColor: "#2196f3",
+                bgColor: "#e3f2fd",
+                mechanicType: "vortex",
+                detectFlags: [
+                    { path: "name", matchValue: "Tourbillon" },
+                    { path: "flags.world.vortexCaster", matchValue: "CASTER_ID" }
+                ],
+                cleanup: {
+                    sequencerPatterns: ["tourbillon_*"] // Pattern pour nettoyer les animations
+                },
+                removeAnimation: {
+                    file: "jb2a.water_splash.blue",
+                    scale: 0.8,
+                    duration: 2000,
+                    fadeOut: 1000,
+                    tint: "#2196f3"
+                }
+            }
         }
     };
 
@@ -343,45 +387,72 @@
 
     const targetActors = targets.map(target => getActorAtLocation(target.x, target.y));
 
-    // ===== APPLICATION DE L'EFFET TOURBILLON =====
-    async function applyVortexEffect(targetInfo, vortexIndex) {
-        if (!targetInfo || !targetInfo.token) return;
-
-        const effectData = {
-            name: "Tourbillon",
-            icon: "icons/magic/water/vortex-water-whirlpool.webp",
-            duration: {
-                rounds: null // Permanent jusqu'à suppression manuelle
-            },
-            flags: {
-                world: {
-                    vortexCaster: caster.id,
-                    vortexTarget: targetInfo.token.id,
-                    vortexIndex: vortexIndex,
-                    spellName: SPELL_CONFIG.name,
-                    createdAt: Date.now()
-                }
-            },
-            changes: []
-        };
+    // ===== FONCTIONS GÉNÉRIQUES D'APPLICATION D'EFFETS =====
+    /**
+     * Fonction générique pour appliquer un effet configuré sur un token/acteur
+     */
+    async function applyGenericEffect(targetInfo, effectConfig, replacements = {}) {
+        if (!targetInfo || !targetInfo.token || !effectConfig) return false;
 
         try {
-            // Utiliser la délégation GM comme dans empalement
+            // Construire les données d'effet à partir de la configuration
+            const effectData = {
+                name: effectConfig.name,
+                icon: effectConfig.icon,
+                duration: { ...effectConfig.duration },
+                flags: { ...effectConfig.flags },
+                changes: [...effectConfig.changes]
+            };
+
+            // Appliquer les remplacements dynamiques dans les flags
+            if (effectData.flags.world) {
+                for (const [key, value] of Object.entries(effectData.flags.world)) {
+                    if (typeof value === 'string' && replacements[value]) {
+                        effectData.flags.world[key] = replacements[value];
+                    }
+                }
+            }
+
+            // Délégation GM si nécessaire
             if (targetInfo.token.actor.isOwner) {
                 await targetInfo.token.actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
             } else {
                 if (!globalThis.gmSocket) {
-                    ui.notifications.error("GM Socket non disponible pour appliquer l'effet !");
-                    return;
+                    console.error("GM Socket non disponible pour appliquer l'effet !");
+                    return false;
                 }
                 const result = await globalThis.gmSocket.executeAsGM("createActiveEffectOnActor", targetInfo.token.actor.id, effectData);
                 if (!result.success) {
-                    console.error(`Failed to create vortex effect: ${result.error}`);
+                    console.error(`Failed to create effect: ${result.error}`);
+                    return false;
                 }
             }
-            console.log(`[Ora] Applied vortex effect to ${targetInfo.token.name}`);
+
+            console.log(`[Ora] Applied ${effectData.name} to ${targetInfo.token.name}`);
+            return true;
         } catch (error) {
-            console.error(`[Ora] Error applying vortex effect to ${targetInfo.token.name}:`, error);
+            console.error(`[Ora] Error applying effect to ${targetInfo.token.name}:`, error);
+            return false;
+        }
+    }
+
+    // ===== APPLICATION DE L'EFFET TOURBILLON =====
+    async function applyVortexEffect(targetInfo, vortexIndex) {
+        if (!targetInfo || !targetInfo.token) return;
+
+        // Définir les remplacements dynamiques pour la configuration
+        const replacements = {
+            "CASTER_ID": caster.id,
+            "TARGET_ID": targetInfo.token.id,
+            "VORTEX_INDEX": vortexIndex,
+            "TIMESTAMP": Date.now()
+        };
+
+        // Utiliser la fonction générique avec la configuration centralisée
+        const success = await applyGenericEffect(targetInfo, SPELL_CONFIG.effectConfig, replacements);
+
+        if (!success) {
+            ui.notifications.error(`Impossible d'appliquer l'effet de tourbillon sur ${targetInfo.token.name}`);
         }
     }
 
