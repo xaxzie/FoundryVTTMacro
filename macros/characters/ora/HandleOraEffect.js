@@ -49,6 +49,35 @@
                     console.warn(`[HandleOraEffect] Could not stop SDF animation: ${error.message}`);
                 }
             }
+        },
+        "Preparation Pilonnage": {
+            name: "Preparation Pilonnage",
+            icon: "icons/magic/water/barrier-ice-crystal-wall-jagged-blue.webp",
+            flags: [
+                // La préparation n'ajoute pas de bonus de stats
+            ],
+            description: "Préparation du sort Pilonnement - Interruptible par dégâts",
+            category: "custom",
+            increasable: true,
+            counterName: "Niveau",
+            defaultValue: 1,
+            maxValue: 4,
+            tags: ["increasable"], // Tag spécial pour manipulation avancée
+            // Configuration spéciale pour la suppression
+            hasSpecialRemoval: true,
+            onRemoval: async (effect, actor) => {
+                // Callback pour arrêter l'animation persistante lors de la suppression
+                try {
+                    if (typeof Sequencer !== "undefined") {
+                        await Sequencer.EffectManager.endEffects({
+                            name: `Pilonnement_Preparation_${actor.id}`
+                        });
+                        console.log(`[HandleOraEffect] Stopped Pilonnement preparation animation for ${actor.name}`);
+                    }
+                } catch (error) {
+                    console.warn(`[HandleOraEffect] Could not stop Pilonnement preparation animation: ${error.message}`);
+                }
+            }
         }
 
         // TODO: Add more Ora-specific water magic effects here
