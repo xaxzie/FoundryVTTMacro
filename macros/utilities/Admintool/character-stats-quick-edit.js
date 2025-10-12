@@ -77,8 +77,8 @@
     /**
      * Calculate the cost to go from current level to next level
      */
-    function getNextLevelCost(currentValue, effectiveBase = 2, maxLevel = 7) {
-        if (currentValue < effectiveBase || currentValue >= maxLevel) return 0;
+    function getNextLevelCost(currentValue, effectiveBase = 2, effectiveMaxLevel = 7) {
+        if (currentValue < effectiveBase || currentValue >= effectiveMaxLevel) return 0;
 
         const nextLevel = currentValue + 1;
         const levelFromBase = nextLevel - effectiveBase;
@@ -101,6 +101,15 @@
     function getEffectiveBase(key, baseValue) {
         const isMainStat = actor.system.attributes?.[`Is${key.charAt(0).toUpperCase() + key.slice(1)}Statsprinciaple`]?.value || false;
         return baseValue + (isMainStat ? 1 : 0);
+    }
+
+    /**
+     * Helper function to get effective maximum level for a characteristic
+     * Main stats also get +1 to their maximum level
+     */
+    function getEffectiveMaxLevel(key, baseMaxLevel) {
+        const isMainStat = actor.system.attributes?.[`Is${key.charAt(0).toUpperCase() + key.slice(1)}Statsprinciaple`]?.value || false;
+        return baseMaxLevel + (isMainStat ? 1 : 0);
     }
 
     /**
@@ -148,6 +157,7 @@
                 const value = workingStats[key];
                 const isMainStat = html.find(`#main-${key}`).prop('checked');
                 const effectiveBase = baseValue + (isMainStat ? 1 : 0);
+                const effectiveMaxLevel = maxLevel + (isMainStat ? 1 : 0);
                 const cost = calculatePointCost(value, effectiveBase);
                 usedPoints += cost;
 
@@ -157,13 +167,13 @@
                 // Update cost display
                 html.find(`#cost-${key}`).text(`${cost} points`);
 
-                // Update base display
-                html.find(`#base-${key}`).text(`(Base: ${effectiveBase})`);
+                // Update base display with max info
+                html.find(`#base-${key}`).text(`(Base: ${effectiveBase}, Max: ${effectiveMaxLevel})`);
 
                 // Update button states
-                const nextCost = getNextLevelCost(value, effectiveBase, maxLevel);
+                const nextCost = getNextLevelCost(value, effectiveBase, effectiveMaxLevel);
                 const minimumValue = getMinimumValue(key, baseValue);
-                const canIncrease = (usedPoints + nextCost) <= totalPoints && value < maxLevel && nextCost > 0;
+                const canIncrease = (usedPoints + nextCost) <= totalPoints && value < effectiveMaxLevel && nextCost > 0;
                 const canDecrease = value > minimumValue;
 
                 html.find(`#inc-${key}`).prop('disabled', !canIncrease);
@@ -176,8 +186,8 @@
 
                 // Update tooltips
                 let tooltip = '';
-                if (value >= maxLevel) {
-                    tooltip = `Maximum atteint (${maxLevel})`;
+                if (value >= effectiveMaxLevel) {
+                    tooltip = `Maximum atteint (${effectiveMaxLevel})`;
                 } else if (nextCost === 0) {
                     tooltip = 'Impossible d\'augmenter';
                 } else if ((usedPoints + nextCost) > totalPoints) {
@@ -246,7 +256,7 @@
                     <div><strong>Principale</strong></div>
                     <div><strong>Caractéristique</strong></div>
                     <div><strong>Valeur</strong></div>
-                    <div><strong>Base Effective</strong></div>
+                    <div><strong>Base/Max Effectifs</strong></div>
                     <div><strong>Coût</strong></div>
                     <div><strong>Actions</strong></div>
                     <div></div>
@@ -261,7 +271,7 @@
                             <span id="value-${key}">${workingStats[key]}</span>
                         </div>
                         <div style="text-align: center; font-size: 0.9em; color: #666;">
-                            <span id="base-${key}">(Base: ${baseValue})</span>
+                            <span id="base-${key}">(Base: ${baseValue}, Max: ${maxLevel})</span>
                         </div>
                         <div style="text-align: center; font-size: 0.9em; color: #666;">
                             <span id="cost-${key}">0 points</span>
@@ -280,7 +290,7 @@
                     <h4>Configuration Actuelle</h4>
                     <p style="font-size: 0.9em; margin: 5px 0;">
                         <strong>Base:</strong> ${baseValue} | <strong>Maximum:</strong> ${maxLevel} | <strong>Stats Principales:</strong> ${mainStatsCount}<br>
-                        <strong>Stats Principales:</strong> Augmentent la base de +1 gratuitement<br>
+                        <strong>Stats Principales:</strong> +1 base ET +1 maximum gratuitement<br>
                         <strong>Coûts:</strong> Base gratuit | +1: 1pt | +2: 1pt | +3: 2pts | +4: 2pts | +5: 3pts | +6: 4pts...
                     </p>
                 </div>
@@ -352,7 +362,8 @@
                     html.find(`#inc-${key}`).click(() => {
                         const isMainStat = html.find(`#main-${key}`).prop('checked');
                         const effectiveBase = baseValue + (isMainStat ? 1 : 0);
-                        const nextCost = getNextLevelCost(workingStats[key], effectiveBase, maxLevel);
+                        const effectiveMaxLevel = maxLevel + (isMainStat ? 1 : 0);
+                        const nextCost = getNextLevelCost(workingStats[key], effectiveBase, effectiveMaxLevel);
 
                         const currentUsed = Object.keys(characteristics)
                             .reduce((total, k) => {
@@ -361,7 +372,7 @@
                                 return total + calculatePointCost(workingStats[k], kEffectiveBase);
                             }, 0);
 
-                        if (currentUsed + nextCost <= totalPoints && workingStats[key] < maxLevel && nextCost > 0) {
+                        if (currentUsed + nextCost <= totalPoints && workingStats[key] < effectiveMaxLevel && nextCost > 0) {
                             workingStats[key]++;
                             updateDialog(html);
                         }

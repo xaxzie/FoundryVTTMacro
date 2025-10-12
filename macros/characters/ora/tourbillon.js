@@ -55,12 +55,7 @@
             }
         },
 
-        protection: {
-            // En Position Focus, protection toujours active (pas de choix)
-            // En autres positions, choix entre protection ou non
-            enabledByDefault: true,
-            description: "Bloque les attaques traversantes"
-        },
+
 
         animations: {
             cast: "jb2a.cast_generic.water.02.blue.0",
@@ -145,7 +140,7 @@
     // ===== DIALOG DE CONFIGURATION DU SORT =====
     async function showSpellConfigDialog() {
         const manaInfo = currentStance === 'focus'
-            ? "<strong>Coût en Mana :</strong> GRATUIT (Position Focus) - <em>Pas de choix sur protection (bloque toujours)</em>"
+            ? "<strong>Coût en Mana :</strong> GRATUIT (Position Focus)"
             : "<strong>Coût en Mana :</strong> 4 mana";
 
         const damageInfo = currentStance === 'offensif'
@@ -159,17 +154,6 @@
                     <strong>${vortexType.name} :</strong> ${vortexType.description} (${vortexType.damageDisplay})</label>`;
             }).join('<br>');
 
-            const protectionOptions = currentStance !== 'focus' ? `
-                <div style="margin: 10px 0; border: 1px solid #ccc; padding: 10px; background: #f0f8ff;">
-                    <h4>Protection Anti-Projectiles</h4>
-                    <p><em>Le tourbillon peut-il bloquer les attaques traversantes ?</em></p>
-                    <label><input type="radio" name="protection" value="yes" checked>
-                        <strong>Oui :</strong> ${SPELL_CONFIG.protection.description}</label><br>
-                    <label><input type="radio" name="protection" value="no">
-                        <strong>Non :</strong> N'offre aucune protection</label>
-                </div>
-            ` : '';
-
             new Dialog({
                 title: `Sort de ${SPELL_CONFIG.name}${currentStance ? ` (Position: ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : ''}`,
                 content: `
@@ -181,8 +165,6 @@
                         <h4>Type de Tourbillon</h4>
                         ${vortexTypeOptions}
                     </div>
-
-                    ${protectionOptions}
 
                     <div style="margin: 10px 0; border: 1px solid #ccc; padding: 10px; background: #f9f9f9;">
                         <h4>Bonus Manuels</h4>
@@ -217,10 +199,9 @@
                         label: "Lancer le Sort",
                         callback: (html) => {
                             const vortexType = html.find('input[name="vortexType"]:checked').val();
-                            const protection = currentStance === 'focus' ? 'yes' : html.find('input[name="protection"]:checked').val();
                             const damageBonus = parseInt(html.find('#damageBonus').val()) || 0;
                             const attackBonus = parseInt(html.find('#attackBonus').val()) || 0;
-                            resolve({ vortexType, protection, damageBonus, attackBonus });
+                            resolve({ vortexType, damageBonus, attackBonus });
                         }
                     },
                     cancel: {
@@ -234,7 +215,7 @@
 
     const spellConfig = await showSpellConfigDialog();
     if (!spellConfig) return;
-    const { vortexType, protection, damageBonus, attackBonus } = spellConfig;
+    const { vortexType, damageBonus, attackBonus } = spellConfig;
     const vortexTypeConfig = SPELL_CONFIG.vortexTypes[vortexType];
 
     // ===== TARGETING via Portal =====
@@ -514,7 +495,7 @@
                     ${vortexTypeConfig.count > 1 ? `<div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${damages.map(d => d.total).join(' + ')})</div>` : ''}
                 </div>
                 <div style="text-align: center; margin: 6px 0; padding: 6px; background: #f0f4ff; border-radius: 4px;">
-                    <div style="font-size: 0.9em; color: #1976d2;"><strong>⚠️ Notes:</strong> Dégâts appliqués lors de la traversée. ${protection === 'yes' ? 'Bloque les attaques traversantes.' : ''}</div>
+                    <div style="font-size: 0.9em; color: #1976d2;"><strong>⚠️ Notes:</strong> Dégâts appliqués lors de la traversée. Ora peut choisir de bloquer les attaques traversantes.</div>
                 </div>
             </div>
         `;

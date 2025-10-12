@@ -159,108 +159,133 @@
     const characteristicInfo = getCharacteristicValue(actor, SPELL_CONFIG.characteristic);
     if (!characteristicInfo) return;
 
-    // ===== DIALOG DE SÉLECTION D'ÉLÉMENT =====
-    async function showElementDialog() {
-        const manaInfo = currentStance === 'focus'
-            ? "<strong>Coût en Mana :</strong> GRATUIT (Position Focus) - sauf Eau Vivante: 2 mana"
-            : "<strong>Coût en Mana :</strong> 4 mana";
+    // ===== DIALOG UNIFIÉ DE CONFIGURATION =====
+    async function showSpellConfigDialog() {
+        const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
 
         return new Promise((resolve) => {
             const elementOptions = Object.keys(SPELL_CONFIG.elements).map(key => {
                 const element = SPELL_CONFIG.elements[key];
-                return `<label><input type="radio" name="element" value="${key}" ${key === 'water' ? 'checked' : ''}>
+                return `<label><input type="radio" name="element" value="${key}" ${key === 'water' ? 'checked' : ''} onchange="updateElementInfo()">
                     <strong>${element.name}</strong> - ${element.description} (${element.projectileCount} projectile${element.projectileCount > 1 ? 's' : ''})</label>`;
             }).join('<br>');
 
             new Dialog({
-                title: `Sort de ${SPELL_CONFIG.name} - Choisir un Élément${currentStance ? ` (Position: ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : ''}`,
+                title: `Sort de ${SPELL_CONFIG.name}${currentStance ? ` (Position: ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : ''}`,
                 content: `
-                    <h3>Sélectionnez l'élément pour vos bulles :</h3>
-                    <p>${manaInfo}</p>
-                    <div style="margin: 10px 0;">
-                        ${elementOptions}
-                    </div>
-                `,
-                buttons: {
-                    confirm: {
-                        label: "Confirmer",
-                        callback: (html) => {
-                            const element = html.find('input[name="element"]:checked').val();
-                            resolve(element);
-                        }
-                    },
-                    cancel: {
-                        label: "Annuler",
-                        callback: () => resolve(null)
-                    }
-                }
-            }).render(true);
-        });
-    }
+                    <div style="padding: 5px;">
+                        <h3>Configuration du Sort :</h3>
 
-    const selectedElement = await showElementDialog();
-    if (!selectedElement) return;
-
-    const elementConfig = SPELL_CONFIG.elements[selectedElement];
-    const isLivingWater = selectedElement === 'living_water';
-
-    // ===== DIALOG DE CONFIGURATION =====
-    async function showConfigDialog() {
-        const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
-        const actualManaCost = currentStance === 'focus' && elementConfig.isFocusable
-            ? (isLivingWater ? '2 mana (Position Focus - coût réduit)' : 'GRATUIT (Position Focus)')
-            : `${elementConfig.manaCost} mana`;
-
-        const stanceNote = currentStance === 'offensif' && !isLivingWater ? ' (MAXIMISÉ en Position Offensive)' : '';
-        const damageOrHeal = isLivingWater ? 'Soin' : 'Dégâts par projectile';
-
-        return new Promise((resolve) => {
-            new Dialog({
-                title: `Sort de ${SPELL_CONFIG.name} - ${elementConfig.name}${currentStance ? ` (Position: ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : ''}`,
-                content: `
-                    <h3>Statistiques du Sort</h3>
-                    <p><strong>Position de Combat :</strong> ${currentStance ? currentStance.charAt(0).toUpperCase() + currentStance.slice(1) : 'Aucune'}</p>
-                    <p><strong>Caractéristique ${SPELL_CONFIG.characteristicDisplay} :</strong> ${characteristicInfo.final}${characteristicInfo.injuries > 0 || characteristicInfo.effectBonus !== 0 ? ` <em>(${characteristicInfo.base}${characteristicInfo.injuries > 0 ? ` - ${characteristicInfo.injuries} blessures` : ''}${characteristicInfo.effectBonus !== 0 ? ` + ${characteristicInfo.effectBonus} effets` : ''})</em>` : ''}</p>
-                    <p><strong>Niveau du Sort :</strong> ${SPELL_CONFIG.spellLevel}</p>
-                    <p><strong>Coût en Mana :</strong> ${actualManaCost}</p>
-                    <p><strong>${damageOrHeal} :</strong> ${SPELL_CONFIG.damageFormula} + (${SPELL_CONFIG.characteristicDisplay} + bonus)/2${stanceNote}${effectDamageBonus !== 0 ? ` <em>(+${effectDamageBonus} bonus d'effets)</em>` : ''}</p>
-                    <p><strong>Projectiles :</strong> ${elementConfig.projectileCount}</p>
-                    <p>Jet d'attaque de base : <strong>${characteristicInfo.final}d7 + ${2 * SPELL_CONFIG.spellLevel}</strong></p>
-                    <div style="margin: 10px 0; border: 1px solid #ccc; padding: 10px; background: #f9f9f9;">
-                        <h4>Bonus Manuels</h4>
-                        <div style="margin: 5px 0;">
-                            <label>Bonus de ${isLivingWater ? 'soin' : 'dégâts'} :
-                                <input type="number" id="damageBonus" value="0" min="0" style="width: 60px;">
-                            </label>
-                            <small style="display: block; margin-left: 20px;">Objets, effets temporaires, etc.</small>
+                        <div style="margin: 10px 0; border: 1px solid #ccc; padding: 10px; background: #f0f8ff;">
+                            <h4>Élément</h4>
+                            ${elementOptions}
                         </div>
-                        ${!isLivingWater ? `
-                        <div style="margin: 5px 0;">
-                            <label>Bonus de résolution d'attaque :
-                                <input type="number" id="attackBonus" value="0" min="0" style="width: 60px;">
-                            </label>
-                            <small style="display: block; margin-left: 20px;">Dés d7 supplémentaires pour l'attaque</small>
+
+                        <div id="targeting-options" style="margin: 10px 0; padding: 10px; border: 1px solid #ccc; background: #f9f9f9; border-radius: 5px;">
+                            <h4>Options de Ciblage :</h4>
+                            <div id="targeting-choices">
+                                <label><input type="radio" name="targeting" value="single" checked>
+                                    <strong>Cible unique</strong> - Tous les projectiles sur la même cible</label><br>
+                                <label><input type="radio" name="targeting" value="multiple">
+                                    <strong>Cibles multiples</strong> - Un projectile par cible différente</label>
+                            </div>
                         </div>
-                        ` : ''}
+
+                        <div style="margin: 10px 0; border: 1px solid #ddd; padding: 8px; background: #f8f9fa;">
+                            <h4>Statistiques</h4>
+                            <div style="font-size: 0.9em;">
+                                <p><strong>Position :</strong> ${currentStance ? currentStance.charAt(0).toUpperCase() + currentStance.slice(1) : 'Aucune'}</p>
+                                <p><strong>${SPELL_CONFIG.characteristicDisplay} :</strong> ${characteristicInfo.final}${characteristicInfo.injuries > 0 || characteristicInfo.effectBonus !== 0 ? ` <em>(${characteristicInfo.base}${characteristicInfo.injuries > 0 ? ` - ${characteristicInfo.injuries} blessures` : ''}${characteristicInfo.effectBonus !== 0 ? ` + ${characteristicInfo.effectBonus} effets` : ''})</em>` : ''}</p>
+                                <p id="mana-cost"><strong>Coût :</strong> <span id="mana-display">4 mana</span></p>
+                                <p id="damage-info"><strong>Dégâts :</strong> <span id="damage-display">${SPELL_CONFIG.damageFormula} + (Esprit + bonus)/2</span></p>
+                                <p><strong>Attaque de base :</strong> ${characteristicInfo.final}d7 + ${2 * SPELL_CONFIG.spellLevel}</p>
+                            </div>
+                        </div>
+
+                        <div style="margin: 10px 0; border: 1px solid #ccc; padding: 10px; background: #f9f9f9;">
+                            <h4>Bonus Manuels</h4>
+                            <div style="margin: 5px 0;">
+                                <label><span id="damage-label">Bonus de dégâts</span> :
+                                    <input type="number" id="damageBonus" value="0" min="0" style="width: 60px;">
+                                </label>
+                                <small style="display: block; margin-left: 20px;">Objets, effets temporaires, etc.</small>
+                            </div>
+                            <div style="margin: 5px 0;" id="attack-bonus-div">
+                                <label>Bonus de résolution d'attaque :
+                                    <input type="number" id="attackBonus" value="0" min="0" style="width: 60px;">
+                                </label>
+                                <small style="display: block; margin-left: 20px;">Dés d7 supplémentaires pour l'attaque</small>
+                            </div>
+                        </div>
+
+                        <p id="final-attack"><strong>Jet d'attaque final :</strong> <span id="finalAttack">${characteristicInfo.final}d7 + ${2 * SPELL_CONFIG.spellLevel}</span></p>
                     </div>
-                    ${!isLivingWater ? `<p><strong>Jet d'attaque final :</strong> <span id="finalAttack">${characteristicInfo.final}d7 + ${2 * SPELL_CONFIG.spellLevel}</span></p>` : ''}
+
                     <script>
-                        ${!isLivingWater ? `
+                        function updateElementInfo() {
+                            const selectedElement = document.querySelector('input[name="element"]:checked').value;
+                            const isLivingWater = selectedElement === 'living_water';
+                            const targetingDiv = document.getElementById('targeting-choices');
+                            const manaCostSpan = document.getElementById('mana-display');
+                            const damageDisplay = document.getElementById('damage-display');
+                            const damageLabel = document.getElementById('damage-label');
+                            const attackBonusDiv = document.getElementById('attack-bonus-div');
+                            const finalAttackP = document.getElementById('final-attack');
+
+                            // Mise à jour du ciblage
+                            if (isLivingWater) {
+                                targetingDiv.innerHTML = '<p><em>Eau Vivante cible automatiquement une seule cible.</em></p>';
+                            } else {
+                                targetingDiv.innerHTML = \`
+                                    <label><input type="radio" name="targeting" value="single" checked>
+                                        <strong>Cible unique</strong> - Tous les projectiles sur la même cible</label><br>
+                                    <label><input type="radio" name="targeting" value="multiple">
+                                        <strong>Cibles multiples</strong> - Un projectile par cible différente</label>
+                                \`;
+                            }
+
+                            // Mise à jour du coût
+                            if (isLivingWater) {
+                                manaCostSpan.textContent = '${currentStance === 'focus' ? '2 mana (Position Focus - coût réduit)' : '4 mana'}';
+                            } else {
+                                manaCostSpan.textContent = '${currentStance === 'focus' ? 'GRATUIT (Position Focus)' : '4 mana'}';
+                            }
+
+                            // Mise à jour des dégâts/soin
+                            if (isLivingWater) {
+                                damageDisplay.textContent = '1d6 + (Esprit + bonus)/2 (Soin)';
+                                damageLabel.textContent = 'Bonus de soin';
+                                attackBonusDiv.style.display = 'none';
+                                finalAttackP.style.display = 'none';
+                            } else {
+                                const stanceNote = '${currentStance === 'offensif' ? ' (MAXIMISÉ en Position Offensive)' : ''}';
+                                damageDisplay.textContent = '1d6 + (Esprit + bonus)/2' + stanceNote;
+                                damageLabel.textContent = 'Bonus de dégâts';
+                                attackBonusDiv.style.display = 'block';
+                                finalAttackP.style.display = 'block';
+                            }
+                        }
+
                         document.getElementById('attackBonus').addEventListener('input', function() {
                             const base = ${characteristicInfo.final};
                             const bonus = parseInt(this.value) || 0;
                             const total = base + bonus;
                             document.getElementById('finalAttack').textContent = total + 'd7 + ${2 * SPELL_CONFIG.spellLevel}';
-                        });` : ''}
+                        });
+
+                        // Initialisation
+                        updateElementInfo();
                     </script>
                 `,
                 buttons: {
                     confirm: {
-                        label: "Continuer",
+                        label: "Lancer le Sort",
                         callback: (html) => {
+                            const element = html.find('input[name="element"]:checked').val();
+                            const targeting = html.find('input[name="targeting"]:checked').val() || 'single';
                             const damageBonus = parseInt(html.find('#damageBonus').val()) || 0;
-                            const attackBonus = !isLivingWater ? parseInt(html.find('#attackBonus').val()) || 0 : 0;
-                            resolve({ damageBonus, attackBonus });
+                            const attackBonus = parseInt(html.find('#attackBonus').val()) || 0;
+                            resolve({ element, targeting, damageBonus, attackBonus });
                         }
                     },
                     cancel: {
@@ -268,13 +293,16 @@
                         callback: () => resolve(null)
                     }
                 }
-            }).render(true);
+            }, { width: 500 }).render(true);
         });
     }
 
-    const userConfig = await showConfigDialog();
-    if (!userConfig) return;
-    const { damageBonus, attackBonus } = userConfig;
+    const spellConfig = await showSpellConfigDialog();
+    if (!spellConfig) return;
+
+    const { element: selectedElement, targeting: targetingMode, damageBonus, attackBonus } = spellConfig;
+    const elementConfig = SPELL_CONFIG.elements[selectedElement];
+    const isLivingWater = selectedElement === 'living_water';
 
     // ===== TARGETING via Portal =====
     async function selectTargets() {
@@ -302,36 +330,17 @@
                 }
             }
 
-            // Deuxième ciblage (seulement pour les sorts à 2 projectiles)
-            if (elementConfig.projectileCount > 1) {
-                const secondTarget = await new Promise((resolve) => {
-                    new Dialog({
-                        title: "Deuxième Cible ?",
-                        content: `<p>Voulez-vous cibler un deuxième emplacement, ou envoyer les deux projectiles sur la première cible ?</p>`,
-                        buttons: {
-                            second: {
-                                label: "Deuxième Cible",
-                                callback: () => resolve(true)
-                            },
-                            same: {
-                                label: "Même Cible (Deux Projectiles)",
-                                callback: () => resolve(false)
-                            }
-                        }
-                    }).render(true);
-                });
+            // Deuxième ciblage basé sur le mode sélectionné
+            if (elementConfig.projectileCount > 1 && targetingMode === 'multiple') {
+                const portal2 = new Portal()
+                    .origin(caster)
+                    .range(SPELL_CONFIG.targeting.range)
+                    .color(elementConfig.targeting.color)
+                    .texture(elementConfig.targeting.texture);
 
-                if (secondTarget) {
-                    const portal2 = new Portal()
-                        .origin(caster)
-                        .range(SPELL_CONFIG.targeting.range)
-                        .color(elementConfig.targeting.color)
-                        .texture(elementConfig.targeting.texture);
-
-                    const target2 = await portal2.pick();
-                    if (target2) {
-                        targets.push({ x: target2.x, y: target2.y });
-                    }
+                const target2 = await portal2.pick();
+                if (target2) {
+                    targets.push({ x: target2.x, y: target2.y });
                 }
             }
 
