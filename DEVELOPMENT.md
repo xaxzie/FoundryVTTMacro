@@ -244,6 +244,15 @@ if (typeof portal === "undefined") {
   return;
 }
 
+// ✅ CRITICAL: Proper Sequencer animation (no .duration())
+new Sequence()
+  .effect()
+  .file("jb2a.liquid.splash02.red")
+  .attachTo(token)
+  .scale(0.8)
+  // ✅ No .duration() - prevents animation duplicates
+  .play();
+
 // Reusable helper functions
 async function getSpellTarget() {
   const crosshairs = await portal.crosshairs.show({
@@ -265,6 +274,13 @@ const spellConfig = {
 **❌ Bad Practices:**
 
 ```javascript
+// ❌ CRITICAL ERROR: Using .duration() causes animation duplicates
+new Sequence()
+  .effect()
+  .file("animation.webm")
+  .duration(2000) // ❌ BAD: Causes multiple plays if file < 2000ms
+  .play();
+
 // Hard-coded values
 const damage = 8; // Should calculate based on stats + stance
 
@@ -293,32 +309,86 @@ const target = await portal.crosshairs.show({}); // No fallback
 - Shadow spells: Purple/Black/Dark
 - Healing spells: Green/Golden/White
 
+### ⚠️ CRITICAL: Sequencer Duration Issues
+
+**🚨 NEVER USE `.duration()` WITH SEQUENCER ANIMATIONS**
+
+The `.duration()` property forces Sequencer to play animations multiple times when the configured duration is longer than the actual animation file duration. This causes:
+
+- Duplicate animations playing simultaneously
+- Visual glitches and performance issues
+- Confusing user experience
+
+**❌ INCORRECT - Causes Animation Duplicates:**
+
+```javascript
+new Sequence()
+  .effect()
+  .file("jb2a.liquid.splash02.red")
+  .attachTo(token)
+  .scale(0.8)
+  .duration(2000) // ❌ BAD: Forces multiple plays if file is shorter
+  .play();
+```
+
+**✅ CORRECT - Natural Duration:**
+
+```javascript
+new Sequence()
+  .effect()
+  .file("jb2a.liquid.splash02.red")
+  .attachTo(token)
+  .scale(0.8)
+  // ✅ GOOD: Let animation play its natural duration
+  .play();
+```
+
+**Exception for Persistent Animations:**
+
+```javascript
+// ✅ Only acceptable use: persistent animations with fadeOut
+new Sequence()
+  .effect()
+  .file("persistent-effect.webm")
+  .attachTo(token)
+  .persist()
+  .fadeOut(500) // Duration can be used with fadeOut for persistent effects
+  .play();
+```
+
 ### Performance Optimization
 
 ```javascript
-// ✅ Good: Efficient animation
+// ✅ Good: Efficient animation with proper timing
 new Sequence()
   .effect()
   .file("spell-projectile.webm")
   .atLocation(caster)
   .stretchTo(target)
   .scale(0.8) // Reasonable scale
-  .duration(1000) // Clear timing
+  // ✅ No .duration() - let natural timing work
   .effect()
   .file("spell-impact.webm")
   .atLocation(target)
-  .delay(1000) // Synced with projectile
+  .delay(1000) // Synced with projectile natural duration
   .play();
 
-// ❌ Bad: Performance issues
+// ❌ Bad: Performance issues and animation problems
 new Sequence()
   .effect()
   .file("huge-effect.webm")
   .scale(5.0) // Too large
-  .duration(10000) // Too long
+  .duration(10000) // ❌ NEVER USE - causes duplicates
   .fadeIn(5000) // Excessive fade
   .play();
 ```
+
+**Key Rules:**
+
+1. **NEVER use `.duration()`** unless for persistent effects with fadeOut
+2. **Always test animations** to verify single playback
+3. **Use natural animation timing** for proper synchronization
+4. **Check console logs** for animation completion messages
 
 ## 🧪 Testing & Quality Assurance
 
@@ -342,6 +412,20 @@ new Sequence()
 
 ### Troubleshooting Common Issues
 
+**🚨 Animation Playing Multiple Times:**
+
+**Cause:** Using `.duration()` with Sequencer when duration > actual file duration
+**Solution:** Remove `.duration()` and let animations play naturally
+**Debug:** Check browser console for animation completion logs
+
+```javascript
+// ❌ Problem code
+.duration(2000) // Remove this line
+
+// ✅ Fixed code
+// No duration property - natural timing
+```
+
 **Portal targeting not working:**
 
 - Ensure Portal module is installed and enabled
@@ -354,11 +438,24 @@ new Sequence()
 - Verify file paths are correct
 - Test with Sequencer Database Viewer
 
+**Animation synchronization issues:**
+
+- Use `.delay()` instead of `.duration()` for timing
+- Test actual animation file durations
+- Check console logs for timing information
+
 **RPG integration errors:**
 
 - Ensure utility functions are available
 - Check character sheet compatibility
 - Verify stance detection setup
+
+**Animation Performance Issues:**
+
+- Remove unnecessary `.duration()` calls
+- Use appropriate `.scale()` values (0.5-1.5 range)
+- Limit simultaneous animations (max 3-4 effects)
+- Test on lower-end hardware
 
 ## 🚀 Local Development Setup
 

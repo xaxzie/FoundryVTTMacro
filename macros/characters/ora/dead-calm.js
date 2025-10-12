@@ -29,7 +29,7 @@
         name: "Dead Calm",
         description: "Zone de contrôle ultime avec préparation Focus",
         manaCost: 8,
-        spellLevel: 4,
+        spellLevel: 2,
         characteristic: "esprit",
         characteristicDisplay: "Esprit",
         controlRadius: 6, // 6 cases de rayon
@@ -38,9 +38,8 @@
 
         animations: {
             cast: "jb2a.cast_generic.water.02.blue.0",
-            zoneControl: "jb2a.detect_magic.circle.blue", // Animation de zone
-            particleControl: "jb2a.moonbeam.01.blue", // Animation de particules
-            damageReduction: "jb2a.shield.02.intro.blue"
+            zoneControl: "jb2a_patreon.spirit_guardians.dark_whiteblue", // Animation de zone
+            particleControl: "jb2a_patreon.spirit_guardians.blue.particles"
         },
 
         // Configuration de l'effet Cast DC (préparation)
@@ -148,7 +147,7 @@
                 esprit: { value: 2 }
             },
             changes: [],
-            tint: "#dc143c",
+            tint: "#1eff00",
             // Configuration pour handleOraEffect
             handleOraConfig: {
                 displayName: "Ora Eyes - Supérieur",
@@ -262,7 +261,7 @@
         sequence.effect()
             .file(SPELL_CONFIG.animations.zoneControl)
             .attachTo(caster)
-            .scale(SPELL_CONFIG.controlRadius * 0.25)
+            .scale(SPELL_CONFIG.controlRadius * 0.4)
             .fadeIn(2000)
             .fadeOut(2000)
             .persist(true)
@@ -274,7 +273,7 @@
         sequence.effect()
             .file(SPELL_CONFIG.animations.particleControl)
             .attachTo(caster)
-            .scale(SPELL_CONFIG.controlRadius * 0.2)
+            .scale(SPELL_CONFIG.controlRadius * 0.4)
             .fadeIn(2000)
             .fadeOut(2000)
             .persist(true)
@@ -287,8 +286,12 @@
 
     async function stopControlAnimations(actorId) {
         try {
+            // Arrêter chaque animation individuellement car Sequencer n'accepte pas les tableaux
             await Sequencer.EffectManager.endEffects({
-                name: [`DeadCalm_Zone_${actorId}`, `DeadCalm_Particles_${actorId}`]
+                name: `DeadCalm_Zone_${actorId}`
+            });
+            await Sequencer.EffectManager.endEffects({
+                name: `DeadCalm_Particles_${actorId}`
             });
             console.log("[Dead Calm] Stopped control animations");
         } catch (error) {
@@ -498,7 +501,7 @@
                             🌀 Ora contrôle maintenant la zone !
                         </div>
                         <div style="margin-top: 8px; font-size: 0.95em;">
-                            <p><strong>👁️ Vision Supérieure:</strong> +6 Dégâts, +2 Esprit</p>
+                            <p><strong>👁️ Vision Supérieure:</strong> +6 Dégâts, +2 Esprit, ne fonctionne que lors de son tour</p>
                             <p><strong>⚡ Attaques rapides:</strong> ${attacksPerTurn} fois par tour maximum</p>
                             <p><strong>🎯 Sorts:</strong> Forcés demi-focus, ciblage zone uniquement</p>
                             <p><strong>🛡️ Vulnérabilité:</strong> Jet Volonté (3×dégâts) si blessée</p>
@@ -557,14 +560,6 @@
             const reductionRoll = new Roll("1d6");
             await reductionRoll.evaluate({ async: true });
 
-            // Animation courte
-            const reductionSequence = new Sequence();
-            reductionSequence.effect()
-                .file(SPELL_CONFIG.animations.damageReduction)
-                .attachTo(caster)
-                .scale(0.6)
-                .duration(1500);
-            await reductionSequence.play();
 
             // Message de chat rapide
             await reductionRoll.toMessage({
@@ -572,7 +567,7 @@
                 flavor: `
                     <div style="text-align: center; padding: 8px; background: linear-gradient(135deg, #e3f2fd, #ffffff); border-radius: 6px; border: 2px solid #2196f3;">
                         <h4 style="margin: 0; color: #1976d2;">🛡️ Réduction de Dégâts</h4>
-                        <p style="margin: 5px 0; font-size: 0.9em;"><strong>Dead Calm:</strong> Protection active</p>
+                        <p style="margin: 5px 0; font-size: 0.9em;"><strong>Dead Calm:</strong> Réduction des dégâts d'Ora de ${reductionRoll.total} points</p>
                     </div>
                 `,
                 rollMode: game.settings.get('core', 'rollMode')

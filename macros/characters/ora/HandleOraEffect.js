@@ -115,7 +115,10 @@
                 try {
                     if (typeof Sequencer !== "undefined") {
                         await Sequencer.EffectManager.endEffects({
-                            name: [`DeadCalm_Zone_${actor.id}`, `DeadCalm_Particles_${actor.id}`]
+                            name: `DeadCalm_Zone_${actor.id}`
+                        });
+                        await Sequencer.EffectManager.endEffects({
+                            name: `DeadCalm_Particles_${actor.id}`
                         });
                         console.log(`[HandleOraEffect] Stopped Dead Calm zone animations for ${actor.name}`);
                     }
@@ -135,6 +138,114 @@
             category: "custom",
             increasable: false,
             tags: ["increasable"] // Tag spécial pour manipulation avancée même si non-increasable
+        },
+        "Blood Control": {
+            name: "Blood Control",
+            icon: "icons/skills/wounds/blood-cells-vessel-red.webp",
+            flags: [
+                // Blood Control peut ajouter des bonus selon les besoins du jeu
+            ],
+            description: "Contrôle du sang d'Ora - Force impressionnante",
+            category: "custom",
+            increasable: false,
+            counterName: "Tours",
+            defaultValue: 3,
+            maxValue: 10,
+            manaCost: 2,
+            isPerTurn: true,
+            tags: [],
+            // Configuration spéciale pour afficher le statusCounter fixe
+            hasFixedCounter: true,
+            fixedCounterValue: 3,
+            // Configuration spéciale pour les effets visuels
+            hasTransformation: true,
+            transformation: {
+                filterId: "oraBloodTransformation",
+                targetImagePath: "worlds/ft/TOKEN/Ora_token_NG.png",
+                transitionType: 4,
+                loopDuration: 1000,
+                padding: 70,
+                magnify: 1
+            },
+            hasAnimation: true,
+            animation: {
+                activationFile: "jb2a.liquid.splash02.red",
+                deactivationFile: "animated-spell-effects-cartoon.misc.blood splatter",
+                scale: 0.4,
+                persistent: false
+                // NOTE: duration property removed - causes animation duplicates when > actual file duration
+            },
+            // Configuration spéciale pour la suppression
+            hasSpecialRemoval: true,
+            onRemoval: async (effect, actor) => {
+                // Callback pour nettoyer les effets visuels et envoyer message de fin
+                try {
+                    console.log(`[HandleOraEffect] Blood Control removal callback for ${actor.name}`);
+
+                    // Envoyer message de fin dans le chat
+                    const endMessage = `
+                        <div style="border: 2px solid #8B0000; border-radius: 8px; padding: 12px; background: linear-gradient(135deg, #2c0000, #1a0000); color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <img src="icons/skills/wounds/blood-cells-vessel-red.webp" style="width: 32px; height: 32px; margin-right: 12px; border-radius: 4px;">
+                                <div>
+                                    <h3 style="margin: 0; color: #FF6B6B; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">🩸 Blood Control - Fin</h3>
+                                    <div style="font-size: 0.9em; color: #FFB3B3;">Contrôle du sang désactivé</div>
+                                </div>
+                            </div>
+                            <div style="background: rgba(139,0,0,0.3); padding: 8px; border-radius: 4px; border-left: 4px solid #8B0000;">
+                                <strong>${actor.name}</strong> met fin au Blood Control et retrouve son apparence normale.
+                                <br><em style="color: #FFB3B3;">Les effets de force et régénération sont perdus.</em>
+                            </div>
+                        </div>
+                    `;
+
+                    await ChatMessage.create({
+                        user: game.user.id,
+                        content: endMessage,
+                        whisper: game.users.filter(u => u.isGM).map(u => u.id)
+                    });
+
+                } catch (error) {
+                    console.warn(`[HandleOraEffect] Error in Blood Control removal callback: ${error.message}`);
+                }
+            },
+            // Callback spécial pour l'activation
+            onActivation: async (effect, actor) => {
+                try {
+                    console.log(`[HandleOraEffect] Blood Control activation callback for ${actor.name}`);
+
+                    // Envoyer message d'activation dans le chat
+                    const activationMessage = `
+                        <div style="border: 2px solid #8B0000; border-radius: 8px; padding: 12px; background: linear-gradient(135deg, #4a0000, #2c0000); color: #ffffff; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <img src="icons/skills/wounds/blood-cells-vessel-red.webp" style="width: 32px; height: 32px; margin-right: 12px; border-radius: 4px;">
+                                <div>
+                                    <h3 style="margin: 0; color: #FF6B6B; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">🩸 Blood Control - Activation</h3>
+                                    <div style="font-size: 0.9em; color: #FFB3B3;">Coût: 2 Mana/Tour (Non focusable)</div>
+                                </div>
+                            </div>
+                            <div style="background: rgba(139,0,0,0.3); padding: 8px; border-radius: 4px; border-left: 4px solid #8B0000;">
+                                <strong>${actor.name}</strong> gagne une force impressionnante en manipulant son propre sang.
+                                <br><br>
+                                <strong>Effets :</strong>
+                                <br>• Régénère 3 PV/tour
+                                <br>• Peut augmenter sa vitesse de déplacement de 3 cases à la place de la régénération
+                                <br><br>
+                                <em style="color: #FFCCCC;">⚠️ Sans antidouleur : Jet de Volonté DD 20 (+5/tour) requis après 3 tours pour résister aux effets.</em>
+                            </div>
+                        </div>
+                    `;
+
+                    await ChatMessage.create({
+                        user: game.user.id,
+                        content: activationMessage,
+                        whisper: game.users.filter(u => u.isGM).map(u => u.id)
+                    });
+
+                } catch (error) {
+                    console.warn(`[HandleOraEffect] Error in Blood Control activation callback: ${error.message}`);
+                }
+            }
         }
 
         // TODO: Add more Ora-specific water magic effects here
@@ -192,42 +303,80 @@
         }
 
         try {
-            if (shouldTransform && transformConfig) {
-                console.log(`[Ora] Applying transformation to ${token.name}`);
+            let filterParams;
+            const { targetImagePath, transitionType, loopDuration, padding, magnify, filterId } = transformConfig;
 
-                // Create polymorph filter configuration
-                const params = [{
+            if (shouldTransform) {
+                // Check if filter already exists
+                if (token.TMFXhasFilterId(filterId)) {
+                    console.log(`[Ora] Token ${token.name} already has transformation ${filterId}`);
+                    return;
+                }
+
+                // Create transformation filter
+                filterParams = [{
                     filterType: "polymorph",
-                    filterId: transformConfig.filterId,
-                    targetImagePath: transformConfig.targetImagePath,
-                    transitionType: transformConfig.transitionType || 4,
-                    loopDuration: transformConfig.loopDuration || 1000,
-                    padding: transformConfig.padding || 70,
-                    magnify: transformConfig.magnify || 1,
+                    filterId: filterId,
+                    type: transitionType,
+                    padding: padding,
+                    magnify: magnify,
+                    imagePath: targetImagePath,
                     animated: {
                         progress: {
                             active: true,
                             animType: "halfCosOscillation",
                             val1: 0,
                             val2: 100,
-                            loopDuration: transformConfig.loopDuration || 1000
+                            loops: 1,
+                            loopDuration: loopDuration
                         }
                     }
                 }];
 
-                await TokenMagic.addUpdateFilters(token, params);
-                console.log(`[Ora] Transformation applied successfully`);
+                await token.TMFXaddUpdateFilters(filterParams);
+                console.log(`[Ora] Transformation applied successfully to ${token.name}`);
 
             } else {
-                console.log(`[Ora] Removing transformation from ${token.name}`);
+                // Check if filter exists to revert
+                if (!token.TMFXhasFilterId(filterId)) {
+                    console.log(`[Ora] No transformation ${filterId} found on ${token.name} to revert`);
+                    return;
+                }
 
-                // Remove the specific transformation filter
-                const filterId = transformConfig?.filterId || "waterTransformation";
-                await TokenMagic.deleteFilters(token, filterId);
-                console.log(`[Ora] Transformation removed successfully`);
+                // First trigger revert animation, then delete the filter
+                filterParams = [{
+                    filterType: "polymorph",
+                    filterId: filterId,
+                    type: transitionType,
+                    animated: {
+                        progress: {
+                            active: true,
+                            loops: 1
+                        }
+                    }
+                }];
+
+                // Apply the revert animation
+                await token.TMFXaddUpdateFilters(filterParams);
+
+                // Wait for animation to complete, then delete the filter completely
+                setTimeout(async () => {
+                    try {
+                        if (token.TMFXhasFilterId(filterId)) {
+                            await token.TMFXdeleteFilters(filterId);
+                            console.log(`[Ora] Deleted transformation filter ${filterId} from ${token.name}`);
+                        }
+                    } catch (error) {
+                        console.error(`[Ora] Error deleting filter ${filterId}:`, error);
+                    }
+                }, loopDuration + 100); // Wait for animation duration + small buffer
+
+                console.log(`[Ora] Reverting transformation on ${token.name}`);
+                return; // Exit early since we're handling the deletion asynchronously
             }
+
         } catch (error) {
-            console.error(`[Ora] Error with token transformation:`, error);
+            console.error("[Ora] Error in token transformation:", error);
         }
     }
 
@@ -236,6 +385,12 @@
      * @param {Token} token - The token to animate
      * @param {Object} animConfig - Animation configuration
      * @param {boolean} isActivating - True if activating effect, false if deactivating
+     *
+     * DEVELOPMENT NOTE:
+     * ⚠️ NEVER USE .duration() with Sequencer animations! ⚠️
+     * The duration property forces Sequencer to play animations multiple times
+     * when the configured duration is longer than the actual animation file duration.
+     * Always let animations play their natural duration to avoid duplicates.
      */
     async function playTransformationAnimation(token, animConfig, isActivating) {
         if (!token || typeof Sequence === "undefined") {
@@ -249,10 +404,6 @@
                 .file(animConfig.effectFile)
                 .attachTo(token)
                 .scale(animConfig.scale || 0.8)
-
-            if (animConfig.duration) {
-                effect.duration(animConfig.duration);
-            }
 
             // Apply tint if specified
             if (animConfig.tint) {
@@ -284,28 +435,41 @@
         }
 
         try {
-            if (shouldApply && filterConfig.filterConfigs) {
-                console.log(`[Ora] Applying water filters to ${token.name}`);
+            const { filterId, filterConfigs } = filterConfig;
 
-                // Apply each configured filter
-                for (const filterConf of filterConfig.filterConfigs) {
-                    const params = [{
-                        ...filterConf,
-                        filterId: filterConfig.filterId
-                    }];
-                    await TokenMagic.addUpdateFilters(token, params);
+            if (shouldApply) {
+                // Check if filters are already applied
+                const hasFilters = token.document.flags?.tokenmagic;
+                if (hasFilters) {
+                    console.log(`[Ora] Token ${token.name} already has filters`);
+                    return;
                 }
-                console.log(`[Ora] Water filters applied successfully`);
+
+                // Select the token and apply filters
+                canvas.tokens.releaseAll();
+                token.control({ releaseOthers: false });
+
+                await TokenMagic.addFiltersOnSelected(filterConfigs);
+                console.log(`[Ora] Applied ${filterConfigs.length} filter(s) to ${token.name}`);
 
             } else {
-                console.log(`[Ora] Removing water filters from ${token.name}`);
+                // Remove filters
+                const hasFilters = token.document.flags?.tokenmagic;
+                if (!hasFilters) {
+                    console.log(`[Ora] No filters found on ${token.name} to remove`);
+                    return;
+                }
 
-                // Remove all filters for this effect
-                await TokenMagic.deleteFilters(token, filterConfig.filterId);
-                console.log(`[Ora] Water filters removed successfully`);
+                // Select the token and remove filters
+                canvas.tokens.releaseAll();
+                token.control({ releaseOthers: false });
+
+                await TokenMagic.deleteFiltersOnSelected();
+                console.log(`[Ora] Removed filters from ${token.name}`);
             }
+
         } catch (error) {
-            console.error(`[Ora] Error with token filters:`, error);
+            console.error("[Ora] Error in token filters:", error);
         }
     }
 
@@ -314,6 +478,11 @@
      * @param {Token} token - The token to animate
      * @param {Object} animConfig - Animation configuration
      * @param {boolean} isActivating - True if activating effect, false if deactivating
+     *
+     * DEVELOPMENT NOTE:
+     * ⚠️ NEVER USE .duration() with Sequencer animations! ⚠️
+     * Exception: For persistent animations, duration can be used with fadeOut
+     * when duration !== 0, but avoid it for one-shot animations.
      */
     async function playPersistentAnimation(token, animConfig, isActivating) {
         if (!token || typeof Sequence === "undefined") {
@@ -532,9 +701,14 @@
             const manaCostDisplay = effectData.manaCost ?
                 `<div style="color: #3f51b5; font-size: 0.8em;">Coût: ${effectData.manaCost} mana${effectData.isPerTurn ? '/tour' : ''}</div>` : '';
 
-            // Get current value for increasable effects
+            // Get current value for increasable effects or fixed counter effects
             const currentValue = effectData.increasable ?
-                (existingEffect?.flags?.statuscounter?.value || effectData.defaultValue || 0) : 0;
+                (existingEffect?.flags?.statuscounter?.value || effectData.defaultValue || 0) :
+                (effectData.hasFixedCounter && existingEffect ? effectData.fixedCounterValue : 0);
+
+            // Show counter value in status text if it has a fixed counter and is active
+            const counterDisplay = (effectData.hasFixedCounter && isActive) ? ` (${effectData.fixedCounterValue})` : '';
+            const finalStatusText = statusText + counterDisplay;
 
             dialogContent += `
                 <div class="effect-item" id="effect-${key}">
@@ -546,7 +720,7 @@
                             ${manaCostDisplay}
                         </div>
                         <div class="status-indicator" style="color: ${statusColor};">
-                            ${statusIcon} ${statusText}
+                            ${statusIcon} ${finalStatusText}
                         </div>
                     </div>
                     <div class="button-group">
@@ -554,6 +728,11 @@
                         <label>${effectData.counterName || 'Valeur'}: <input type="number" id="customCount-${getSafeId(key)}" value="${currentValue}" min="0" max="${effectData.maxValue || 10}" style="width: 60px; margin: 0 8px;" data-original-key="${key}"></label>
                         <button type="button" class="btn btn-add" data-action="setCustomCount" data-effect="${key}" data-category="custom">
                             📊 Appliquer
+                        </button>
+                        ` : effectData.hasFixedCounter ? `
+                        <span style="color: #666; margin: 0 8px;">${effectData.counterName || 'Valeur'}: ${effectData.fixedCounterValue} (Fixe)</span>
+                        <button type="button" class="btn ${isActive ? 'btn-remove' : 'btn-add'}" data-action="${isActive ? 'remove' : 'add'}" data-effect="${key}" data-category="custom">
+                            ${isActive ? '➖ Désactiver' : '➕ Activer'}
                         </button>
                         ` : `
                         <button type="button" class="btn ${isActive ? 'btn-remove' : 'btn-add'}" data-action="${isActive ? 'remove' : 'add'}" data-effect="${key}" data-category="custom">
@@ -896,7 +1075,10 @@
                 // Clean up any remaining Token Magic FX filters on this token
                 try {
                     if (typeof TokenMagic !== "undefined") {
-                        await TokenMagic.deleteFilters(token);
+                        // Select the token and remove all filters
+                        canvas.tokens.releaseAll();
+                        token.control({ releaseOthers: false });
+                        await TokenMagic.deleteFiltersOnSelected();
                         console.log(`[Ora] Cleaned up all Token Magic FX filters`);
                     }
                 } catch (error) {
@@ -967,9 +1149,46 @@
 
                         // Handle transformation removal
                         if (customData.hasTransformation) {
-                            if (customData.hasAnimation) {
-                                await playTransformationAnimation(token, customData.animation, false);
-                                await new Promise(resolve => setTimeout(resolve, 200));
+                            // Prevent double animation execution with a temporary flag
+                            const animationKey = `${customData.name}-deactivation-${token.id}`;
+
+                            // Play deactivation animation ONCE before removing transformation
+                            if (customData.hasAnimation && customData.animation.deactivationFile) {
+                                // Check animation lock
+                                if (window.oraAnimationLock && window.oraAnimationLock[animationKey]) {
+                                    console.log(`[Ora] Deactivation animation already in progress for ${customData.name}, skipping`);
+                                } else {
+                                    try {
+                                        // Set animation lock
+                                        if (!window.oraAnimationLock) window.oraAnimationLock = {};
+                                        window.oraAnimationLock[animationKey] = true;
+
+                                        console.log(`[Ora] Playing TRANSFORMATION deactivation animation for ${customData.name}`);
+                                        const seq = new Sequence()
+                                            .name(`${customData.name}-deactivation-${Date.now()}`); // Unique identifier
+                                        await seq.effect()
+                                            .file(customData.animation.deactivationFile)
+                                            .attachTo(token)
+                                            .scale(customData.animation.scale || 0.8)
+                                            .play();
+                                        console.log(`[Ora] TRANSFORMATION deactivation animation completed for ${customData.name}`);
+
+                                        // Clear lock after animation
+                                        setTimeout(() => {
+                                            if (window.oraAnimationLock) {
+                                                delete window.oraAnimationLock[animationKey];
+                                            }
+                                        }, 3000);
+
+                                        await new Promise(resolve => setTimeout(resolve, 200));
+                                    } catch (error) {
+                                        console.warn(`[Ora] Error playing deactivation animation: ${error}`);
+                                        // Clear lock on error
+                                        if (window.oraAnimationLock && window.oraAnimationLock[animationKey]) {
+                                            delete window.oraAnimationLock[animationKey];
+                                        }
+                                    }
+                                }
                             }
                             await applyTokenTransformation(token, customData.transformation, false);
                         }
@@ -983,7 +1202,7 @@
                             await applyTokenFilters(token, customData.filters, false);
                         }
 
-                        // Handle standalone animations removal for increasable effects
+                        // Handle standalone animations removal for increasable effects (NOT for transformation-based effects)
                         if (customData.hasAnimation && !customData.hasTransformation && !customData.hasFilters) {
                             if (customData.animation.persistent) {
                                 await playPersistentAnimation(token, customData.animation, false);
@@ -1023,9 +1242,46 @@
 
                             // Handle transformation addition
                             if (customData.hasTransformation) {
-                                if (customData.hasAnimation) {
-                                    await playTransformationAnimation(token, customData.animation, true);
-                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                // Prevent double animation execution with a temporary flag
+                                const animationKey = `${customData.name}-activation-${token.id}`;
+
+                                // Play activation animation ONCE before transformation
+                                if (customData.hasAnimation && customData.animation.activationFile) {
+                                    // Check animation lock
+                                    if (window.oraAnimationLock && window.oraAnimationLock[animationKey]) {
+                                        console.log(`[Ora] Animation already in progress for ${customData.name}, skipping`);
+                                    } else {
+                                        try {
+                                            // Set animation lock
+                                            if (!window.oraAnimationLock) window.oraAnimationLock = {};
+                                            window.oraAnimationLock[animationKey] = true;
+
+                                            console.log(`[Ora] Playing TRANSFORMATION activation animation for ${customData.name}`);
+                                            const seq = new Sequence()
+                                                .name(`${customData.name}-activation-${Date.now()}`); // Unique identifier
+                                            await seq.effect()
+                                                .file(customData.animation.activationFile)
+                                                .attachTo(token)
+                                                .scale(customData.animation.scale || 0.8)
+                                                .play();
+                                            console.log(`[Ora] TRANSFORMATION activation animation completed for ${customData.name}`);
+
+                                            // Clear lock after animation
+                                            setTimeout(() => {
+                                                if (window.oraAnimationLock) {
+                                                    delete window.oraAnimationLock[animationKey];
+                                                }
+                                            }, 3000);
+
+                                            await new Promise(resolve => setTimeout(resolve, 200));
+                                        } catch (error) {
+                                            console.warn(`[Ora] Error playing activation animation: ${error}`);
+                                            // Clear lock on error
+                                            if (window.oraAnimationLock && window.oraAnimationLock[animationKey]) {
+                                                delete window.oraAnimationLock[animationKey];
+                                            }
+                                        }
+                                    }
                                 }
                                 await applyTokenTransformation(token, customData.transformation, true);
                             }
@@ -1036,14 +1292,15 @@
                                     if (customData.animation.persistent) {
                                         await playPersistentAnimation(token, customData.animation, true);
                                     } else {
-                                        await playTransformationAnimation(token, customData.animation, true);
+                                        // REMOVED: playTransformationAnimation to avoid double animations
+                                        console.log(`[Ora] Skipping transformation animation for filter-based effect ${customData.name} (already played in transformation section)`);
                                     }
                                     await new Promise(resolve => setTimeout(resolve, 200));
                                 }
                                 await applyTokenFilters(token, customData.filters, true);
                             }
 
-                            // Handle standalone animations for increasable effects
+                            // Handle standalone animations for increasable effects (NOT for transformation-based effects)
                             if (customData.hasAnimation && !customData.hasTransformation && !customData.hasFilters) {
                                 if (customData.animation.persistent) {
                                     await playPersistentAnimation(token, customData.animation, true);
@@ -1051,6 +1308,18 @@
                                     await playTransformationAnimation(token, customData.animation, true);
                                 }
                                 console.log(`[Ora] Played standalone animation for increasable ${customData.name}`);
+                            }
+                        }
+
+                        // Execute activation callback if present
+                        if (customData.onActivation) {
+                            try {
+                                const newEffect = actor.effects.find(e => e.name === customData.name);
+                                if (newEffect) {
+                                    await customData.onActivation(newEffect, actor);
+                                }
+                            } catch (error) {
+                                console.warn(`[Ora] Error in activation callback for ${customData.name}:`, error);
                             }
                         }
                     }
@@ -1132,6 +1401,14 @@
                         flags: flagsObject
                     };
 
+                    // Add fixed counter for effects that need it (like Blood Control)
+                    if (effectData.hasFixedCounter) {
+                        newEffectData.flags.statuscounter = {
+                            value: effectData.fixedCounterValue,
+                            visible: true
+                        };
+                    }
+
                     await actor.createEmbeddedDocuments("ActiveEffect", [newEffectData]);
                     addedEffects.push(effectData.name);
                     console.log(`[Ora] Added effect: ${effectData.name}`);
@@ -1140,11 +1417,47 @@
                     if (canvas.tokens.controlled.length > 0) {
                         const token = canvas.tokens.controlled[0];
 
-                        // Handle transformation effects
+                        // Handle transformation effects (for non-increasable effects)
                         if (effectData.hasTransformation) {
-                            if (effectData.hasAnimation) {
-                                await playTransformationAnimation(token, effectData.animation, true);
-                                await new Promise(resolve => setTimeout(resolve, 200));
+                            // Play activation animation ONCE before transformation (only for non-increasable)
+                            if (effectData.hasAnimation && effectData.animation.activationFile) {
+                                // Prevent double animation execution with a temporary flag
+                                const animationKey = `${effectData.name}-activation-${token.id}`;
+
+                                // Check animation lock
+                                if (window.oraAnimationLock && window.oraAnimationLock[animationKey]) {
+                                    console.log(`[Ora] Activation animation already in progress for ${effectData.name}, skipping`);
+                                } else {
+                                    try {
+                                        // Set animation lock
+                                        if (!window.oraAnimationLock) window.oraAnimationLock = {};
+                                        window.oraAnimationLock[animationKey] = true;
+
+                                        console.log(`[Ora] Playing TRANSFORMATION activation animation for ${effectData.name}`);
+                                        const seq = new Sequence();
+                                        await seq.effect()
+                                            .file(effectData.animation.activationFile)
+                                            .attachTo(token)
+                                            .scale(effectData.animation.scale || 0.8)
+                                            .play();
+                                        console.log(`[Ora] TRANSFORMATION activation animation completed for ${effectData.name}`);
+
+                                        // Clear lock after animation
+                                        setTimeout(() => {
+                                            if (window.oraAnimationLock) {
+                                                delete window.oraAnimationLock[animationKey];
+                                            }
+                                        }, 3000);
+
+                                        await new Promise(resolve => setTimeout(resolve, 200));
+                                    } catch (error) {
+                                        console.warn(`[Ora] Error playing activation animation: ${error}`);
+                                        // Clear lock on error
+                                        if (window.oraAnimationLock && window.oraAnimationLock[animationKey]) {
+                                            delete window.oraAnimationLock[animationKey];
+                                        }
+                                    }
+                                }
                             }
                             await applyTokenTransformation(token, effectData.transformation, true);
                             console.log(`[Ora] Applied transformation for ${effectData.name}`);
@@ -1175,6 +1488,18 @@
                         }
                     }
 
+                    // Execute activation callback if present
+                    if (effectData.onActivation) {
+                        try {
+                            const newEffect = actor.effects.find(e => e.name === effectData.name);
+                            if (newEffect) {
+                                await effectData.onActivation(newEffect, actor);
+                            }
+                        } catch (error) {
+                            console.warn(`[Ora] Error in activation callback for ${effectData.name}:`, error);
+                        }
+                    }
+
                 } else if (action === 'remove') {
                     const existing = currentState.customEffects[effectKey];
                     if (existing) {
@@ -1193,9 +1518,45 @@
                             const token = canvas.tokens.controlled[0];
 
                             if (effectData.hasTransformation) {
-                                if (effectData.hasAnimation) {
-                                    await playTransformationAnimation(token, effectData.animation, false);
-                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                // Play deactivation animation ONCE before removing transformation (only for non-increasable)
+                                if (effectData.hasAnimation && effectData.animation.deactivationFile) {
+                                    // Prevent double animation execution with a temporary flag
+                                    const animationKey = `${effectData.name}-deactivation-${token.id}`;
+
+                                    // Check animation lock
+                                    if (window.oraAnimationLock && window.oraAnimationLock[animationKey]) {
+                                        console.log(`[Ora] Deactivation animation already in progress for ${effectData.name}, skipping`);
+                                    } else {
+                                        try {
+                                            // Set animation lock
+                                            if (!window.oraAnimationLock) window.oraAnimationLock = {};
+                                            window.oraAnimationLock[animationKey] = true;
+
+                                            console.log(`[Ora] Playing TRANSFORMATION deactivation animation for ${effectData.name}`);
+                                            const seq = new Sequence();
+                                            await seq.effect()
+                                                .file(effectData.animation.deactivationFile)
+                                                .attachTo(token)
+                                                .scale(effectData.animation.scale || 0.8)
+                                                .play();
+                                            console.log(`[Ora] TRANSFORMATION deactivation animation completed for ${effectData.name}`);
+
+                                            // Clear lock after animation
+                                            setTimeout(() => {
+                                                if (window.oraAnimationLock) {
+                                                    delete window.oraAnimationLock[animationKey];
+                                                }
+                                            }, 3000);
+
+                                            await new Promise(resolve => setTimeout(resolve, 200));
+                                        } catch (error) {
+                                            console.warn(`[Ora] Error playing deactivation animation: ${error}`);
+                                            // Clear lock on error
+                                            if (window.oraAnimationLock && window.oraAnimationLock[animationKey]) {
+                                                delete window.oraAnimationLock[animationKey];
+                                            }
+                                        }
+                                    }
                                 }
                                 await applyTokenTransformation(token, effectData.transformation, false);
                                 console.log(`[Ora] Removed transformation for ${effectData.name}`);
