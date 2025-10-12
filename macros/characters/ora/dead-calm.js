@@ -55,7 +55,7 @@
                     spellName: "Dead Calm",
                     effectType: "preparation_dc",
                     appliedAt: "TIMESTAMP",
-                    increasable: true,
+                    increasable: false,
                     noEvasion: true // Ora ne peut pas esquiver
                 },
                 statuscounter: { value: 1 }
@@ -71,7 +71,7 @@
                 borderColor: "#4169e1",
                 bgColor: "#f0f8ff",
                 mechanicType: "preparation",
-                tags: ["increasable"],
+                tags: [],
                 detectFlags: [
                     { path: "name", matchValue: "Cast DC" },
                     { path: "flags.world.oraCaster", matchValue: "CASTER_ID" }
@@ -97,7 +97,7 @@
                     spellName: "Dead Calm",
                     effectType: "zone_control",
                     appliedAt: "TIMESTAMP",
-                    increasable: true,
+                    increasable: false,
                     controlRadius: 6
                 },
                 statuscounter: { value: 1 }
@@ -113,7 +113,7 @@
                 borderColor: "#8b0000",
                 bgColor: "#ffe4e1",
                 mechanicType: "zone_control",
-                tags: ["increasable"],
+                tags: [],
                 detectFlags: [
                     { path: "name", matchValue: "DC" },
                     { path: "flags.world.oraCaster", matchValue: "CASTER_ID" }
@@ -142,7 +142,7 @@
                     oraEyes: true,
                     effectType: "oraSuperior",
                     caster: "ORA_CASTER_ID",
-                    increasable: true
+                    increasable: false
                 },
                 damage: { value: 6 },
                 esprit: { value: 2 }
@@ -158,7 +158,7 @@
                 borderColor: "#dc143c",
                 bgColor: "#ffe4e1",
                 mechanicType: "enhancement",
-                tags: ["increasable"],
+                tags: [],
                 detectFlags: [
                     { path: "name", matchValue: "Ora Eyes - Supérieur" },
                     { path: "flags.world.caster", matchValue: "ORA_CASTER_ID" }
