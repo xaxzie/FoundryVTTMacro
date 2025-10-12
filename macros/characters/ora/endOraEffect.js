@@ -101,13 +101,6 @@
                 sequencerPatterns: ["dome_*"] // Pattern pour nettoyer les animations
             },
             mechanicType: "dome",
-            removeAnimation: {
-                file: "jb2a.impact.frost.blue.02",
-                scale: 1.0,
-                duration: 2500,
-                fadeOut: 1000,
-                tint: "#87ceeb"
-            },
             getExtraData: (effect) => ({
                 currentHP: effect.flags?.statuscounter?.value || 0,
                 maxHP: effect.flags?.world?.maxHP || 0

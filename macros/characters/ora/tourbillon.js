@@ -71,10 +71,10 @@
         animations: {
             cast: "jb2a.cast_generic.water.02.blue.0",
             vortex: "jb2a_patreon.whirlwind.blue",
-            iceDome: "jb2a.dome_of_force.blue",
+            iceDome: "animated-spell-effects.magic.shield.circle.01",
             impact: "jb2a.impact.water.02.blue.0",
             splash: "animated-spell-effects-cartoon.water.water splash.01",
-            iceImpact: "jb2a.impact.frost.blue.02",
+            iceImpact: "jb2a.impact_themed.ice_shard.blue",
 
             // Propriétés d'animation
             vortexDuration: 120000, // 2 minutes (120 secondes)
@@ -148,7 +148,7 @@
             },
             dome: {
                 name: "Dôme",
-                icon: "icons/magic/defensive/barrier-ice-crystal-wall-jagged-blue.webp",
+                icon: "icons/magic/water/barrier-ice-shield.webp",
                 description: "Enfermé dans un dôme de glace d'Ora - STATUS_COUNTER_VALUE PV",
                 duration: {
                     seconds: 84600 // Permanent jusqu'à suppression manuelle
@@ -690,7 +690,7 @@
                 // Animation du dôme de glace
                 let domeEffect = sequence.effect()
                     .file(SPELL_CONFIG.animations.iceDome)
-                    .scale(effectScale * 1.2) // Dômes légèrement plus grands
+                    .scale(effectScale * 0.5) // Dômes légèrement plus grands
                     .belowTokens() // Place l'effet sous les tokens
                     .duration(SPELL_CONFIG.animations.domeDuration)
                     .fadeOut(SPELL_CONFIG.animations.domeFadeOut)
@@ -775,8 +775,8 @@
     const levelBonus = 2 * SPELL_CONFIG.spellLevel;
     let combinedParts = [`${totalAttackDice}d7 + ${levelBonus}`];
 
-    if (currentStance !== 'offensif' && vortexTypeConfig.effectType !== "dome") {
-        // Ajouter les dés de dégâts si pas maximisé et si ce n'est pas un dôme
+    if (currentStance !== 'offensif') {
+        // Ajouter les dés de dégâts/PV si pas maximisé
         const statBonus = Math.floor((characteristicInfo.final * vortexTypeConfig.statMultiplier) + damageBonus);
 
         for (let i = 0; i < vortexTypeConfig.count; i++) {
