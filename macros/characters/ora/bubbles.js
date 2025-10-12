@@ -115,11 +115,8 @@
                 name: "Ora Ralentissement",
                 icon: "icons/magic/water/ice-snowflake.webp",
                 description: "Ralenti par la glace d'Ora",
-                duration: {
-                    rounds: null, // Permanent jusqu'à suppression manuelle
-                    seconds: null,
-                    startRound: null,
-                    startTime: null
+                duration: { // Permanent jusqu'à suppression manuelle
+                    seconds: 84600
                 },
                 flags: {
                     world: {
@@ -129,9 +126,7 @@
                         appliedAt: "TIMESTAMP" // Remplacé dynamiquement
                     },
                     statuscounter: {
-                        value: 1, // -1 case de vitesse
-                        max: 10,
-                        min: 0
+                        value: 1
                     }
                 },
                 changes: [],
@@ -157,13 +152,6 @@
                         const slowdown = effect.flags?.statuscounter?.value || 1;
                         const sourceSpell = effect.flags?.world?.spellName || "Bulles de glace";
                         return `Ralenti par ${sourceSpell} d'Ora (-${slowdown} case de vitesse)`;
-                    },
-                    removeAnimation: {
-                        file: "jb2a.ice_shards.burst.blue",
-                        scale: 0.6,
-                        duration: 1500,
-                        fadeOut: 500,
-                        tint: "#87ceeb"
                     }
                 }
             },
@@ -171,11 +159,8 @@
                 name: "Ora Faiblesse Électrique",
                 icon: "icons/magic/lightning/bolt-strike-blue.webp",
                 description: "Vulnérable aux dégâts électriques (+2 prochaine attaque électrique)",
-                duration: {
-                    rounds: null, // Permanent jusqu'à suppression ou utilisation
-                    seconds: null,
-                    startRound: null,
-                    startTime: null
+                duration: { // Permanent jusqu'à suppression manuelle
+                    seconds: 84600
                 },
                 flags: {
                     world: {
@@ -186,9 +171,7 @@
                         damageType: "electric"
                     },
                     statuscounter: {
-                        value: 2, // +2 dégâts électriques
-                        max: 10,
-                        min: 0
+                        value: 2
                     }
                 },
                 changes: [],
@@ -214,13 +197,6 @@
                         const bonus = effect.flags?.statuscounter?.value || 2;
                         const sourceSpell = effect.flags?.world?.spellName || "Bulles d'eau";
                         return `Vulnérable aux dégâts électriques par ${sourceSpell} d'Ora (+${bonus} prochaine attaque électrique)`;
-                    },
-                    removeAnimation: {
-                        file: "jb2a.electric_ball.blue",
-                        scale: 0.5,
-                        duration: 1200,
-                        fadeOut: 400,
-                        tint: "#0080ff"
                     }
                 }
             },
@@ -228,11 +204,8 @@
                 name: "Ora Faiblesse Feu",
                 icon: "icons/magic/fire/flame-burning-creature-orange.webp",
                 description: "Vulnérable aux dégâts de feu (+2 prochaine attaque de feu)",
-                duration: {
-                    rounds: null, // Permanent jusqu'à suppression ou utilisation
-                    seconds: null,
-                    startRound: null,
-                    startTime: null
+                duration: { // Permanent jusqu'à suppression manuelle
+                    seconds: 84600
                 },
                 flags: {
                     world: {
@@ -243,9 +216,7 @@
                         damageType: "fire"
                     },
                     statuscounter: {
-                        value: 2, // +2 dégâts de feu
-                        max: 10,
-                        min: 0
+                        value: 2
                     }
                 },
                 changes: [],
@@ -271,13 +242,6 @@
                         const bonus = effect.flags?.statuscounter?.value || 2;
                         const sourceSpell = effect.flags?.world?.spellName || "Bulles d'huile";
                         return `Vulnérable aux dégâts de feu par ${sourceSpell} d'Ora (+${bonus} prochaine attaque de feu)`;
-                    },
-                    removeAnimation: {
-                        file: "jb2a.fire_bolt.orange",
-                        scale: 0.4,
-                        duration: 1000,
-                        fadeOut: 300,
-                        tint: "#ff8c00"
                     }
                 }
             }
@@ -782,7 +746,6 @@
             .file(SPELL_CONFIG.animations.cast)
             .atLocation(caster)
             .scale(0.8)
-            .duration(3000);
 
         for (let i = 0; i < elementConfig.projectileCount; i++) {
             const targetIndex = Math.min(i, targets.length - 1);

@@ -75,7 +75,7 @@
             },
             mechanicType: "vortex",
             removeAnimation: {
-                file: "jb2a.water_splash.blue",
+                file: "animated-spell-effects-cartoon.water.water splash.01",
                 scale: 0.8,
                 duration: 2000,
                 fadeOut: 1000,
@@ -106,13 +106,6 @@
                 const slowdown = effect.flags?.statuscounter?.value || 1;
                 const sourceSpell = effect.flags?.world?.spellName || "Bulles de glace";
                 return `Ralenti par ${sourceSpell} d'Ora (-${slowdown} case de vitesse)`;
-            },
-            removeAnimation: {
-                file: "jb2a.ice_shards.burst.blue",
-                scale: 0.6,
-                duration: 1500,
-                fadeOut: 500,
-                tint: "#87ceeb"
             }
         },
 
@@ -139,13 +132,6 @@
                 const bonus = effect.flags?.statuscounter?.value || 2;
                 const sourceSpell = effect.flags?.world?.spellName || "Bulles d'eau";
                 return `Vulnérable aux dégâts électriques par ${sourceSpell} d'Ora (+${bonus} prochaine attaque électrique)`;
-            },
-            removeAnimation: {
-                file: "jb2a.electric_ball.blue",
-                scale: 0.5,
-                duration: 1200,
-                fadeOut: 400,
-                tint: "#0080ff"
             }
         },
 
@@ -172,13 +158,6 @@
                 const bonus = effect.flags?.statuscounter?.value || 2;
                 const sourceSpell = effect.flags?.world?.spellName || "Bulles d'huile";
                 return `Vulnérable aux dégâts de feu par ${sourceSpell} d'Ora (+${bonus} prochaine attaque de feu)`;
-            },
-            removeAnimation: {
-                file: "jb2a.fire_bolt.orange",
-                scale: 0.4,
-                duration: 1000,
-                fadeOut: 300,
-                tint: "#ff8c00"
             }
         }
 
@@ -858,24 +837,6 @@
         return sum + (Array.isArray(arr) ? arr.length : 0);
     }, 0) - removedEffects.failed.length;
 
-    // Animation de célébration si plusieurs effets supprimés
-    if (totalEffectsRemoved > 2) {
-        try {
-            const celebrationSeq = new Sequence();
-            celebrationSeq.effect()
-                .file("jb2a.water_splash.blue")
-                .atLocation(caster)
-                .scale(1.2)
-                .duration(2500)
-                .fadeOut(800)
-                .tint("#2196f3");
-
-            await celebrationSeq.play();
-            console.log(`[Ora] Played celebration animation for ${totalEffectsRemoved} effects removed`);
-        } catch (error) {
-            console.warn(`[Ora] Could not play celebration animation:`, error);
-        }
-    }
 
     // ===== RÉSULTATS ET FEEDBACK =====
     const totalRemoved = Object.values(removedEffects).reduce((sum, arr) => {
