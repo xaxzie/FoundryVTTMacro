@@ -231,7 +231,7 @@
     // ===== DAMAGE CALCULATION =====
     async function calculateDamage() {
         // Pour un sort direct, inclure les bonus d'effets actifs sur les dégâts
-        const activeEffectDamageBonus = SPELL_CONFIG.isDirect ? getActiveEffectBonus(actor, 'degats') : 0;
+        const activeEffectDamageBonus = SPELL_CONFIG.isDirect ? getActiveEffectBonus(actor, 'damage') : 0;
         const totalStatBonus = Math.floor(characteristicInfo.final * SPELL_CONFIG.damage.statMultiplier);
         const totalDamageBonus = damageBonus + activeEffectDamageBonus;
         const finalDamageBonus = totalStatBonus + totalDamageBonus;
@@ -299,7 +299,7 @@
 
     if (currentStance !== 'offensif') {
         // Ajouter les dés de dégâts si pas maximisé
-        const activeEffectDamageBonus = SPELL_CONFIG.isDirect ? getActiveEffectBonus(actor, 'degats') : 0;
+        const activeEffectDamageBonus = SPELL_CONFIG.isDirect ? getActiveEffectBonus(actor, 'damage') : 0;
         const totalStatBonus = Math.floor(characteristicInfo.final * SPELL_CONFIG.damage.statMultiplier);
         const finalDamageBonus = totalStatBonus + damageBonus + activeEffectDamageBonus;
 
