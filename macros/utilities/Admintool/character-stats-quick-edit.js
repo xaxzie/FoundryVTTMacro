@@ -1,23 +1,13 @@
 /**
- * Character Statistics Point-Based Setup Utility
+ * Character Statistics Quick Edit Utility
  *
- * Point-based character creation system following the new game rules:
- * - Base value: 2 in all characteristics (configurable)
- * - Point costs increase progressively:
- *   2→3: +1 point, 3→4: +1 point, 4→5: +2 points, 5→6: +2 points,
- *   6→7: +3 points, 7→8: +4 points, 8→9: +5 points, etc.
- * - Default: 20 points to distribute (configurable)
+ * Simplified version of the point-based character setup.
+ * Directly opens the configuration menu using existing character settings.
+ * All parameters (base, max, main stats count) are retrieved from the character.
  *
- * Based on the Custom RPG Game Rules:
- * - Physique (Physical Strength)
- * - Dextérité (Dexterity/Skill)
- * - Agilité (Agility/Speed/Reflexes)
- * - Esprit (Mind/Concentration)
- * - Sens (Senses/Perception)
- * - Volonté (Will/Determination)
- * - Charisme (Charisma/Social Understanding)
- *
- * Storage: Saves characteristics as individual attributes + pointTotal + pointInutilise
+ * Requirements:
+ * - Character must have been configured at least once with character-stats-point-setup.js
+ * - Uses existing baseValue, CharacMax, nombreDeStatsPrincipales from character attributes
  */
 
 (async () => {
@@ -46,11 +36,20 @@
         charisme: "Charisme (Charisma/Social Understanding)"
     };
 
+    // Retrieve all existing configuration from character
+    const baseValue = actor.system.attributes?.baseValue?.value || 2;
+    const maxLevel = actor.system.attributes?.CharacMax?.value || 7;
+    const mainStatsCount = actor.system.attributes?.nombreDeStatsPrincipales?.value || 0;
+    const totalPoints = actor.system.attributes?.pointTotal?.value || 20;
+
+    // Check if character has been configured before
+    if (!actor.system.attributes?.baseValue?.value) {
+        ui.notifications.warn("Ce personnage n'a pas encore été configuré! Utilisez d'abord 'character-stats-point-setup.js'");
+        return;
+    }
+
     /**
      * Calculate point cost for a characteristic value
-     * Formula: Base 2 is free, then progressive cost increases
-     * 2→3: +1, 3→4: +1, 4→5: +2, 5→6: +2, 6→7: +3, 7→8: +4, 8→9: +5, etc.
-     * Correct sequence: 0-1-1-2-2-3-4-5-6-7-8-9-10-...
      */
     function calculatePointCost(value, baseValue = 2) {
         if (value <= baseValue) return 0;
@@ -58,8 +57,7 @@
         let totalCost = 0;
 
         for (let level = baseValue + 1; level <= value; level++) {
-            // Calculate cost for this specific level
-            const levelFromBase = level - baseValue; // 1, 2, 3, 4, 5, 6, 7, 8, 9...
+            const levelFromBase = level - baseValue;
 
             let levelCost;
             if (levelFromBase <= 2) {
@@ -83,7 +81,7 @@
         if (currentValue < effectiveBase || currentValue >= maxLevel) return 0;
 
         const nextLevel = currentValue + 1;
-        const levelFromBase = nextLevel - effectiveBase; // 1, 2, 3, 4, 5, 6, 7, 8, 9...
+        const levelFromBase = nextLevel - effectiveBase;
 
         let nextLevelCost;
         if (levelFromBase <= 2) {
@@ -97,82 +95,8 @@
         return nextLevelCost;
     }
 
-    // Step 1: Ask for base value, maximum level and main stats count (with existing value detection)
-    const existingBaseValue = actor.system.attributes?.baseValue?.value || 2;
-    const existingMaxLevel = actor.system.attributes?.CharacMax?.value || 7;
-    const existingMainStatsCount = actor.system.attributes?.nombreDeStatsPrincipales?.value || 0;
-
-    const configResult = await new Promise((resolve) => {
-        new Dialog({
-            title: "Configuration - Valeurs de Base et Maximum",
-            content: `
-                <div style="padding: 10px;">
-                    <h3>Configuration des Paramètres</h3>
-                    <p><strong>Personnage:</strong> ${actor.name}</p>
-                    <hr>
-                    <div style="background: #f0f8ff; padding: 10px; margin: 10px 0; border-radius: 5px;">
-                        <h4>Valeurs Actuelles:</h4>
-                        <p><strong>Base actuelle:</strong> ${existingBaseValue}</p>
-                        <p><strong>Maximum actuel:</strong> ${existingMaxLevel}</p>
-                        <p><strong>Stats principales actuelles:</strong> ${existingMainStatsCount}</p>
-                    </div>
-
-                    <div style="margin: 15px 0;">
-                        <label><strong>Valeur de base:</strong></label>
-                        <input type="number" id="baseValue" value="${existingBaseValue}" min="1" max="10" style="width: 60px; margin-left: 10px;">
-                        <p style="font-size: 0.9em; color: #666; margin: 5px 0;"><em>Tous les personnages commencent avec cette valeur dans chaque stat</em></p>
-                    </div>
-
-                    <div style="margin: 15px 0;">
-                        <label><strong>Niveau maximum:</strong></label>
-                        <input type="number" id="maxLevel" value="${existingMaxLevel}" min="3" max="20" style="width: 60px; margin-left: 10px;">
-                        <p style="font-size: 0.9em; color: #666; margin: 5px 0;"><em>Valeur maximale qu'une caractéristique peut atteindre</em></p>
-                    </div>
-
-                    <div style="margin: 15px 0;">
-                        <label><strong>Nombre de stats principales:</strong></label>
-                        <input type="number" id="mainStatsCount" value="${existingMainStatsCount}" min="0" max="7" style="width: 60px; margin-left: 10px;">
-                        <p style="font-size: 0.9em; color: #666; margin: 5px 0;"><em>Nombre de caractéristiques qui auront +1 à leur base (gratuit)</em></p>
-                    </div>
-                </div>
-            `,
-            buttons: {
-                confirm: {
-                    label: "Continuer",
-                    callback: (html) => {
-                        const baseValue = parseInt(html.find('#baseValue').val()) || 2;
-                        const maxLevel = parseInt(html.find('#maxLevel').val()) || 7;
-                        const mainStatsCount = parseInt(html.find('#mainStatsCount').val()) || 0;
-
-                        if (maxLevel <= baseValue) {
-                            ui.notifications.error("Le niveau maximum doit être supérieur à la valeur de base!");
-                            return false; // Keep dialog open
-                        }
-
-                        if (mainStatsCount > 7) {
-                            ui.notifications.error("Impossible d'avoir plus de 7 stats principales!");
-                            return false; // Keep dialog open
-                        }
-
-                        resolve({ baseValue, maxLevel, mainStatsCount });
-                    }
-                },
-                cancel: {
-                    label: "Annuler",
-                    callback: () => resolve(null)
-                }
-            }
-        }, { width: 450 }).render(true);
-    });    if (configResult === null) {
-        ui.notifications.info("Configuration annulée.");
-        return;
-    }
-
-    const { baseValue, maxLevel, mainStatsCount } = configResult;
-
     /**
      * Helper function to get effective base value for a characteristic
-     * (base value + 1 if it's a main stat)
      */
     function getEffectiveBase(key, baseValue) {
         const isMainStat = actor.system.attributes?.[`Is${key.charAt(0).toUpperCase() + key.slice(1)}Statsprinciaple`]?.value || false;
@@ -181,7 +105,6 @@
 
     /**
      * Helper function to get minimum value for a characteristic
-     * (cannot go below existing configured value)
      */
     function getMinimumValue(key, baseValue) {
         const existingAttr = actor.system.attributes?.[key];
@@ -190,10 +113,9 @@
         return Math.max(effectiveBase, existingValue);
     }
 
-    // Step 2: Detect existing values and calculate current point usage
+    // Load existing values and main stats
     const currentStats = {};
     const currentMainStats = {};
-    let currentPointsUsed = 0;
 
     for (let key of Object.keys(characteristics)) {
         const existingAttr = actor.system.attributes?.[key];
@@ -203,59 +125,9 @@
 
         currentStats[key] = currentValue;
         currentMainStats[key] = isMainStat;
-        currentPointsUsed += calculatePointCost(currentValue, effectiveBase);
     }
 
-    // Step 3: Ask for total points available
-    const existingPointTotal = actor.system.attributes?.pointTotal?.value || null;
-    const suggestedTotal = existingPointTotal || (currentPointsUsed > 0 ? currentPointsUsed : 20);
-
-    const totalPointsResult = await new Promise((resolve) => {
-        new Dialog({
-            title: "Configuration - Points Totaux",
-            content: `
-                <div style="padding: 10px;">
-                    <h3>Configuration des Points Totaux</h3>
-                    <p><strong>Personnage:</strong> ${actor.name}</p>
-                    <hr>
-                    <div style="background: #f0f8ff; padding: 10px; margin: 10px 0; border-radius: 5px;">
-                        <h4>État Actuel:</h4>
-                        <p><strong>Valeur de base:</strong> ${baseValue} dans chaque caractéristique</p>
-                        <p><strong>Points actuellement utilisés:</strong> ${currentPointsUsed}</p>
-                        ${existingPointTotal ? `<p><strong>Total configuré précédemment:</strong> ${existingPointTotal}</p>` : ''}
-                    </div>
-                    <p>Combien de points au total ce personnage devrait-il avoir ?</p>
-                    <div style="margin: 10px 0;">
-                        <label><strong>Points totaux:</strong></label>
-                        <input type="number" id="totalPoints" value="${suggestedTotal}" min="0" max="200" style="width: 80px; margin-left: 10px;">
-                    </div>
-                    <p><em>Cette valeur sera sauvegardée dans l'attribut "pointTotal"</em></p>
-                </div>
-            `,
-            buttons: {
-                confirm: {
-                    label: "Continuer",
-                    callback: (html) => {
-                        const totalPoints = parseInt(html.find('#totalPoints').val()) || 20;
-                        resolve(totalPoints);
-                    }
-                },
-                cancel: {
-                    label: "Annuler",
-                    callback: () => resolve(null)
-                }
-            }
-        }, { width: 500 }).render(true);
-    });
-
-    if (totalPointsResult === null) {
-        ui.notifications.info("Configuration annulée.");
-        return;
-    }
-
-    const totalPoints = totalPointsResult;
-
-    // Step 4 & 5: Interactive stat modification menu
+    // Open the interactive configuration menu directly
     const finalResult = await new Promise((resolve) => {
         let workingStats = { ...currentStats };
         let workingMainStats = { ...currentMainStats };
@@ -297,12 +169,12 @@
                 html.find(`#inc-${key}`).prop('disabled', !canIncrease);
                 html.find(`#dec-${key}`).prop('disabled', !canDecrease);
 
-                // Update checkbox state (disable if over limit or if already selected as main stat)
+                // Update checkbox state
                 const existingMainStat = currentMainStats[key];
                 const canToggleMain = selectedMainStats < mainStatsCount || isMainStat || existingMainStat;
                 html.find(`#main-${key}`).prop('disabled', !canToggleMain && !existingMainStat);
 
-                // Update button tooltips
+                // Update tooltips
                 let tooltip = '';
                 if (value >= maxLevel) {
                     tooltip = `Maximum atteint (${maxLevel})`;
@@ -315,7 +187,6 @@
                 }
                 html.find(`#inc-${key}`).attr('title', tooltip);
 
-                // Update decrease tooltip
                 let decreaseTooltip = '';
                 if (value <= minimumValue) {
                     decreaseTooltip = 'Valeur minimum atteinte';
@@ -332,7 +203,7 @@
             html.find('#main-stats-used').text(selectedMainStats);
             html.find('#main-stats-available').text(mainStatsCount - selectedMainStats);
 
-            // Update total display color
+            // Update colors
             const pointsDisplay = html.find('#points-summary');
             if (remainingPoints < 0) {
                 pointsDisplay.css('color', '#cc0000');
@@ -342,7 +213,6 @@
                 pointsDisplay.css('color', '#333333');
             }
 
-            // Update main stats display color
             const mainStatsDisplay = html.find('#main-stats-summary');
             if (selectedMainStats > mainStatsCount) {
                 mainStatsDisplay.css('color', '#cc0000');
@@ -355,8 +225,9 @@
 
         const content = `
             <div style="padding: 10px; max-height: 700px; overflow-y: auto;">
-                <h3>Répartition des Caractéristiques</h3>
+                <h3>🚀 Édition Rapide des Caractéristiques</h3>
                 <p><strong>Personnage:</strong> ${actor.name}</p>
+                <p style="font-size: 0.9em; color: #666;"><em>Configuration actuelle récupérée automatiquement</em></p>
                 <hr>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 10px 0;">
@@ -406,24 +277,24 @@
 
                 <hr>
                 <div style="background: #fff8dc; padding: 10px; border-radius: 5px; margin: 10px 0;">
-                    <h4>Explications</h4>
+                    <h4>Configuration Actuelle</h4>
                     <p style="font-size: 0.9em; margin: 5px 0;">
+                        <strong>Base:</strong> ${baseValue} | <strong>Maximum:</strong> ${maxLevel} | <strong>Stats Principales:</strong> ${mainStatsCount}<br>
                         <strong>Stats Principales:</strong> Augmentent la base de +1 gratuitement<br>
-                        <strong>Coûts par niveau:</strong> Base gratuit | +1: 1pt | +2: 1pt | +3: 2pts | +4: 2pts | +5: 3pts | +6: 4pts...<br>
-                        <strong>Maximum:</strong> ${maxLevel} | <strong>Base standard:</strong> ${baseValue}
+                        <strong>Coûts:</strong> Base gratuit | +1: 1pt | +2: 1pt | +3: 2pts | +4: 2pts | +5: 3pts | +6: 4pts...
                     </p>
                 </div>
             </div>
         `;
 
         const dialog = new Dialog({
-            title: "Configuration des Caractéristiques",
+            title: "🚀 Édition Rapide - Caractéristiques",
             content: content,
             buttons: {
                 save: {
                     label: "💾 Sauvegarder",
                     callback: (html) => {
-                        // Check if we have too many main stats selected
+                        // Validation des stats principales
                         let selectedMainStats = 0;
                         const finalMainStats = {};
 
@@ -435,10 +306,10 @@
 
                         if (selectedMainStats > mainStatsCount) {
                             ui.notifications.error(`Trop de stats principales sélectionnées! Maximum: ${mainStatsCount}`);
-                            return false; // Keep dialog open
+                            return false;
                         }
 
-                        // Calculate final used points with effective bases
+                        // Calcul final des points
                         const finalUsedPoints = Object.keys(characteristics)
                             .reduce((total, key) => {
                                 const isMainStat = finalMainStats[key];
@@ -459,14 +330,14 @@
                     }
                 },
                 reset: {
-                    label: "🔄 Reset",
+                    label: "🔄 Reset vers Base",
                     callback: (html) => {
-                        // Reset all stats to base value
                         for (let key of Object.keys(characteristics)) {
-                            workingStats[key] = baseValue;
+                            const effectiveBase = getEffectiveBase(key, baseValue);
+                            workingStats[key] = effectiveBase;
                         }
                         updateDialog(html);
-                        return false; // Keep dialog open
+                        return false;
                     }
                 },
                 cancel: {
@@ -475,14 +346,14 @@
                 }
             },
             render: (html) => {
-                // Bind increment/decrement buttons
+                // Bind event handlers
                 for (let key of Object.keys(characteristics)) {
+                    // Increment button
                     html.find(`#inc-${key}`).click(() => {
                         const isMainStat = html.find(`#main-${key}`).prop('checked');
                         const effectiveBase = baseValue + (isMainStat ? 1 : 0);
                         const nextCost = getNextLevelCost(workingStats[key], effectiveBase, maxLevel);
 
-                        // Calculate total used points with current main stat selections
                         const currentUsed = Object.keys(characteristics)
                             .reduce((total, k) => {
                                 const kIsMainStat = html.find(`#main-${k}`).prop('checked');
@@ -496,6 +367,7 @@
                         }
                     });
 
+                    // Decrement button
                     html.find(`#dec-${key}`).click(() => {
                         const minimumValue = getMinimumValue(key, baseValue);
                         if (workingStats[key] > minimumValue) {
@@ -504,12 +376,11 @@
                         }
                     });
 
-                    // Bind main stat checkboxes
+                    // Main stat checkbox
                     html.find(`#main-${key}`).change(() => {
                         const isMainStat = html.find(`#main-${key}`).prop('checked');
                         const effectiveBase = baseValue + (isMainStat ? 1 : 0);
 
-                        // Ensure value is at least the effective base
                         if (workingStats[key] < effectiveBase) {
                             workingStats[key] = effectiveBase;
                         }
@@ -530,9 +401,9 @@
         dialog.render(true);
     });
 
-    // Handle final result
+    // Handle result and save
     if (!finalResult) {
-        ui.notifications.info("Configuration annulée.");
+        ui.notifications.info("Édition annulée.");
         return;
     }
 
@@ -550,39 +421,11 @@
             };
         }
 
-        // Save point tracking attributes
-        updateData['system.attributes.pointTotal'] = {
-            value: finalResult.totalPoints,
-            max: "",
-            label: "Points Totaux Alloués",
-            dtype: "Number"
-        };
-
+        // Update point tracking
         updateData['system.attributes.pointInutilise'] = {
             value: finalResult.unusedPoints,
             max: "",
             label: "Points Non Utilisés",
-            dtype: "Number"
-        };
-
-        updateData['system.attributes.baseValue'] = {
-            value: finalResult.baseValue,
-            max: "",
-            label: "Valeur de Base des Stats",
-            dtype: "Number"
-        };
-
-        updateData['system.attributes.CharacMax'] = {
-            value: maxLevel,
-            max: "",
-            label: "Niveau Maximum des Caractéristiques",
-            dtype: "Number"
-        };
-
-        updateData['system.attributes.nombreDeStatsPrincipales'] = {
-            value: finalResult.mainStatsCount,
-            max: "",
-            label: "Nombre de Stats Principales Autorisées",
             dtype: "Number"
         };
 
@@ -609,20 +452,19 @@
             return `${label.split('(')[0].trim()}: ${value}${mainIndicator} (${cost} pts)`;
         }).join('<br>');
 
-        const mainStatsCount = Object.values(finalResult.mainStats).filter(Boolean).length;
         const mainStatsNames = Object.entries(finalResult.mainStats)
             .filter(([key, isMain]) => isMain)
             .map(([key, isMain]) => characteristics[key].split('(')[0].trim())
             .join(', ');
 
         const successMessage = `
-            <div style="background: #f0f8ff; padding: 15px; border-radius: 5px;">
-                <h3>✅ Configuration Sauvegardée!</h3>
+            <div style="background: #f0fff0; padding: 15px; border-radius: 5px; border-left: 4px solid #28a745;">
+                <h3>🚀 Édition Rapide Terminée!</h3>
                 <p><strong>Personnage:</strong> ${actor.name}</p>
                 <hr>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                     <div>
-                        <h4>Caractéristiques:</h4>
+                        <h4>Caractéristiques Mises à Jour:</h4>
                         <div style="font-family: monospace; font-size: 0.9em;">
                             ${statsSummary}
                         </div>
@@ -630,18 +472,11 @@
                     </div>
                     <div>
                         <h4>Résumé:</h4>
-                        <p><strong>Total alloué:</strong> ${finalResult.totalPoints}</p>
-                        <p><strong>Points utilisés:</strong> ${finalResult.totalPoints - finalResult.unusedPoints}</p>
+                        <p><strong>Points utilisés:</strong> ${finalResult.totalPoints - finalResult.unusedPoints} / ${finalResult.totalPoints}</p>
                         <p><strong>Points restants:</strong> ${finalResult.unusedPoints}</p>
-                        <p><strong>Valeur de base:</strong> ${finalResult.baseValue}</p>
-                        <p><strong>Niveau maximum:</strong> ${maxLevel}</p>
-                        <hr>
-                        <h4>Stats Principales (${mainStatsCount}/${finalResult.mainStatsCount}):</h4>
-                        <p style="font-size: 0.9em;">${mainStatsNames || 'Aucune'}</p>
+                        <p><strong>Stats principales:</strong> ${mainStatsNames || 'Aucune'}</p>
                     </div>
                 </div>
-                <hr>
-                <p><em>Les caractéristiques sont accessibles via les attributs du personnage et peuvent être modifiées depuis la fiche de personnage.</em></p>
             </div>
         `;
 
@@ -652,7 +487,7 @@
             type: CONST.CHAT_MESSAGE_TYPES.OTHER
         });
 
-        ui.notifications.info(`Configuration sauvegardée pour ${actor.name}!`);
+        ui.notifications.info(`✅ Caractéristiques mises à jour pour ${actor.name}!`);
 
     } catch (error) {
         console.error("Erreur lors de la sauvegarde:", error);
