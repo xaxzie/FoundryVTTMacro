@@ -372,6 +372,110 @@ new Sequence()
    - FoundryVTT syntax highlighting
 3. **Git workflow** for version control
 
+### FXMaster Integration
+
+**FXMaster API Documentation:**
+
+FXMaster provides two main types of effects:
+
+1. **Particle Effects** (weather, ambient effects)
+2. **Filter Effects** (visual filters, overlays)
+
+**Particle Effects API:**
+
+```javascript
+// Enable particle effects using hooks
+Hooks.call("fxmaster.updateParticleEffects", [
+  {
+    type: "rain",
+    options: {
+      scale: 1,
+      direction: 75,
+      speed: 1,
+      lifetime: 1,
+      density: 0.5,
+      alpha: 1,
+      tint: { apply: false, value: "#ffffff" },
+    },
+  },
+]);
+```
+
+**Filter Effects API:**
+
+```javascript
+// Apply visual filters
+FXMASTER.filters.setFilters([
+  {
+    type: "fog",
+    options: {
+      dimensions: 1,
+      speed: 1,
+      density: 0.2,
+      color: { apply: false, value: "#000000" },
+    },
+  },
+]);
+```
+
+**Available Particle Effects:**
+
+- `rain`, `snow`, `fog`, `clouds`, `embers`, `bubbles`, `stars`
+- `crows`, `bats`, `spiders`, `birds`, `eagles`, `rats`
+- `leaves`, `snowstorm`, `rainsimple`, `raintop`
+
+**Available Filter Effects:**
+
+- `lightning`, `underwater`, `predator`, `color`, `bloom`, `oldfilm`
+
+**Common Options:**
+
+- `scale`: Size multiplier (number)
+- `direction`: Direction in degrees (number)
+- `speed`: Speed multiplier (number)
+- `lifetime`: Particle lifetime multiplier (number)
+- `density`: Particle density (number)
+- `alpha`: Opacity 0-1 (number)
+- `tint`: Color tint `{apply: boolean, value: "#hexcolor"}`
+
+**Toggle Pattern:**
+
+```javascript
+// Check current state via scene flags
+const currentEffects = canvas.scene.getFlag("fxmaster", "effects") || {};
+const hasEffects = Object.keys(currentEffects).length > 0;
+
+// Apply effects
+await Hooks.call("fxmaster.updateParticleEffects", [particleConfig]);
+await FXMASTER.filters.setFilters([filterConfig]);
+
+// Clear effects (validated methods for FXMaster v6.0+ FoundryVTT v13)
+await canvas.scene.unsetFlag("fxmaster", "effects"); // ✅ Clears particles
+await FXMASTER.filters.setFilters([]); // ✅ Clears filters
+```
+
+**Validated Methods for FXMaster v6.0+ (FoundryVTT v13):**
+
+✅ **Particle Effects:**
+
+- **Apply:** `Hooks.call('fxmaster.updateParticleEffects', [config])`
+- **Clear:** `canvas.scene.unsetFlag("fxmaster", "effects")`
+
+✅ **Filter Effects:**
+
+- **Apply:** `FXMASTER.filters.setFilters([config])`
+- **Clear:** `FXMASTER.filters.setFilters([])` (empty array)
+
+❌ **Methods that DON'T work reliably:**
+
+- `Hooks.call('fxmaster.updateParticleEffects', [])` for clearing particles
+- Multiple fallback methods - stick to the validated ones above
+
+**State Detection:**
+
+- FXMaster stores effects in `canvas.scene.getFlag("fxmaster", "effects")`
+- Check `Object.keys(effects).length > 0` for active effects
+
 ### Development Workflow
 
 1. **Create feature branch**: `git checkout -b feature/new-spell`
@@ -402,6 +506,7 @@ new Sequence()
 - [Official Sequencer Wiki](https://fantasycomputer.works/FoundryVTT-Sequencer)
 - [Portal Documentation](https://wiki.theripper93.com/free/portal-lib)
 - [Carousel Combat Track](https://wiki.theripper93.com/free/combat-tracker-dock)
+- [FXMaster Official Repository](https://github.com/gambit07/fxmaster) - Weather and visual effects
 
 **Internal References:**
 

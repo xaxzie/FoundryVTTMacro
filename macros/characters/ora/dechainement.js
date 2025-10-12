@@ -30,7 +30,7 @@
         animations: {
             cast: "jb2a.cast_generic.water.02.blue.0",
             projectile: "jb2a.ray_of_frost.blue",
-            impact: "jb2a.explosion.04.blue",
+            impact: "jb2a.particles.002.001.complete.many.blue",
             sound: null
         },
         targeting: {
