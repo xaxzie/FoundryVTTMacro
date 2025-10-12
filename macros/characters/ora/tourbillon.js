@@ -182,6 +182,16 @@
                         </div>
                     </div>
 
+                    <div style="margin: 10px 0; border: 1px solid #ccc; padding: 10px; background: #f0f8ff;">
+                        <h4>Échelle d'Animation</h4>
+                        <div style="margin: 5px 0;">
+                            <label>Échelle par défaut des tourbillons :
+                                <input type="number" id="defaultScale" value="0.5" min="0.1" max="2.0" step="0.1" style="width: 60px;">
+                            </label>
+                            <small style="display: block; margin-left: 20px;">Taille de base des tourbillons (0.1 à 2.0)</small>
+                        </div>
+                    </div>
+
                     <p>${damageInfo}</p>
                     <p><strong>Jet d'attaque :</strong> <span id="finalAttack">${characteristicInfo.final}d7 + ${2 * SPELL_CONFIG.spellLevel}</span></p>
 
@@ -201,7 +211,8 @@
                             const vortexType = html.find('input[name="vortexType"]:checked').val();
                             const damageBonus = parseInt(html.find('#damageBonus').val()) || 0;
                             const attackBonus = parseInt(html.find('#attackBonus').val()) || 0;
-                            resolve({ vortexType, damageBonus, attackBonus });
+                            const defaultScale = parseFloat(html.find('#defaultScale').val()) || 0.5;
+                            resolve({ vortexType, damageBonus, attackBonus, defaultScale });
                         }
                     },
                     cancel: {
@@ -215,7 +226,7 @@
 
     const spellConfig = await showSpellConfigDialog();
     if (!spellConfig) return;
-    const { vortexType, damageBonus, attackBonus } = spellConfig;
+    const { vortexType, damageBonus, attackBonus, defaultScale } = spellConfig;
     const vortexTypeConfig = SPELL_CONFIG.vortexTypes[vortexType];
 
     // ===== TARGETING via Portal =====
@@ -389,10 +400,10 @@
             if (targetToken) {
                 const tokenSize = Math.max(targetToken.document.width, targetToken.document.height) * 0.5;
                 vortexScale = (tokenSize * SPELL_CONFIG.scaling.tokenSizeMultiplier) *
-                             (vortexType === 'divided' ? SPELL_CONFIG.scaling.dividedReduction : 1.0);
+                    (vortexType === 'divided' ? SPELL_CONFIG.scaling.dividedReduction : 1.0);
             } else {
-                vortexScale = SPELL_CONFIG.scaling.defaultScale *
-                             (vortexType === 'divided' ? SPELL_CONFIG.scaling.dividedReduction : 1.0);
+                vortexScale = defaultScale *
+                    (vortexType === 'divided' ? SPELL_CONFIG.scaling.dividedReduction : 1.0);
             }
 
             // Effet de tourbillon principal - PERSISTANT
