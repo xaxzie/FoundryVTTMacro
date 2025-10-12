@@ -49,22 +49,47 @@
                 tint: "#D2691E", // Marron clair
                 effectType: "Ora Faiblesse Feu",
                 chatMessage: "🌧️🔥 Une pluie d'huile visqueuse commence à tomber sur le terrain..."
+            },
+            snow: {
+                name: "Neige",
+                description: "Chute de neige - Applique Ralentissement sur tous les tokens",
+                color: "#87ceeb",
+                tint: "#ffffff", // Neige blanche
+                effectType: "Ora Ralentissement",
+                chatMessage: "🌨️❄️ Des flocons de neige commencent à tomber sur le terrain..."
             }
         },
 
         // Configuration FXMaster pour la pluie
         fxmasterConfig: {
-            type: "rainsimple",
-            baseOptions: {
-                scale: 1,
-                direction: 75,
-                speed: 1,
-                lifetime: 1,
-                density: 0.5,
-                alpha: 1,
-                tint: {
-                    apply: true,
-                    value: "#ffffff" // Sera remplacé selon le type
+            rain: {
+                type: "rainsimple",
+                baseOptions: {
+                    scale: 1,
+                    direction: 75,
+                    speed: 1,
+                    lifetime: 1,
+                    density: 0.5,
+                    alpha: 1,
+                    tint: {
+                        apply: true,
+                        value: "#ffffff" // Sera remplacé selon le type
+                    }
+                }
+            },
+            snow: {
+                type: "snow",
+                baseOptions: {
+                    scale: 1,
+                    direction: 85,
+                    speed: 0.5,
+                    lifetime: 2,
+                    density: 0.3,
+                    alpha: 0.9,
+                    tint: {
+                        apply: true,
+                        value: "#ffffff"
+                    }
                 }
             }
         },
@@ -106,6 +131,23 @@
                 },
                 changes: [],
                 tint: "#ff8c00"
+            },
+            "Ora Ralentissement": {
+                name: "Ora Ralentissement",
+                icon: "icons/magic/water/snowflake-ice-snow-white.webp",
+                description: "Ralenti par la neige d'Ora",
+                duration: { seconds: 84600 },
+                flags: {
+                    world: {
+                        oraCaster: "CASTER_ID",
+                        spellName: "Pluie de Neige",
+                        effectType: "slowdown",
+                        appliedAt: "TIMESTAMP"
+                    },
+                    statuscounter: { value: 1 }
+                },
+                changes: [],
+                tint: "#87ceeb"
             }
         }
     };
@@ -125,8 +167,8 @@
     // ===== VALIDATION DE FXMASTER =====
     function isFXMasterAvailable() {
         return typeof FXMASTER !== 'undefined' &&
-               FXMASTER.filters &&
-               typeof Hooks !== 'undefined';
+            FXMASTER.filters &&
+            typeof Hooks !== 'undefined';
     }
 
     if (!isFXMasterAvailable()) {
@@ -159,12 +201,13 @@
         // Vérifier si une pluie d'Ora est active
         const rainFlag = canvas.scene.getFlag("world", "oraRainActive");
         const fxmasterEffects = canvas.scene.getFlag("fxmaster", "effects") || {};
-        const hasFXMasterRain = Object.keys(fxmasterEffects).some(key =>
-            fxmasterEffects[key]?.type === "rainsimple"
-        );
+        const hasFXMasterWeather = Object.keys(fxmasterEffects).some(key => {
+            const effectType = fxmasterEffects[key]?.type;
+            return effectType === "rainsimple" || effectType === "snow";
+        });
 
         return {
-            isActive: !!(rainFlag || hasFXMasterRain),
+            isActive: !!(rainFlag || hasFXMasterWeather),
             type: rainFlag?.type || null,
             config: rainFlag || null
         };
@@ -231,9 +274,16 @@
                 throw new Error(`Invalid rain type: ${rainType}`);
             }
 
-            // 1. Configuration FXMaster avec la teinte appropriée
+            // 1. Configuration FXMaster avec la teinte appropriée selon le type
+            let fxMasterConfig;
+            if (rainType === 'snow') {
+                fxMasterConfig = SPELL_CONFIG.fxmasterConfig.snow;
+            } else {
+                fxMasterConfig = SPELL_CONFIG.fxmasterConfig.rain;
+            }
+
             const fxConfig = {
-                ...SPELL_CONFIG.fxmasterConfig.baseOptions,
+                ...fxMasterConfig.baseOptions,
                 tint: {
                     apply: true,
                     value: rainConfig.tint
@@ -241,7 +291,7 @@
             };
 
             const rainParticles = {
-                type: SPELL_CONFIG.fxmasterConfig.type,
+                type: fxMasterConfig.type,
                 options: fxConfig
             };
 
@@ -362,19 +412,19 @@
                 : `<strong>Coût :</strong> ${SPELL_CONFIG.manaCost} mana`;
 
             new Dialog({
-                title: "🌧️ Sort de Pluie d'Ora",
+                title: "�️ Sort Météorologique d'Ora",
                 content: `
                     <div style="padding: 15px;">
-                        <h3 style="margin: 0 0 15px 0; color: #2196f3;">🌧️ Pluie Élémentaire</h3>
+                        <h3 style="margin: 0 0 15px 0; color: #2196f3;">�️ Effet Météorologique</h3>
                         <p>${manaCostInfo}</p>
                         <p><strong>Zone :</strong> Toute la scène</p>
-                        <p><strong>Effet :</strong> Applique automatiquement des faiblesses élémentaires sur tous les tokens</p>
+                        <p><strong>Effet :</strong> Applique automatiquement des effets élémentaires sur tous les tokens</p>
 
-                        <h4 style="margin: 15px 0 10px 0;">Type de pluie :</h4>
+                        <h4 style="margin: 15px 0 10px 0;">Type d'effet météorologique :</h4>
                         ${rainOptions}
 
                         <div style="margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 4px; font-size: 0.9em;">
-                            <strong>💡 Note :</strong> La pluie remplacera automatiquement tous les anciens effets d'Ora
+                            <strong>💡 Note :</strong> L'effet météorologique remplacera automatiquement tous les anciens effets d'Ora
                             (Faiblesse Feu, Faiblesse Électrique, Ralentissement) sur tous les tokens de la scène.
                         </div>
                     </div>
@@ -382,7 +432,7 @@
                 buttons: {
                     cast: {
                         icon: '<i class="fas fa-cloud-rain"></i>',
-                        label: '🌧️ Faire Pleuvoir',
+                        label: '�️ Déclencher l\'Effet',
                         callback: (html) => {
                             const rainType = html.find('input[name="rainType"]:checked').val();
                             resolve({ rainType });
@@ -405,13 +455,15 @@
         return new Promise((resolve) => {
             const rainConfig = SPELL_CONFIG.rainTypes[currentRain.type];
             const rainName = rainConfig ? rainConfig.name : currentRain.type;
+            const weatherType = currentRain.type === 'snow' ? 'Neige' : 'Pluie';
+            const weatherIcon = currentRain.type === 'snow' ? '🌨️' : '🌧️';
 
             new Dialog({
-                title: "🌧️ Gestion de la Pluie Active",
+                title: "�️ Gestion de l'Effet Météorologique Actif",
                 content: `
                     <div style="padding: 15px; text-align: center;">
-                        <h3 style="margin: 0 0 15px 0; color: #2196f3;">🌧️ Pluie de ${rainName} Active</h3>
-                        <p style="margin-bottom: 20px;">Une pluie de <strong>${rainName}</strong> tombe actuellement sur la scène.</p>
+                        <h3 style="margin: 0 0 15px 0; color: #2196f3;">${weatherIcon} ${weatherType} de ${rainName} Active</h3>
+                        <p style="margin-bottom: 20px;">Un effet de <strong>${rainName}</strong> est actuellement actif sur la scène.</p>
 
                         <div style="margin: 15px 0; padding: 10px; background: #f0f8ff; border-radius: 4px;">
                             <p><strong>Que voulez-vous faire ?</strong></p>
@@ -421,7 +473,7 @@
                 buttons: {
                     stop: {
                         icon: '<i class="fas fa-sun"></i>',
-                        label: '☀️ Arrêter la Pluie',
+                        label: '☀️ Arrêter l\'Effet Météorologique',
                         callback: () => resolve({ action: 'stop' })
                     },
                     reapply: {
@@ -454,7 +506,8 @@
             // Arrêter la pluie
             const result = await stopRain();
             if (result.success) {
-                ui.notifications.info("☀️ La pluie s'arrête...");
+                const weatherType = currentRain.config?.type === 'snow' ? 'neige' : 'pluie';
+                ui.notifications.info(`☀️ L'effet météorologique s'arrête...`);
 
                 // Message dans le chat
                 const rainTypeName = currentRain.config?.type ?
@@ -464,21 +517,21 @@
                     speaker: ChatMessage.getSpeaker({ token: caster }),
                     content: `
                         <div style="text-align: center; padding: 10px; background: linear-gradient(135deg, #fff3e0, #ffffff); border-radius: 8px; border: 2px solid #ff6f00;">
-                            <h3 style="margin: 0; color: #e65100;">☀️ Fin de la Pluie</h3>
+                            <h3 style="margin: 0; color: #e65100;">☀️ Fin de l'Effet Météorologique</h3>
                             <p style="margin: 5px 0;"><strong>Lanceur:</strong> ${actor.name}</p>
-                            <p style="margin: 5px 0;">La pluie de ${rainTypeName} s'arrête. Les effets élémentaires persistent sur les cibles touchées.</p>
+                            <p style="margin: 5px 0;">L'effet météorologique de ${rainTypeName} s'arrête. Les effets élémentaires persistent sur les cibles touchées.</p>
                         </div>
                     `,
                     rollMode: game.settings.get('core', 'rollMode')
                 });
             } else {
-                ui.notifications.error("⚠️ Erreur lors de l'arrêt de la pluie.");
+                ui.notifications.error("⚠️ Erreur lors de l'arrêt de l'effet météorologique.");
             }
 
         } else if (management.action === 'reapply') {
             // Réappliquer les effets sans message
             const appliedCount = await applyRainEffects(currentRain.config.type);
-            ui.notifications.info(`🔄 Effets de pluie réappliqués sur ${appliedCount} tokens.`);
+            ui.notifications.info(`🔄 Effets météorologiques réappliqués sur ${appliedCount} tokens.`);
         }
 
     } else {
@@ -492,7 +545,7 @@
         // Démarrer la pluie
         const rainResult = await startRain(rainType);
         if (!rainResult.success) {
-            ui.notifications.error("⚠️ Erreur lors du démarrage de la pluie.");
+            ui.notifications.error("⚠️ Erreur lors du démarrage de l'effet météorologique.");
             return;
         }
 
@@ -500,14 +553,16 @@
         const appliedCount = await applyRainEffects(rainType);
 
         // Message de réussite
-        ui.notifications.info(`🌧️ Pluie de ${rainConfig.name} commencée ! Effets appliqués sur ${appliedCount} tokens.`);
+        const weatherType = rainType === 'snow' ? 'Neige' : 'Pluie';
+        const weatherIcon = rainType === 'snow' ? '🌨️' : '🌧️';
+        ui.notifications.info(`${weatherIcon} ${weatherType} de ${rainConfig.name} commencée ! Effets appliqués sur ${appliedCount} tokens.`);
 
         // Message dans le chat
         ChatMessage.create({
             speaker: ChatMessage.getSpeaker({ token: caster }),
             content: `
                 <div style="text-align: center; padding: 12px; background: linear-gradient(135deg, #e3f2fd, #ffffff); border-radius: 8px; border: 2px solid ${rainConfig.color}; margin: 8px 0;">
-                    <h3 style="margin: 0; color: #1976d2;">🌧️ Sort de Pluie</h3>
+                    <h3 style="margin: 0; color: #1976d2;">${weatherIcon} Sort Météorologique</h3>
                     <div style="margin: 5px 0;">
                         <strong>Lanceur:</strong> ${actor.name} | <strong>Coût:</strong> ${SPELL_CONFIG.manaCost} mana
                         ${currentStance === 'focus' ? ' <em>(gratuit en Focus)</em>' : ''}
