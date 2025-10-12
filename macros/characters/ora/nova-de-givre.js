@@ -174,7 +174,7 @@
                         const manaCost = calculateManaCost(SPELL_CONFIG.baseMana, turns, currentStance, SPELL_CONFIG.isFocusable);
                         const manaCostDisplay = manaCost === 0 ? 'GRATUIT (Focus)' : `${manaCost} mana`;
                         const damageBonus = Math.floor(characteristicInfo.final / 2) * turns;
-                        
+
                         const calcHtml = `
                             <strong>Coût:</strong> ${SPELL_CONFIG.baseMana} × ${turns} = ${manaCostDisplay}<br>
                             <strong>Zone:</strong> ${turns} case${turns > 1 ? 's' : ''} de rayon<br>
@@ -295,7 +295,7 @@
     async function calculateDamage() {
         // Nova de Givre ne bénéficie d'aucun bonus d'effet actif
         const spiritBonus = Math.floor(characteristicInfo.final / 2) * immobilityTurns;
-        
+
         let damageFormula = `${SPELL_CONFIG.damageFormula} + ${spiritBonus}`;
 
         // Stance offensive : maximiser les dégâts
