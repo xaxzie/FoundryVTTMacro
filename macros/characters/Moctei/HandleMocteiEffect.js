@@ -89,12 +89,13 @@
             hasAnimation: true,
             manaCost: "2 (focusable) + 1/usage en vol vertical",
             animation: {
-                effectFile: "animated-spell-effects.misc.wings.rectangle",
+                effectFile: "animated-spell-effects.misc.bat.loop.square",
                 persistent: true,
                 scale: 0.4,
-                opacity: 0.6,
+                opacity: 0.9,
                 sequencerName: "MocteiSuperiorWings",
-                tint: "#010101" // Tinte noire
+                tint: "#010101", // Tinte noire
+                offsetY: -0.3 // Position 0.3 grid units higher
             }
         },
         "Substitution d'ombre": {
@@ -390,10 +391,16 @@
                     await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure cleanup
                 }
 
+                // Calculate offset if specified
+                const offsetPixels = animConfig.offsetY !== undefined ? animConfig.offsetY * canvas.grid.size : 0;
+                if (offsetPixels !== 0) {
+                    console.log(`[Moctei] Applying Y offset of ${offsetPixels} pixels to ${animConfig.sequencerName}`);
+                }
+
                 const seq = new Sequence();
                 const effect = seq.effect()
                     .file(animConfig.effectFile)
-                    .attachTo(token)
+                    .attachTo(token, { offset: { y: offsetPixels }, bindAlpha: false })
                     .scale(animConfig.scale || 0.8)
                     .persist()
                     .name(animConfig.sequencerName);
