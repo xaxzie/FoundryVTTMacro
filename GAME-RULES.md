@@ -157,6 +157,33 @@ Each character has seven primary statistics that govern their abilities:
 
 ### Character Creation Stats
 
+#### **Point-Based System (New Rule)**
+
+- **Base Values**: 2 points in each characteristic (configurable, default: 2)
+- **Point Pool**: 20 points to distribute (configurable based on campaign needs)
+- **Progressive Cost System**:
+  - **Level 2→3**: 1 point
+  - **Level 3→4**: 1 point
+  - **Level 4→5**: 2 points
+  - **Level 5→6**: 2 points
+  - **Level 6→7**: 3 points
+  - **Level 7→8**: 4 points
+  - **Level 8→9**: 5 points
+  - **Level 9→10**: 6 points
+  - **Pattern**: Cost increases by +1 every level starting from level 7
+
+#### **Point Cost Examples**
+
+- **Characteristic at 3**: 1 point spent (base 2 + 1 point)
+- **Characteristic at 4**: 2 points spent (base 2 + 1 + 1 points)
+- **Characteristic at 5**: 4 points spent (base 2 + 1 + 1 + 2 points)
+- **Characteristic at 6**: 6 points spent (base 2 + 1 + 1 + 2 + 2 points)
+- **Characteristic at 7**: 9 points spent (base 2 + 1 + 1 + 2 + 2 + 3 points)
+- **Characteristic at 8**: 13 points spent (base 2 + 1 + 1 + 2 + 2 + 3 + 4 points)
+- **Characteristic at 9**: 18 points spent (base 2 + 1 + 1 + 2 + 2 + 3 + 4 + 5 points)
+
+#### **Legacy System (Admin Tool)**
+
 - **Starting Values**: 2 points in each characteristic
 - **Bonus Points**: 14 additional points to distribute
 - **Maximum Investment**: 4 additional points per characteristic (maximum 6 total)
@@ -179,8 +206,30 @@ Each character has seven primary statistics that govern their abilities:
 
 - **Not Accessible**: Stats are not automatically accessible through macro tools
 - **Manual Input**: When spell animations require stat checks, they must be provided manually in prompts
-- **Storage**: Stats are stored in FoundryVTT character sheets
+- **Storage**: Stats are stored in FoundryVTT character sheets as individual attributes
+- **Point Tracking**: New system stores additional attributes:
+  - `pointTotal`: Total points allocated to the character
+  - `pointInutilise`: Unused points remaining
+  - `baseValue`: Base value for all characteristics (usually 2)
 - **Integration**: Future automation may allow direct stat access
+
+### Character Setup Tools
+
+#### **Point-Based Setup** (`character-stats-point-setup.js`)
+
+- **Purpose**: Create balanced characters using the progressive point cost system
+- **Features**:
+  - Interactive stat modification with real-time cost calculation
+  - Prevents over-spending points
+  - Tracks unused points for future use
+  - Configurable base values and total point pools
+- **Best For**: Balanced campaign character creation
+
+#### **Admin Setup** (`character-stats-setup.js`)
+
+- **Purpose**: Unrestricted stat assignment for NPCs and special characters
+- **Features**: Direct stat value entry with presets available
+- **Best For**: GM tools, NPCs, testing scenarios
 
 ## ⚡ Combat Mechanics
 
