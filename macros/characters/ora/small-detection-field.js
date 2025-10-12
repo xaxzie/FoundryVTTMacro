@@ -225,13 +225,13 @@
         sequence.effect()
             .file(SPELL_CONFIG.animations.persistentField)
             .attachTo(caster)
-            .scale(SPELL_CONFIG.detectionRadius * 0.4)
+            .scale(SPELL_CONFIG.detectionRadius * 0.2)
             .fadeIn(1000)
             .fadeOut(1000)
             .persist(true)
             .name(`SDF_Field_${actorId}`) // Nom unique pour pouvoir l'arrêter
             .belowTokens(true)
-            .opacity(0.6);
+            .opacity(0.1);
 
         await sequence.play();
     }

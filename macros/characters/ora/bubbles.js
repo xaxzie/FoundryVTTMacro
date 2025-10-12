@@ -642,7 +642,7 @@
     async function removeExistingOraEffects(targetActor, casterId) {
         const oraEffectsToRemove = [];
 
-        // Chercher tous les effets d'Ora sur la cible
+        // Chercher tous les effets d'Ora sur la cible (même logique que pluie.js)
         for (const effect of targetActor.effects.contents) {
             const isOraEffect = (
                 effect.name === "Ora Ralentissement" ||
@@ -651,10 +651,8 @@
             );
 
             if (isOraEffect) {
-                const effectCaster = effect.flags?.world?.oraCaster;
-                if (effectCaster === casterId) {
-                    oraEffectsToRemove.push(effect);
-                }
+                // Ne pas vérifier le casterId - remplacer tous les effets d'Ora peu importe qui les a lancés
+                oraEffectsToRemove.push(effect);
             }
         }
 

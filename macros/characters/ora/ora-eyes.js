@@ -321,6 +321,9 @@
 
                         <div style="margin: 15px 0; padding: 10px; border: 1px solid #ff4500; background: #fff8dc; border-radius: 5px;">
                             <h4 style="margin: 0 0 10px 0; color: #ff4500;">👥 Alliés (+3 Dégâts automatique)</h4>
+                            <div id="manaCostWarning" style="margin: 0 0 10px 0; padding: 8px; background: #ffe0b3; border: 1px solid #ff8c00; border-radius: 4px; color: #b8860b; display: none;">
+                                <strong>⚡ Coût de Partage:</strong> 6 mana (uniquement si des alliés sont sélectionnés)
+                            </div>
                             ${allyOptions || '<p><em>Aucun allié disponible</em></p>'}
                         </div>
 
@@ -334,6 +337,29 @@
                             const choiceDiv = document.getElementById('oraChoiceDiv');
                             choiceDiv.style.display = this.checked ? 'block' : 'none';
                         });
+
+                        // Gestion de l'affichage du coût de mana pour le partage
+                        function updateManaCostDisplay() {
+                            const allyCheckboxes = document.querySelectorAll('input[name="ally"]');
+                            const manaCostWarning = document.getElementById('manaCostWarning');
+                            let hasSelectedAllies = false;
+
+                            allyCheckboxes.forEach(checkbox => {
+                                if (checkbox.checked) {
+                                    hasSelectedAllies = true;
+                                }
+                            });
+
+                            manaCostWarning.style.display = hasSelectedAllies ? 'block' : 'none';
+                        }
+
+                        // Surveiller les changements sur les checkboxes d'alliés
+                        document.querySelectorAll('input[name="ally"]').forEach(checkbox => {
+                            checkbox.addEventListener('change', updateManaCostDisplay);
+                        });
+
+                        // Affichage initial
+                        updateManaCostDisplay();
                     </script>
                 `,
                 buttons: {
@@ -464,12 +490,16 @@
     }
 
     if (activeEffects.length > 0) {
+        // Vérifier si des alliés sont affectés pour afficher le coût de mana
+        const hasAllies = selectedAllies.length > 0;
+        const manaCostInfo = hasAllies ? ' | <strong>Coût:</strong> 6 mana (partage)' : '';
+
         const chatContent = `
             <div style="background: linear-gradient(135deg, #ffe4e1, #fff8dc); padding: 12px; border-radius: 8px; border: 2px solid #dc143c; margin: 8px 0;">
                 <div style="text-align: center; margin-bottom: 8px;">
                     <h3 style="margin: 0; color: #dc143c;">👁️ Yeux d'Ora Activés</h3>
                     <div style="margin-top: 3px; font-size: 0.9em;">
-                        <strong>Lanceur:</strong> ${actor.name}
+                        <strong>Lanceur:</strong> ${actor.name}${manaCostInfo}
                     </div>
                 </div>
                 <div style="text-align: left; margin: 8px 0; padding: 10px; background: #ffffff; border-radius: 4px; border-left: 4px solid #dc143c;">
