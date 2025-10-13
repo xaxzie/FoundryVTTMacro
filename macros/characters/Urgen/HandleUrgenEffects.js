@@ -34,7 +34,8 @@
             category: "custom",
             increasable: true,
             flags: [
-                { key: "statuscounter", value: 0 }
+                { key: "statuscounter", value: 0 },
+                { key: "statuscounter ", visible: true }
             ]
         }
     };

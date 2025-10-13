@@ -339,12 +339,12 @@
         sequence.effect()
             .file(SPELL_CONFIG.animations.phase1)
             .attachTo(caster)
-            .scale(radius * 0.25) // Échelle proportionnelle au rayon
+            .scale(radius * 0.4) // Échelle proportionnelle au rayon
             .fadeIn(1000)
             .persist(true)
             .name(`SyphonGrele_Phase1_${actorId}`)
             .belowTokens(true)
-            .opacity(0.15);
+            .opacity(1);
 
         await sequence.play();
     }
