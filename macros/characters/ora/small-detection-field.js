@@ -482,7 +482,7 @@
 
         // Jet d'attaque
         const attackDice = characteristicInfo.final;
-        const levelBonus = 2 * SPELL_CONFIG.spellLevel;
+        const levelBonus = 0 * SPELL_CONFIG.spellLevel;
         const attackRoll = new Roll(`${attackDice}d7 + ${levelBonus}`);
         await attackRoll.evaluate({ async: true });
 

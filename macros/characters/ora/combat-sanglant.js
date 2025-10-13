@@ -39,6 +39,7 @@
             name: "Frappe Simple",
             description: "Coup de poing rapide",
             manaCost: 0,
+            spellLevel: 1,
             damageFormula: "1d8",
             animations: {
                 punch: "jb2a_patreon.unarmed_strike.physical.01.dark_red",
@@ -50,6 +51,7 @@
             name: "Frappe Sanglante",
             description: "Saut + coup de pied puissant",
             manaCost: 0,
+            spellLevel: 2,
             damageFormula: "2d8",
             multiplier: 1.5,
             baseDifficulty: 30,
@@ -181,16 +183,16 @@
                         <div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 4px;">
                             <input type="radio" id="simple" name="option" value="simple" checked>
                             <label for="simple" style="color: #FFB3B3;">
-                                <strong>Frappe Simple</strong> - Coup de poing rapide
-                                <br><small>Coût: Gratuit | Dégâts: 1d8 + Esprit | Animation: Coup de poing</small>
+                                <strong>Frappe Simple</strong> - Coup de poing rapide (Niveau 1)
+                                <br><small>Coût: Gratuit | Dégâts: 1d8 + Esprit | Bonus toucher: +2 | Animation: Coup de poing</small>
                             </label>
                         </div>
 
                         <div style="margin: 10px 0; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 4px;">
                             <input type="radio" id="bloody" name="option" value="bloody">
                             <label for="bloody" style="color: #FFB3B3;">
-                                <strong>Frappe Sanglante</strong> - Saut + coup de pied puissant
-                                <br><small>Coût: Gratuit | Dégâts: 2d8 + Esprit×1.5 | Saut vers case + attaque adjacente</small>
+                                <strong>Frappe Sanglante</strong> - Saut + coup de pied puissant (Niveau 2)
+                                <br><small>Coût: Gratuit | Dégâts: 2d8 + Esprit×1.5 | Bonus toucher: +4 | Saut vers case + attaque adjacente</small>
                                 <br><small style="color: #FFCCCC;">⚠️ Jet de risque: Esprit vs ${currentDifficulty} | Échec = blessure | Perd action mouvement au prochain tour</small>
                             </label>
                         </div>
@@ -441,7 +443,7 @@
 
         // Résolution d'attaque
         const totalAttackDice = characteristicInfo.final;
-        const levelBonus = 0; // Pas de niveau de sort
+        const levelBonus = COMBAT_CONFIG.simple.spellLevel * 2; // Niveau de sort × 2
 
         // Combined roll
         let combinedRollParts = [`${totalAttackDice}d7 + ${levelBonus}`];
@@ -475,9 +477,9 @@
             return `
                 <div style="background: linear-gradient(135deg, #2c0000, #1a0000); padding: 12px; border-radius: 8px; border: 2px solid #8B0000; margin: 8px 0; color: #ffffff;">
                     <div style="text-align: center; margin-bottom: 8px;">
-                        <h3 style="margin: 0; color: #FF6B6B;">🩸 ${COMBAT_CONFIG.simple.name}</h3>
+                        <h3 style="margin: 0; color: #FF6B6B;">🩸 ${COMBAT_CONFIG.simple.name} (Niveau ${COMBAT_CONFIG.simple.spellLevel})</h3>
                         <div style="margin-top: 3px; font-size: 0.9em; color: #FFB3B3;">
-                            <strong>Lanceur:</strong> ${actor.name} | <strong>Coût:</strong> Gratuit (Blood Control)
+                            <strong>Lanceur:</strong> ${actor.name} | <strong>Coût:</strong> Gratuit (Blood Control) | <strong>Bonus toucher:</strong> +${levelBonus}
                             ${currentStance ? ` | <strong>Position:</strong> ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)}` : ''}
                         </div>
                     </div>
@@ -744,7 +746,7 @@
 
         // Phase 9: Résolution d'attaque
         const totalAttackDice = characteristicInfo.final;
-        const levelBonus = 0; // Pas de niveau de sort
+        const levelBonus = COMBAT_CONFIG.bloody.spellLevel * 2; // Niveau de sort × 2
 
         // Combined roll (attaque + dégâts + risque)
         let combinedRollParts = [`${totalAttackDice}d7 + ${levelBonus}`];
@@ -788,9 +790,9 @@
             return `
                 <div style="background: linear-gradient(135deg, #2c0000, #1a0000); padding: 12px; border-radius: 8px; border: 2px solid #8B0000; margin: 8px 0; color: #ffffff;">
                     <div style="text-align: center; margin-bottom: 8px;">
-                        <h3 style="margin: 0; color: #FF6B6B;">🩸 ${COMBAT_CONFIG.bloody.name}</h3>
+                        <h3 style="margin: 0; color: #FF6B6B;">🩸 ${COMBAT_CONFIG.bloody.name} (Niveau ${COMBAT_CONFIG.bloody.spellLevel})</h3>
                         <div style="margin-top: 3px; font-size: 0.9em; color: #FFB3B3;">
-                            <strong>Lanceur:</strong> ${actor.name} | <strong>Coût:</strong> Gratuit (Blood Control)
+                            <strong>Lanceur:</strong> ${actor.name} | <strong>Coût:</strong> Gratuit (Blood Control) | <strong>Bonus toucher:</strong> +${levelBonus}
                             ${currentStance ? ` | <strong>Position:</strong> ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)}` : ''}
                         </div>
                     </div>

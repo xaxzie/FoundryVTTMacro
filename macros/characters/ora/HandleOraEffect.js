@@ -257,11 +257,11 @@
             counterName: "Utilisations",
             defaultValue: 0,
             maxValue: 10,
-            tags: ["increasable"] // Tag spécial pour manipulation avancée
+            tags: [] // Tag spécial pour manipulation avancée
         },
         "224": {
             name: "224",
-            icon: "icons/magic/water/ice-cube-cold-freeze-blue.webp",
+            icon: "icons/magic/water/heart-ice-freeze.webp",
             flags: [
                 // L'effet 224 n'ajoute pas de bonus de stats, juste un indicateur de récupération
             ],
