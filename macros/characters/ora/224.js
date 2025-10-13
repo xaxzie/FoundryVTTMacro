@@ -218,7 +218,7 @@
                             <li><strong>Jets d'attaque séparés</strong> pour chaque statue (Esprit sans bonus)</li>
                             <li><strong>Jet principal d'Ora</strong> (Esprit + niveau 6)</li>
                             <li><strong>Dégâts :</strong> 1d8 + Xd6 + Esprit + (X×Esprit/2)</li>
-                            <li><strong>Jet de risque :</strong> 1d(X+1) - Échec sur résultat "1"</li>
+                            <li><strong>Jet de risque :</strong> 1d(X+1) - Réussite uniquement sur résultat "1"</li>
                             <li><strong>Conséquences :</strong> Perte défense/tour selon résultat</li>
                         </ul>
                     </div>
@@ -292,13 +292,26 @@
             y: casterPos.y + (gridSize / 2)
         };
 
-        // Aligner targetPos sur la grille et centrer (comme dans nuages-dombre.js)
-        const targetGridX = Math.floor(targetPos.x / gridSize) * gridSize;
-        const targetGridY = Math.floor(targetPos.y / gridSize) * gridSize;
-        const targetCenter = {
-            x: targetGridX + (gridSize / 2),
-            y: targetGridY + (gridSize / 2)
-        };
+        // Aligner targetPos sur la grille correctement - identifier d'abord le token à cette position
+        const targetActor = getActorAtLocation(targetPos.x, targetPos.y);
+        let targetCenter;
+
+        if (targetActor && targetActor.token) {
+            // Si on a trouvé un token, utiliser sa position centrée
+            const tokenGridSize = targetActor.token.document.width * gridSize;
+            targetCenter = {
+                x: targetActor.token.document.x + (tokenGridSize / 2),
+                y: targetActor.token.document.y + (tokenGridSize / 2)
+            };
+        } else {
+            // Sinon, aligner sur la grille et centrer
+            const targetGridX = Math.floor(targetPos.x / gridSize) * gridSize;
+            const targetGridY = Math.floor(targetPos.y / gridSize) * gridSize;
+            targetCenter = {
+                x: targetGridX + (gridSize / 2),
+                y: targetGridY + (gridSize / 2)
+            };
+        }
 
         // Calculer le vecteur directionnel de Ora vers la cible
         const dx = targetCenter.x - casterCenter.x;
@@ -386,13 +399,26 @@
             y: casterPos.y + (gridSize / 2)
         };
 
-        // Aligner targetPos sur la grille et centrer (comme dans nuages-dombre.js)
-        const targetGridX = Math.floor(targetPos.x / gridSize) * gridSize;
-        const targetGridY = Math.floor(targetPos.y / gridSize) * gridSize;
-        const targetCenter = {
-            x: targetGridX + (gridSize / 2),
-            y: targetGridY + (gridSize / 2)
-        };
+        // Utiliser la même logique que calculateStatuePositions pour la cohérence
+        const targetActor = getActorAtLocation(targetPos.x, targetPos.y);
+        let targetCenter;
+
+        if (targetActor && targetActor.token) {
+            // Si on a trouvé un token, utiliser sa position centrée
+            const tokenGridSize = targetActor.token.document.width * gridSize;
+            targetCenter = {
+                x: targetActor.token.document.x + (tokenGridSize / 2),
+                y: targetActor.token.document.y + (tokenGridSize / 2)
+            };
+        } else {
+            // Sinon, aligner sur la grille et centrer
+            const targetGridX = Math.floor(targetPos.x / gridSize) * gridSize;
+            const targetGridY = Math.floor(targetPos.y / gridSize) * gridSize;
+            targetCenter = {
+                x: targetGridX + (gridSize / 2),
+                y: targetGridY + (gridSize / 2)
+            };
+        }
 
         // Calculer le vecteur directionnel de Ora vers la cible
         const dx = targetCenter.x - casterCenter.x;
@@ -542,13 +568,26 @@
         const sequence = new Sequence();
         const gridSize = canvas.grid.size;
 
-        // Position centrale de la cible (aligner sur grille comme nuages-dombre.js)
-        const targetGridX = Math.floor(target.x / gridSize) * gridSize;
-        const targetGridY = Math.floor(target.y / gridSize) * gridSize;
-        const targetCenter = {
-            x: targetGridX + (gridSize / 2),
-            y: targetGridY + (gridSize / 2)
-        };
+        // Position centrale de la cible - utiliser la même logique que calculateStatuePositions
+        const targetActor = getActorAtLocation(target.x, target.y);
+        let targetCenter;
+
+        if (targetActor && targetActor.token) {
+            // Si on a trouvé un token, utiliser sa position centrée
+            const tokenGridSize = targetActor.token.document.width * gridSize;
+            targetCenter = {
+                x: targetActor.token.document.x + (tokenGridSize / 2),
+                y: targetActor.token.document.y + (tokenGridSize / 2)
+            };
+        } else {
+            // Sinon, aligner sur la grille et centrer
+            const targetGridX = Math.floor(target.x / gridSize) * gridSize;
+            const targetGridY = Math.floor(target.y / gridSize) * gridSize;
+            targetCenter = {
+                x: targetGridX + (gridSize / 2),
+                y: targetGridY + (gridSize / 2)
+            };
+        }
 
         // Position centrale de la position de saut d'Ora
         const oraJumpCenter = {
@@ -691,11 +730,11 @@
             await oraDamageRoll.evaluate({ async: true });
         }
 
-        // Jet de risque: 1d(X+1), échec sur résultat "1"
+        // Jet de risque: 1d(X+1), réussite uniquement sur résultat "1"
         const riskSides = statueCount + 1;
         const riskRoll = new Roll(`1d${riskSides}`);
         await riskRoll.evaluate({ async: true });
-        const riskSuccess = riskRoll.total !== 1; // Échec uniquement sur 1
+        const riskSuccess = riskRoll.total === 1; // Réussite uniquement sur 1
 
         return {
             statueRolls,
@@ -719,7 +758,7 @@
     function createCombinedChatFlavor() {
         const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
         const riskStatusColor = rollResults.riskSuccess ? '#4CAF50' : '#F44336';
-        const riskStatusText = rollResults.riskSuccess ? 'RÉUSSI' : 'ÉCHEC (1)';
+        const riskStatusText = rollResults.riskSuccess ? 'RÉUSSI (1)' : 'ÉCHEC';
 
         // Section des jets des statues
         const statueSection = rollResults.statueRolls.map(statue =>
@@ -901,8 +940,8 @@
     // ===== MESSAGE FINAL ET STATISTIQUES =====
     const statueAttackSummary = rollResults.statueRolls.map(s => s.result).join(", ");
     const riskInfo = rollResults.riskSuccess ?
-        `Réussite (${rollResults.riskRoll.total}/${rollResults.riskSides})` :
-        `Échec sur 1 (${rollResults.riskRoll.total}/${rollResults.riskSides})`;
+        `Réussite sur 1 (${rollResults.riskRoll.total}/${rollResults.riskSides})` :
+        `Échec (${rollResults.riskRoll.total}/${rollResults.riskSides})`;
 
     const finalSummary = `❄️ Sort 224 exécuté !
 Cible: ${targetName}
