@@ -258,6 +258,20 @@
             defaultValue: 0,
             maxValue: 10,
             tags: ["increasable"] // Tag spécial pour manipulation avancée
+        },
+        "224": {
+            name: "224",
+            icon: "icons/magic/water/ice-cube-cold-freeze-blue.webp",
+            flags: [
+                // L'effet 224 n'ajoute pas de bonus de stats, juste un indicateur de récupération
+            ],
+            description: "Récupération du sort 224 - Double utilisation cause perte de conscience",
+            category: "custom",
+            increasable: false,
+            counterName: "Récupération",
+            defaultValue: 1,
+            maxValue: 1,
+            tags: [] // Pas increasable, juste un flag de récupération
         }
 
         // TODO: Add more Ora-specific water magic effects here
