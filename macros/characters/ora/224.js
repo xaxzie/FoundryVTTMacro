@@ -336,13 +336,13 @@
 
         const positions = [];
 
-        // Position 1: Derrière la cible (toujours présente)
-        const behindX = targetCenter.x - (unitX * gridSize);
-        const behindY = targetCenter.y - (unitY * gridSize);
+        // Position 1: Derrière la cible (toujours présente) - du côté d'Ora
+        const behindX = targetCenter.x + (unitX * gridSize);
+        const behindY = targetCenter.y + (unitY * gridSize);
 
-        // Aligner sur la grille
-        const behindGridX = Math.round(behindX / gridSize) * gridSize;
-        const behindGridY = Math.round(behindY / gridSize) * gridSize;
+        // Aligner sur la grille - utiliser floor pour aligner sur le coin supérieur gauche
+        const behindGridX = Math.floor(behindX / gridSize) * gridSize;
+        const behindGridY = Math.floor(behindY / gridSize) * gridSize;
 
         console.log(`[224 DEBUG] Behind statue: raw(${behindX}, ${behindY}) -> grid(${behindGridX}, ${behindGridY})`);
 
@@ -361,8 +361,8 @@
             const leftX = targetCenter.x + (perpX * gridSize);
             const leftY = targetCenter.y + (perpY * gridSize);
 
-            const leftGridX = Math.round(leftX / gridSize) * gridSize;
-            const leftGridY = Math.round(leftY / gridSize) * gridSize;
+            const leftGridX = Math.floor(leftX / gridSize) * gridSize;
+            const leftGridY = Math.floor(leftY / gridSize) * gridSize;
 
             console.log(`[224 DEBUG] Left statue: raw(${leftX}, ${leftY}) -> grid(${leftGridX}, ${leftGridY})`);
 
@@ -382,8 +382,8 @@
             const rightX = targetCenter.x - (perpX * gridSize);
             const rightY = targetCenter.y - (perpY * gridSize);
 
-            const rightGridX = Math.round(rightX / gridSize) * gridSize;
-            const rightGridY = Math.round(rightY / gridSize) * gridSize;
+            const rightGridX = Math.floor(rightX / gridSize) * gridSize;
+            const rightGridY = Math.floor(rightY / gridSize) * gridSize;
 
             console.log(`[224 DEBUG] Right statue: raw(${rightX}, ${rightY}) -> grid(${rightGridX}, ${rightGridY})`);
 
@@ -444,12 +444,12 @@
         const unitY = distance > 0 ? dy / distance : 0;
 
         // Position devant la cible (entre Ora et la cible)
-        const frontX = targetCenter.x - (unitX * gridSize);
-        const frontY = targetCenter.y - (unitY * gridSize);
+        const frontX = targetCenter.x + (unitX * gridSize);
+        const frontY = targetCenter.y + (unitY * gridSize);
 
-        // Aligner sur la grille
-        const frontGridX = Math.round(frontX / gridSize) * gridSize;
-        const frontGridY = Math.round(frontY / gridSize) * gridSize;
+        // Aligner sur la grille - utiliser floor pour aligner sur le coin supérieur gauche
+        const frontGridX = Math.floor(frontX / gridSize) * gridSize;
+        const frontGridY = Math.floor(frontY / gridSize) * gridSize;
 
         return {
             x: frontGridX,
