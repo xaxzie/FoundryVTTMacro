@@ -201,8 +201,7 @@
 
                     await ChatMessage.create({
                         user: game.user.id,
-                        content: endMessage,
-                        whisper: game.users.filter(u => u.isGM).map(u => u.id)
+                        content: endMessage
                     });
 
                 } catch (error) {
@@ -238,8 +237,7 @@
 
                     await ChatMessage.create({
                         user: game.user.id,
-                        content: activationMessage,
-                        whisper: game.users.filter(u => u.isGM).map(u => u.id)
+                        content: activationMessage
                     });
 
                 } catch (error) {
@@ -249,7 +247,7 @@
         },
         "Charge sanglante": {
             name: "Charge sanglante",
-            icon: "icons/skills/wounds/blood-splatter-red.webp",
+            icon: "icons/magic/unholy/strike-beam-blood-small-red-blue.webp",
             flags: [
                 // Charge sanglante n'ajoute pas de bonus de stats, juste un compteur de difficulté
             ],

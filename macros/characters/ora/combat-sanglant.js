@@ -41,7 +41,7 @@
             manaCost: 0,
             damageFormula: "1d8",
             animations: {
-                punch: "jb2a.unarmed_strike.physical.01.yellow",
+                punch: "jb2a_patreon.unarmed_strike.physical.01.dark_red",
                 impact: "jb2a.impact.ground_crack.orange.02"
             }
         },
@@ -57,8 +57,8 @@
             chargeSanglanteEffect: "Charge sanglante",
             animations: {
                 jump: "animated-spell-effects-cartoon.air.puff.01",
-                kick: "jb2a.flurry_of_blows.physical.01.yellow",
-                impact: "jb2a.impact.ground_crack.red.02"
+                kick: "jb2a_patreon.unarmed_strike.physical.02.dark_red",
+                impact: "jb2a.impact.ground_crack.orange.02"
             }
         },
 
@@ -345,7 +345,7 @@
             } else if (newValue > 0) {
                 const chargeEffect = {
                     name: COMBAT_CONFIG.bloody.chargeSanglanteEffect,
-                    icon: "icons/skills/wounds/blood-splatter-red.webp",
+                    icon: "icons/magic/unholy/strike-beam-blood-small-red-blue.webp",
                     origin: actor.uuid,
                     duration: { seconds: 86400 },
                     flags: {
@@ -424,7 +424,7 @@
             sequence.effect()
                 .file(COMBAT_CONFIG.simple.animations.impact)
                 .atLocation(target)
-                .scale(0.6)
+                .scale(0.5)
                 .delay(800);
 
             await sequence.play();
@@ -695,7 +695,7 @@
             sequence.effect()
                 .file(COMBAT_CONFIG.bloody.animations.impact)
                 .atLocation({ x: selectedTarget.x, y: selectedTarget.y })
-                .scale(0.7)
+                .scale(1)
                 .delay(1200);
 
             return sequence.play();

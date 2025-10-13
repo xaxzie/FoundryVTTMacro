@@ -172,8 +172,7 @@ function checkTransformationStatus() {
     const message = `<h3>Transformation Status</h3><ul><li>${status.join("</li><li>")}</li></ul>`;
     ChatMessage.create({
         user: game.user.id,
-        content: message,
-        whisper: [game.user.id]
+        content: message
     });
 }
 
