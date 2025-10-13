@@ -411,19 +411,26 @@
         // Animation
         async function playSimpleAnimation() {
             const sequence = new Sequence();
+            const gridSize = canvas.grid.size;
+
+            // Centrer les positions d'animation
+            const targetCenter = {
+                x: target.x + (gridSize / 2),
+                y: target.y + (gridSize / 2)
+            };
 
             // Animation de coup de poing d'Ora vers la cible
             sequence.effect()
                 .file(COMBAT_CONFIG.simple.animations.punch)
                 .atLocation(caster)
-                .stretchTo(target)
+                .stretchTo(targetCenter)
                 .scale(0.8)
                 .delay(200);
 
             // Animation d'impact sur la cible
             sequence.effect()
                 .file(COMBAT_CONFIG.simple.animations.impact)
-                .atLocation(target)
+                .atLocation(targetCenter)
                 .scale(0.5)
                 .delay(800);
 
@@ -674,26 +681,44 @@
         // Phase 7: Animation complète
         async function playBloodyAnimation() {
             const sequence = new Sequence();
+            const gridSize = canvas.grid.size;
+
+            // Centrer les positions d'animation
+            const originalCenter = {
+                x: originalPosition.x + (gridSize / 2),
+                y: originalPosition.y + (gridSize / 2)
+            };
+
+            const jumpCenter = {
+                x: jumpTarget.x + (gridSize / 2),
+                y: jumpTarget.y + (gridSize / 2)
+            };
+
+            const selectedTargetCenter = {
+                x: selectedTarget.x + (gridSize / 2),
+                y: selectedTarget.y + (gridSize / 2)
+            };
 
             // Animation de saut
             sequence.effect()
                 .file(COMBAT_CONFIG.bloody.animations.jump)
-                .atLocation(originalPosition)
+                .atLocation(originalCenter)
+                .stretchTo(jumpCenter)
                 .scale(0.8)
                 .delay(200);
 
             // Animation de coup de pied vers la cible
             sequence.effect()
                 .file(COMBAT_CONFIG.bloody.animations.kick)
-                .atLocation(jumpTarget)
-                .stretchTo({ x: selectedTarget.x, y: selectedTarget.y })
+                .atLocation(jumpCenter)
+                .stretchTo(selectedTargetCenter)
                 .scale(0.9)
                 .delay(800);
 
             // Animation d'impact sur la cible
             sequence.effect()
                 .file(COMBAT_CONFIG.bloody.animations.impact)
-                .atLocation({ x: selectedTarget.x, y: selectedTarget.y })
+                .atLocation(selectedTargetCenter)
                 .scale(1)
                 .delay(1200);
 
