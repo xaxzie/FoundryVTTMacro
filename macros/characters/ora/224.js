@@ -318,11 +318,6 @@
         const dy = targetCenter.y - casterCenter.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // Debug logs pour comprendre les positions
-        console.log(`[224 DEBUG] Caster center: (${casterCenter.x}, ${casterCenter.y})`);
-        console.log(`[224 DEBUG] Target center: (${targetCenter.x}, ${targetCenter.y})`);
-        console.log(`[224 DEBUG] Direction vector: (${dx}, ${dy}), distance: ${distance}`);
-
         // Vecteurs unitaires
         const unitX = distance > 0 ? dx / distance : 1; // Par défaut vers l'est
         const unitY = distance > 0 ? dy / distance : 0;
@@ -330,9 +325,6 @@
         // Vecteur perpendiculaire (pour gauche/droite) - Adapté au système FoundryVTT (Y vers le bas)
         const perpX = -unitY; // Perpendiculaire à gauche
         const perpY = unitX;   // Perpendiculaire
-
-        console.log(`[224 DEBUG] Unit vector: (${unitX}, ${unitY})`);
-        console.log(`[224 DEBUG] Perpendicular vector: (${perpX}, ${perpY})`);
 
         const positions = [];
 
@@ -343,8 +335,6 @@
         // Aligner sur la grille - utiliser floor pour aligner sur le coin supérieur gauche
         const behindGridX = Math.floor(behindX / gridSize) * gridSize;
         const behindGridY = Math.floor(behindY / gridSize) * gridSize;
-
-        console.log(`[224 DEBUG] Behind statue: raw(${behindX}, ${behindY}) -> grid(${behindGridX}, ${behindGridY})`);
 
         positions.push({
             x: behindGridX,
@@ -364,8 +354,6 @@
             const leftGridX = Math.floor(leftX / gridSize) * gridSize;
             const leftGridY = Math.floor(leftY / gridSize) * gridSize;
 
-            console.log(`[224 DEBUG] Left statue: raw(${leftX}, ${leftY}) -> grid(${leftGridX}, ${leftGridY})`);
-
             positions.push({
                 x: leftGridX,
                 y: leftGridY,
@@ -384,8 +372,6 @@
 
             const rightGridX = Math.floor(rightX / gridSize) * gridSize;
             const rightGridY = Math.floor(rightY / gridSize) * gridSize;
-
-            console.log(`[224 DEBUG] Right statue: raw(${rightX}, ${rightY}) -> grid(${rightGridX}, ${rightGridY})`);
 
             positions.push({
                 x: rightGridX,
@@ -538,16 +524,15 @@
             const centerX = position.x + (gridSize / 2);
             const centerY = position.y + (gridSize / 2);
 
-            // Animation de la statue (image sans surfiltre)
+            // Animation de la statue (image persistante jusqu'à la fin des rayons)
             sequence.effect()
                 .file(statueImage)
                 .atLocation({ x: centerX, y: centerY })
                 .scale(0.15) // Taille réduite pour correspondre à une statue
                 .fadeIn(500)
                 .fadeOut(500)
-                .duration(3000) // Durée pendant laquelle la statue reste visible
-                .name(`statue-${index}-${caster.id}`)
-                .zIndex(1000); // Au-dessus des autres effets
+                .duration(9000) // Durée prolongée pour couvrir les rayons de glace (1000ms apparition + 2000ms rayons + 1000ms buffer)
+                .name(`statue-${index}-${caster.id}`);
 
             // Animation d'explosion de glace (nova de givre)
             sequence.effect()
@@ -615,6 +600,7 @@
         };
 
         // Phase 1: Rayons de glace des statues vers la cible
+        const iceBeamDuration = 1500; // Durée des rayons de glace
         for (const [index, position] of statuePositions.entries()) {
             const statueCenterX = position.x + (gridSize / 2);
             const statueCenterY = position.y + (gridSize / 2);
@@ -624,29 +610,51 @@
                 .atLocation({ x: statueCenterX, y: statueCenterY })
                 .stretchTo(targetCenter)
                 .scale(0.7)
+                .duration(iceBeamDuration)
                 .delay(1000) // Après l'apparition des statues
                 .name(`ice-beam-${index}-${caster.id}`)
                 .zIndex(1002);
         }
+
+        // Impact des rayons de glace (une seule animation centrée sur la cible)
+        sequence.effect()
+            .file("jb2a.impact.frost.blue.01") // Animation d'impact de glace
+            .atLocation(targetCenter)
+            .scale(0.8)
+            .delay(1500) // 500ms après le début des ice beams
+            .duration(1000) // Se termine avec les rayons
+            .name(`ice-impact-${caster.id}`)
+            .zIndex(1003);
 
         // Phase 2: Saut d'Ora (animation puff)
         sequence.effect()
             .file(SPELL_CONFIG.animations.jump)
             .atLocation(oraCurrentCenter)
             .scale(0.8)
-            .delay(2000) // Après les rayons de glace
+            .delay(2700) // Après les rayons de glace + impact
             .name(`ora-jump-${caster.id}`)
-            .zIndex(1003);
+            .zIndex(1004);
 
         // Phase 3: Coup de pied d'Ora vers la cible
+        const kickDuration = 800;
         sequence.effect()
             .file(SPELL_CONFIG.animations.kick)
             .atLocation(oraJumpCenter)
             .stretchTo(targetCenter)
             .scale(0.9)
-            .delay(2500) // Après le saut
+            .duration(kickDuration)
+            .delay(3200) // Après le saut
             .name(`ora-kick-${caster.id}`)
-            .zIndex(1004);
+            .zIndex(1005);
+
+        // Impact final après le coup de pied
+        sequence.effect()
+            .file("jb2a.impact.ground_crack.blue.01") // Animation d'impact final
+            .atLocation(targetCenter)
+            .scale(1.0)
+            .delay(3600) // Légèrement après le début du kick
+            .name(`final-impact-${caster.id}`)
+            .zIndex(1006);
 
         try {
             const animationPromise = sequence.play();
@@ -654,7 +662,7 @@
             // Effectuer le saut d'Ora au bon moment (pendant l'animation)
             setTimeout(async () => {
                 await executeOraJump();
-            }, 2200); // Légèrement avant l'animation de coup de pied
+            }, 2900); // Légèrement avant l'animation de coup de pied (ajusté pour le nouveau timing)
 
             await animationPromise;
             console.log(`[224] Ice beams and Ora attack animations completed`);
