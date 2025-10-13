@@ -105,7 +105,7 @@
             category: "custom",
             increasable: true,
             counterName: "Phase",
-            defaultValue: 1,
+            defaultValue: 0,
             maxValue: 10, // Phase finale = 10
             tags: ["increasable", "multi-phase"],
             // Configuration spéciale pour la suppression
