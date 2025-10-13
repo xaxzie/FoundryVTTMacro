@@ -77,17 +77,17 @@
 
         // Animations par phase
         animations: {
-            phase1: "jb2a_patreon.spirit_guardians.dark_whiteblue", // Zone initiale
-            phase2Particles: "jb2a_patreon.spirit_guardians.blue.particles", // Particules ajoutées
-            syphonCenter: "jb2a_patreon.whirlpool.blue", // Animation centrale rotée
-            impact: "jb2a.impact.water_splash.blue",
-            cast: "jb2a.cast_generic.water.02.blue.0"
+            phase1: "jb2a_patreon.spirit_guardians.blue.particles", // Zone initiale
+            phase2Particles: "jb2a_patreon.spirit_guardians.blue.spirits", // Particules ajoutées
+            syphonCenter: "jb2a_patreon.spirit_guardians.blue.spirits", // Animation centrale rotée
+            impact: "animated-spell-effects-cartoon.water.water impact",
+            cast: "jb2a.water_splash.circle.01.blue"
         },
 
         // Configuration de l'effet Syphon
         syphonEffect: {
             name: "Syphon",
-            icon: "icons/magic/water/vortex-whirlpool-blue.webp",
+            icon: "icons/magic/water/projectile-water-rings.webp",
             description: "Syphon de Grêle en cours d'évolution",
             duration: { seconds: 86400 },
             flags: {

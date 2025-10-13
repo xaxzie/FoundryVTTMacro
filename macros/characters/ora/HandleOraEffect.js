@@ -97,7 +97,7 @@
         },
         "Syphon": {
             name: "Syphon",
-            icon: "icons/magic/water/vortex-whirlpool-blue.webp",
+            icon: "icons/magic/water/projectile-water-rings.webp",
             flags: [
                 // Le Syphon track ses phases et extensions
             ],
