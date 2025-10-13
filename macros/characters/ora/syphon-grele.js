@@ -302,47 +302,10 @@
         return;
     }
 
-    // Force Focus si pas déjà en Focus
+    // Vérification Position Focus obligatoire
     if (currentStance !== 'focus') {
-        const confirmed = await new Promise((resolve) => {
-            new Dialog({
-                title: "⚡ Syphon de Grêle - Position Focus Requise",
-                content: `
-                    <div style="text-align: center; padding: 15px;">
-                        <h3 style="color: #4169e1; margin-bottom: 15px;">Position Focus Obligatoire</h3>
-                        <p style="margin-bottom: 15px;">
-                            Le <strong>Syphon de Grêle</strong> requiert obligatoirement la Position Focus.<br>
-                            Votre stance actuelle sera changée automatiquement.
-                        </p>
-                        <p style="font-size: 0.9em; color: #666;">
-                            Stance actuelle : <strong>${currentStance || 'Aucune'}</strong><br>
-                            Nouvelle stance : <strong>Focus</strong>
-                        </p>
-                    </div>
-                `,
-                buttons: {
-                    yes: {
-                        label: "🎯 Forcer Position Focus",
-                        callback: () => resolve(true)
-                    },
-                    no: {
-                        label: "❌ Annuler",
-                        callback: () => resolve(false)
-                    }
-                },
-                default: "yes"
-            }).render(true);
-        });
-
-        if (!confirmed) {
-            ui.notifications.info("❌ Lancement annulé - Position Focus requise.");
-            return;
-        }
-
-        await ensureFocusStance(actor);
-    }
-
-    // ===== DÉTECTION DE PHASE =====
+        return;
+    }    // ===== DÉTECTION DE PHASE =====
     const syphonEffect = getSyphonEffect(actor);
     let currentPhase = 1;
     let currentRadius = 4;
@@ -491,18 +454,6 @@
         const phase1Cost = SPELL_CONFIG.phases[1].cost;
         const phase1Radius = SPELL_CONFIG.phases[1].radius;
 
-        // Vérification du mana
-        const currentMana = actor.system.resources?.power?.value || 0;
-        if (currentMana < phase1Cost) {
-            ui.notifications.error(`❌ Mana insuffisant ! Requis: ${phase1Cost}, disponible: ${currentMana}`);
-            return;
-        }
-
-        // Déduction du mana
-        await actor.update({
-            "system.resources.power.value": Math.max(0, currentMana - phase1Cost)
-        });
-
         // Animation de lancement
         const castSequence = new Sequence();
         castSequence.effect()
@@ -587,17 +538,7 @@
         const phase2Radius = SPELL_CONFIG.phases[2].radius;
         const previousRadius = currentRadius; // Rayon précédent (4 cases)
 
-        // Vérification du mana
-        const currentMana = actor.system.resources?.power?.value || 0;
-        if (currentMana < phase2Cost) {
-            ui.notifications.error(`❌ Mana insuffisant ! Requis: ${phase2Cost}, disponible: ${currentMana}`);
-            return;
-        }
 
-        // Déduction du mana
-        await actor.update({
-            "system.resources.power.value": Math.max(0, currentMana - phase2Cost)
-        });
 
         // Arrêter l'animation précédente et démarrer les nouvelles
         await stopAnimation(`SyphonGrele_Phase1_${actor.id}`);
@@ -734,7 +675,6 @@
                             <h4 style="margin: 0 0 8px 0; color: #1976d2;">📊 État Actuel</h4>
                             <p style="margin: 0;"><strong>Rayon actuel :</strong> ${currentRadius} cases</p>
                             <p style="margin: 0;"><strong>Extensions :</strong> ${extensions} (base: 2)</p>
-                            <p style="margin: 0;"><strong>Mana disponible :</strong> ${actor.system.resources?.power?.value || 0}</p>
                         </div>
 
                         <div style="margin: 15px 0; padding: 12px; background: #fff3cd; border-radius: 6px; border-left: 4px solid #ffc107;">
@@ -786,17 +726,7 @@
             const newRadius = currentRadius + extensionRadius;
             const newExtensions = extensions + 1;
 
-            // Vérification du mana
-            const currentMana = actor.system.resources?.power?.value || 0;
-            if (currentMana < phase3Cost) {
-                ui.notifications.error(`❌ Mana insuffisant ! Requis: ${phase3Cost}, disponible: ${currentMana}`);
-                return;
-            }
 
-            // Déduction du mana
-            await actor.update({
-                "system.resources.power.value": Math.max(0, currentMana - phase3Cost)
-            });
 
             // Arrêter les animations précédentes
             await stopAnimation(`SyphonGrele_Phase2_Zone_${actor.id}`);
@@ -995,17 +925,7 @@
         if (currentPhase === 4) {
             // PREMIÈRE ACTIVATION DE LA FORME FINALE
 
-            // Vérification du mana
-            const currentMana = actor.system.resources?.power?.value || 0;
-            if (currentMana < phase4Cost) {
-                ui.notifications.error(`❌ Mana insuffisant ! Requis: ${phase4Cost}, disponible: ${currentMana}`);
-                return;
-            }
 
-            // Déduction du mana
-            await actor.update({
-                "system.resources.power.value": Math.max(0, currentMana - phase4Cost)
-            });
 
             // Arrêter les animations précédentes
             await stopAnimation(`SyphonGrele_Phase2_Zone_${actor.id}`);
@@ -1200,7 +1120,6 @@
                             <h4 style="margin: 0 0 8px 0; color: #d32f2f;">📊 État Actuel</h4>
                             <p style="margin: 0;"><strong>Rayon actuel :</strong> ${finalRadius} cases</p>
                             <p style="margin: 0;"><strong>Extensions :</strong> ${currentExtensions}/${maxExtensions}</p>
-                            <p style="margin: 0;"><strong>Mana disponible :</strong> ${actor.system.resources?.power?.value || 0}</p>
                         </div>
 
                         <div style="margin: 15px 0; padding: 12px; background: #e3f2fd; border-radius: 6px; border-left: 4px solid #2196f3;">
@@ -1273,23 +1192,10 @@
             case 'extend':
                 // EXTENSION (+8 CASES)
                 const extensionCost = SPELL_CONFIG.finalPhase.extensionCost;
-                const currentMana = actor.system.resources?.power?.value || 0;
-
-                if (currentMana < extensionCost) {
-                    ui.notifications.error(`❌ Mana insuffisant ! Requis: ${extensionCost}, disponible: ${currentMana}`);
-                    return;
-                }
-
                 if (currentExtensions >= maxExtensions) {
                     ui.notifications.error(`❌ Extension maximale atteinte (${maxExtensions}/5) !`);
                     return;
-                }
-
-                await actor.update({
-                    "system.resources.power.value": Math.max(0, currentMana - extensionCost)
-                });
-
-                const newFinalRadius = finalRadius + SPELL_CONFIG.finalPhase.extensionRadius;
+                } const newFinalRadius = finalRadius + SPELL_CONFIG.finalPhase.extensionRadius;
                 const newExtensions = currentExtensions + 1;
 
                 // Mettre à jour les animations
@@ -1455,12 +1361,8 @@
                 });
 
                 if (willRoll.total < willSaveDC) {
-                    // Échec : perte de mana
-                    const currentMana = actor.system.resources?.power?.value || 0;
-                    await actor.update({
-                        "system.resources.power.value": Math.max(0, currentMana - SPELL_CONFIG.finalPhase.willFailCost)
-                    });
-                    ui.notifications.warn(`⚠️ Jet de Volonté échoué ! -${SPELL_CONFIG.finalPhase.willFailCost} mana`);
+                    // Échec : information seulement
+                    ui.notifications.warn(`⚠️ Jet de Volonté échoué ! Coût théorique: ${SPELL_CONFIG.finalPhase.willFailCost} mana`);
                 }
 
                 // Arrêter toutes les animations
