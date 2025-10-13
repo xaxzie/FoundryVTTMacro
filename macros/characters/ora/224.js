@@ -65,9 +65,7 @@
 
         // Configuration des effets
         effects: {
-            trackingEffect: "224",
-            defenseDebuff: "224 - Perte Défense",
-            turnLoss: "224 - Perte Tour"
+            trackingEffect: "224"
         }
     };
 
@@ -501,7 +499,7 @@
             sequence.effect()
                 .file(statueImage)
                 .atLocation({ x: centerX, y: centerY })
-                .scale(0.8) // Taille réduite pour correspondre à une statue
+                .scale(0.2) // Taille réduite pour correspondre à une statue
                 .fadeIn(500)
                 .fadeOut(500)
                 .duration(3000) // Durée pendant laquelle la statue reste visible
@@ -815,7 +813,7 @@
         try {
             const effectData = {
                 name: SPELL_CONFIG.effects.trackingEffect,
-                icon: "icons/magic/water/ice-cube-cold-freeze-blue.webp",
+                icon: "icons/magic/water/heart-ice-freeze.webp",
                 description: "Récupération du sort 224 - Double utilisation cause perte de conscience",
                 origin: actor.uuid,
                 duration: { seconds: 86400 }, // 24h
@@ -863,60 +861,6 @@
         }
     }
 
-    /**
-     * Applique l'effet de perte de tour
-     */
-    async function applyTurnLossEffect() {
-        try {
-            const effectData = {
-                name: SPELL_CONFIG.effects.turnLoss,
-                icon: "icons/svg/clockwork.svg",
-                description: "Ora perd son prochain tour (sort 224)",
-                origin: actor.uuid,
-                duration: { rounds: 1 },
-                flags: {
-                    world: {
-                        spell224TurnLoss: true
-                    }
-                }
-            };
-
-            await actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
-            console.log("[224] Applied turn loss effect to Ora");
-            return true;
-        } catch (error) {
-            console.error("[224] Error applying turn loss effect:", error);
-            return false;
-        }
-    }
-
-    /**
-     * Applique l'effet de perte de conscience (KO)
-     */
-    async function applyUnconsciousEffect() {
-        try {
-            const effectData = {
-                name: "Inconsciente",
-                icon: "icons/svg/unconscious.svg",
-                description: "Ora est inconsciente suite à l'échec du sort 224 en double utilisation",
-                origin: actor.uuid,
-                duration: { rounds: 3 }, // Plus long que juste un tour
-                flags: {
-                    world: {
-                        spell224Unconscious: true
-                    }
-                }
-            };
-
-            await actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
-            console.log("[224] Applied unconscious effect to Ora");
-            return true;
-        } catch (error) {
-            console.error("[224] Error applying unconscious effect:", error);
-            return false;
-        }
-    }
-
     // Appliquer les effets selon les résultats et la situation
     let statusMessage = "";
 
@@ -924,13 +868,9 @@
         // Double utilisation du sort
         if (rollResults.riskSuccess) {
             // Réussite mais effet 224 déjà actif = perte forcée du prochain tour
-            await applyTurnLossEffect();
-            await applyDefenseLossEffect(); // Perte de défense aussi
             statusMessage = "🟡 Effet '224' déjà actif - Réussite : Perte forcée du prochain tour + perte de défense";
             ui.notifications.warn(statusMessage);
         } else {
-            // Échec avec effet 224 déjà actif = perte de conscience
-            await applyUnconsciousEffect();
             statusMessage = "🔴 Effet '224' déjà actif - Échec : Ora perd CONSCIENCE !";
             ui.notifications.error(statusMessage);
         }
@@ -938,13 +878,9 @@
         // Première utilisation du sort
         if (rollResults.riskSuccess) {
             // Réussite = perte de capacité de défense seulement
-            await applyDefenseLossEffect();
             statusMessage = "🟢 Jet de risque réussi : Ora perd sa capacité de défense jusqu'au prochain tour";
             ui.notifications.info(statusMessage);
         } else {
-            // Échec = perte du prochain tour
-            await applyTurnLossEffect();
-            await applyDefenseLossEffect(); // Perte de défense aussi
             statusMessage = "🟠 Jet de risque échoué : Ora perd son prochain tour + capacité de défense";
             ui.notifications.warn(statusMessage);
         }
