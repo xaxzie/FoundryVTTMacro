@@ -53,7 +53,7 @@
             statueAppear: "jb2a_patreon.ice_spikes.radial.burst.white", // Nova de givre pour apparition
             iceBeam: "animated-spell-effects.ice.frost.beam.ray.01",
             jump: "animated-spell-effects-cartoon.air.puff.01",
-            kick: "jb2a_patreon.unarmed_strike.physical.02.dark_red"
+            kick: "jb2a_patreon.unarmed_strike.physical.02.blue"
         },
 
         // Configuration du ciblage
@@ -542,7 +542,7 @@
             sequence.effect()
                 .file(statueImage)
                 .atLocation({ x: centerX, y: centerY })
-                .scale(0.2) // Taille réduite pour correspondre à une statue
+                .scale(0.15) // Taille réduite pour correspondre à une statue
                 .fadeIn(500)
                 .fadeOut(500)
                 .duration(3000) // Durée pendant laquelle la statue reste visible
@@ -555,7 +555,6 @@
                 .atLocation({ x: centerX, y: centerY })
                 .scale(0.2)
                 .opacity(0.2)
-                .belowTokens(true)
                 .name(`statue-frost-${index}-${caster.id}`)
                 .zIndex(1001); // Au-dessus de la statue
         }
