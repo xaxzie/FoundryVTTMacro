@@ -246,6 +246,20 @@
                     console.warn(`[HandleOraEffect] Error in Blood Control activation callback: ${error.message}`);
                 }
             }
+        },
+        "Charge sanglante": {
+            name: "Charge sanglante",
+            icon: "icons/skills/wounds/blood-splatter-red.webp",
+            flags: [
+                // Charge sanglante n'ajoute pas de bonus de stats, juste un compteur de difficulté
+            ],
+            description: "Utilisations de Charge sanglante (augmente la difficulté des prochaines utilisations)",
+            category: "custom",
+            increasable: true,
+            counterName: "Utilisations",
+            defaultValue: 0,
+            maxValue: 10,
+            tags: ["increasable"] // Tag spécial pour manipulation avancée
         }
 
         // TODO: Add more Ora-specific water magic effects here
