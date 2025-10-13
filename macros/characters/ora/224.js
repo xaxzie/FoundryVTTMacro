@@ -443,9 +443,9 @@
         const unitX = distance > 0 ? dx / distance : 1;
         const unitY = distance > 0 ? dy / distance : 0;
 
-        // Position devant la cible (entre Ora et la cible)
-        const frontX = targetCenter.x + (unitX * gridSize);
-        const frontY = targetCenter.y + (unitY * gridSize);
+        // Position devant la cible (côté opposé à la statue "derrière")
+        const frontX = targetCenter.x - (unitX * gridSize);
+        const frontY = targetCenter.y - (unitY * gridSize);
 
         // Aligner sur la grille - utiliser floor pour aligner sur le coin supérieur gauche
         const frontGridX = Math.floor(frontX / gridSize) * gridSize;
