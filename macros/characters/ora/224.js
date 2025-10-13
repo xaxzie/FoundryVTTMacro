@@ -318,13 +318,21 @@
         const dy = targetCenter.y - casterCenter.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
+        // Debug logs pour comprendre les positions
+        console.log(`[224 DEBUG] Caster center: (${casterCenter.x}, ${casterCenter.y})`);
+        console.log(`[224 DEBUG] Target center: (${targetCenter.x}, ${targetCenter.y})`);
+        console.log(`[224 DEBUG] Direction vector: (${dx}, ${dy}), distance: ${distance}`);
+
         // Vecteurs unitaires
         const unitX = distance > 0 ? dx / distance : 1; // Par défaut vers l'est
         const unitY = distance > 0 ? dy / distance : 0;
 
-        // Vecteur perpendiculaire (pour gauche/droite)
+        // Vecteur perpendiculaire (pour gauche/droite) - Adapté au système FoundryVTT (Y vers le bas)
         const perpX = -unitY; // Perpendiculaire à gauche
-        const perpY = unitX;
+        const perpY = unitX;   // Perpendiculaire
+
+        console.log(`[224 DEBUG] Unit vector: (${unitX}, ${unitY})`);
+        console.log(`[224 DEBUG] Perpendicular vector: (${perpX}, ${perpY})`);
 
         const positions = [];
 
@@ -335,6 +343,8 @@
         // Aligner sur la grille
         const behindGridX = Math.round(behindX / gridSize) * gridSize;
         const behindGridY = Math.round(behindY / gridSize) * gridSize;
+
+        console.log(`[224 DEBUG] Behind statue: raw(${behindX}, ${behindY}) -> grid(${behindGridX}, ${behindGridY})`);
 
         positions.push({
             x: behindGridX,
@@ -354,6 +364,8 @@
             const leftGridX = Math.round(leftX / gridSize) * gridSize;
             const leftGridY = Math.round(leftY / gridSize) * gridSize;
 
+            console.log(`[224 DEBUG] Left statue: raw(${leftX}, ${leftY}) -> grid(${leftGridX}, ${leftGridY})`);
+
             positions.push({
                 x: leftGridX,
                 y: leftGridY,
@@ -372,6 +384,8 @@
 
             const rightGridX = Math.round(rightX / gridSize) * gridSize;
             const rightGridY = Math.round(rightY / gridSize) * gridSize;
+
+            console.log(`[224 DEBUG] Right statue: raw(${rightX}, ${rightY}) -> grid(${rightGridX}, ${rightGridY})`);
 
             positions.push({
                 x: rightGridX,
