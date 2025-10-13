@@ -50,7 +50,7 @@
 
         // Animations
         animations: {
-            statueAppear: "jb2a.nova.ice", // Nova de givre pour apparition
+            statueAppear: "jb2a_patreon.ice_spikes.radial.burst.white", // Nova de givre pour apparition
             iceBeam: "animated-spell-effects.ice.frost.beam.ray.01",
             jump: "animated-spell-effects-cartoon.air.puff.01",
             kick: "jb2a_patreon.unarmed_strike.physical.02.dark_red"
@@ -513,7 +513,9 @@
             sequence.effect()
                 .file(SPELL_CONFIG.animations.statueAppear)
                 .atLocation({ x: centerX, y: centerY })
-                .scale(0.6)
+                .scale(0.2)
+                .opacity(0.2)
+                .belowTokens(true)
                 .name(`statue-frost-${index}-${caster.id}`)
                 .zIndex(1001); // Au-dessus de la statue
         }
@@ -721,14 +723,14 @@
 
         // Section des jets des statues
         const statueSection = rollResults.statueRolls.map(statue =>
-            `<div style="font-size: 0.9em; margin: 2px 0;">
+            `<div style="font-size: 1.2em; margin: 2px 0;">
                 ${statue.position.name}: <strong>${statue.result}</strong>
             </div>`
         ).join('');
 
         // Info sur les esquives
         const dodgeInfo = rollResults.statueRolls.length > 1 ?
-            `<div style="font-size: 0.8em; color: #FFCCCC; margin-top: 4px;">
+            `<div style="font-size: 0.8em; color: #440000; margin-top: 4px;">
                 ⚠️ La cible perd 1d d'esquive pour chaque attaque de statue échouée
             </div>` : '';
 
