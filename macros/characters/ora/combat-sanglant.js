@@ -679,7 +679,6 @@
             sequence.effect()
                 .file(COMBAT_CONFIG.bloody.animations.jump)
                 .atLocation(originalPosition)
-                .stretchTo(jumpTarget)
                 .scale(0.8)
                 .delay(200);
 
