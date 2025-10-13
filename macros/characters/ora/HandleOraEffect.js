@@ -95,6 +95,82 @@
             // Configuration spéciale - pas d'animation persistante pour Cast DC
             hasSpecialRemoval: false
         },
+        "Syphon": {
+            name: "Syphon",
+            icon: "icons/magic/water/vortex-whirlpool-blue.webp",
+            flags: [
+                // Le Syphon track ses phases et extensions
+            ],
+            description: "Syphon de Grêle - Sort ultime multi-phases",
+            category: "custom",
+            increasable: true,
+            counterName: "Phase",
+            defaultValue: 1,
+            maxValue: 10, // Phase finale = 10
+            tags: ["increasable", "multi-phase"],
+            // Configuration spéciale pour la suppression
+            hasSpecialRemoval: true,
+            onRemoval: async (effect, actor) => {
+                // Callback pour arrêter toutes les animations persistantes lors de la suppression
+                try {
+                    if (typeof Sequencer !== "undefined") {
+                        // Arrêter toutes les animations possibles du Syphon
+                        const animationsToStop = [
+                            `SyphonGrele_Phase1_${actor.id}`,
+                            `SyphonGrele_Phase2_Zone_${actor.id}`,
+                            `SyphonGrele_Phase2_Particles_${actor.id}`,
+                            `SyphonGrele_Phase3_Zone_${actor.id}`,
+                            `SyphonGrele_Phase3_Particles_${actor.id}`,
+                            `SyphonGrele_Final_Zone_${actor.id}`,
+                            `SyphonGrele_Final_Particles_${actor.id}`,
+                            `SyphonGrele_Final_Syphon_${actor.id}`
+                        ];
+
+                        for (const animName of animationsToStop) {
+                            try {
+                                await Sequencer.EffectManager.endEffects({ name: animName });
+                            } catch (e) {
+                                // Ignorer les erreurs d'animations non trouvées
+                            }
+                        }
+                        console.log(`[HandleOraEffect] Stopped all Syphon de Grêle animations for ${actor.name}`);
+                    }
+                } catch (error) {
+                    console.warn(`[HandleOraEffect] Could not stop Syphon animations: ${error.message}`);
+                }
+            },
+            // Configuration spéciale pour affichage dynamique selon la phase
+            getDynamicDescription: (effect) => {
+                const phase = effect.flags?.world?.currentPhase || 1;
+                const radius = effect.flags?.world?.currentRadius || 4;
+                const extensions = effect.flags?.world?.extensions || 2;
+
+                const phaseNames = {
+                    1: "Initialisation",
+                    2: "Première Extension",
+                    3: "Extensions",
+                    4: "Activation Finale",
+                    "final": "Forme Finale"
+                };
+
+                const phaseName = phaseNames[phase] || `Phase ${phase}`;
+
+                if (phase === "final") {
+                    return `Syphon de Grêle - ${phaseName} (${radius} cases, ${extensions} extensions)`;
+                } else {
+                    return `Syphon de Grêle - ${phaseName} (${radius} cases)`;
+                }
+            },
+            // Configuration pour les données supplémentaires
+            getExtraData: (effect) => {
+                return {
+                    currentPhase: effect.flags?.world?.currentPhase || 1,
+                    currentRadius: effect.flags?.world?.currentRadius || 4,
+                    extensions: effect.flags?.world?.extensions || 2,
+                    finalRadius: effect.flags?.world?.finalRadius || null
+                };
+            }
+        },
         "DC": {
             name: "DC",
             icon: "icons/magic/control/voodoo-doll-pain-damage-red.webp",
