@@ -50,12 +50,12 @@
 
         // Animations
         animations: {
-            statueAppear: "jb2a_patreon.ice_spikes.radial.burst.white", // Nova de givre pour apparition
-            iceBeam: "animated-spell-effects.ice.frost.beam.ray.01",
-            iceImpact: "jb2a.impact.frost.blue.01", // Impact des rayons de glace
+            statueAppear: "jb2a.impact_themed.ice_shard.blue", // Nova de givre pour apparition
+            iceBeam: "jb2a.melee_generic.creature_attack.fist.002.blue.2",
+            iceImpact: "jb2a_patreon.shield_themed.below.ice.01.blue", // Impact des rayons de glace
             jump: "animated-spell-effects-cartoon.air.puff.01",
             kick: "jb2a_patreon.unarmed_strike.physical.02.blue",
-            finalImpact: "jb2a.impact.ground_crack.blue.01" // Impact final après le coup de pied
+            finalImpact: "jb2a_patreon.impact.ground_crack.blue.01" // Impact final après le coup de pied
         },
 
         // Configuration du ciblage
@@ -530,18 +530,17 @@
             sequence.effect()
                 .file(statueImage)
                 .atLocation({ x: centerX, y: centerY })
-                .scale(0.15) // Taille réduite pour correspondre à une statue
+                .scale(0.13) // Taille réduite pour correspondre à une statue
                 .fadeIn(500)
                 .fadeOut(500)
-                .duration(9000) // Durée prolongée pour couvrir les rayons de glace (1000ms apparition + 2000ms rayons + 1000ms buffer)
+                .duration(7000) // Durée prolongée pour couvrir les rayons de glace (1000ms apparition + 2000ms rayons + 1000ms buffer)
                 .name(`statue-${index}-${caster.id}`);
 
             // Animation d'explosion de glace (nova de givre)
             sequence.effect()
                 .file(SPELL_CONFIG.animations.statueAppear)
                 .atLocation({ x: centerX, y: centerY })
-                .scale(0.2)
-                .opacity(0.2)
+                .scale(0.6)
                 .name(`statue-frost-${index}-${caster.id}`)
                 .zIndex(1001); // Au-dessus de la statue
         }
@@ -602,7 +601,6 @@
         };
 
         // Phase 1: Rayons de glace des statues vers la cible
-        const iceBeamDuration = 1500; // Durée des rayons de glace
         for (const [index, position] of statuePositions.entries()) {
             const statueCenterX = position.x + (gridSize / 2);
             const statueCenterY = position.y + (gridSize / 2);
@@ -611,8 +609,7 @@
                 .file(SPELL_CONFIG.animations.iceBeam)
                 .atLocation({ x: statueCenterX, y: statueCenterY })
                 .stretchTo(targetCenter)
-                .scale(0.7)
-                .duration(iceBeamDuration)
+                .scale(0.6)
                 .delay(1000) // Après l'apparition des statues
                 .name(`ice-beam-${index}-${caster.id}`)
                 .zIndex(1002);
@@ -622,9 +619,11 @@
         sequence.effect()
             .file(SPELL_CONFIG.animations.iceImpact)
             .atLocation(targetCenter)
-            .scale(0.8)
+            .scale(0.4)
             .delay(1500) // 500ms après le début des ice beams
-            .duration(1000) // Se termine avec les rayons
+            .duration(5000) // Se termine avec les rayons
+            .fadeOut(500)
+            .fadeIn(500)
             .name(`ice-impact-${caster.id}`)
             .zIndex(1003);
 
@@ -638,14 +637,12 @@
             .zIndex(1004);
 
         // Phase 3: Coup de pied d'Ora vers la cible
-        const kickDuration = 800;
         sequence.effect()
             .file(SPELL_CONFIG.animations.kick)
             .atLocation(oraJumpCenter)
             .stretchTo(targetCenter)
-            .scale(0.9)
-            .duration(kickDuration)
-            .delay(3200) // Après le saut
+            .scale(1.2)
+            .delay(3500) // Après le saut
             .name(`ora-kick-${caster.id}`)
             .zIndex(1005);
 
@@ -654,8 +651,9 @@
             .file(SPELL_CONFIG.animations.finalImpact)
             .atLocation(targetCenter)
             .scale(1.0)
-            .delay(3600) // Légèrement après le début du kick
+            .delay(3900) // Légèrement après le début du kick
             .name(`final-impact-${caster.id}`)
+            .belowTokens()
             .zIndex(1006);
 
         try {
@@ -905,32 +903,6 @@
         }
     }
 
-    /**
-     * Applique l'effet de perte de défense jusqu'au prochain tour
-     */
-    async function applyDefenseLossEffect() {
-        try {
-            const effectData = {
-                name: SPELL_CONFIG.effects.defenseDebuff,
-                icon: "icons/svg/shield.svg",
-                description: "Ora ne peut pas se défendre jusqu'au prochain tour (sort 224)",
-                origin: actor.uuid,
-                duration: { rounds: 1 },
-                flags: {
-                    world: {
-                        spell224DefenseLoss: true
-                    }
-                }
-            };
-
-            await actor.createEmbeddedDocuments("ActiveEffect", [effectData]);
-            console.log("[224] Applied defense loss effect to Ora");
-            return true;
-        } catch (error) {
-            console.error("[224] Error applying defense loss effect:", error);
-            return false;
-        }
-    }
 
     // Appliquer les effets selon les résultats et la situation
     let statusMessage = "";
