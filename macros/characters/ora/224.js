@@ -148,26 +148,15 @@
     }
 
     /**
-     * Calcule le coût en mana basé sur la stance et le niveau de sort
+     * Calcule le coût en mana basé sur le nombre de statues (4 × X, non focusable)
      */
-    function calculateManaCost(stance, spellLevel) {
-        const baseCost = spellLevel;
-
-        switch (stance) {
-            case 'focus':
-                return Math.floor(baseCost * 0.5); // 50% de réduction
-            case 'offensif':
-            case 'defensif':
-                return baseCost; // Coût normal
-            default:
-                return baseCost; // Coût normal si pas de stance
-        }
+    function calculateManaCost(statueCount) {
+        return 4 * statueCount; // 4 mana par statue, non focusable
     }
 
     const currentStance = getCurrentStance(actor);
     const characteristicInfo = getCharacteristicValue(actor, SPELL_CONFIG.characteristic);
     const existing224Effect = check224Effect(actor);
-    const manaCost = calculateManaCost(currentStance, SPELL_CONFIG.spellLevel);
 
     // ===== DIALOG DE CONFIGURATION =====
     async function showConfigDialog() {
@@ -187,7 +176,7 @@
                     <div style="text-align: center; margin-bottom: 15px;">
                         <h3 style="margin: 0; color: #1565c0;">❄️ ${SPELL_CONFIG.name} - Sort de Glace</h3>
                         <p style="margin: 5px 0; color: #424242;"><strong>Lanceur:</strong> ${actor.name}</p>
-                        <p style="margin: 5px 0; color: #424242;"><strong>Niveau:</strong> ${SPELL_CONFIG.spellLevel} | <strong>Coût:</strong> ${manaCost} mana</p>
+                        <p style="margin: 5px 0; color: #424242;"><strong>Niveau:</strong> ${SPELL_CONFIG.spellLevel}</p>
                         ${currentStance ? `<p style="margin: 5px 0; color: #424242;"><strong>Position:</strong> ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)}</p>` : ''}
                     </div>
 
@@ -200,16 +189,21 @@
                         <div style="margin: 10px 0;">
                             <label style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer;">
                                 <input type="radio" name="statueCount" value="1" checked style="margin-right: 8px;">
-                                <span><strong>1 Statue</strong> - Derrière la cible | Jet de risque : 1d2</span>
+                                <span><strong>1 Statue</strong> - Derrière la cible | Coût: 4 mana | Jet de risque : 1d2</span>
                             </label>
                             <label style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer;">
                                 <input type="radio" name="statueCount" value="2" style="margin-right: 8px;">
-                                <span><strong>2 Statues</strong> - Derrière + Gauche | Jet de risque : 1d3</span>
+                                <span><strong>2 Statues</strong> - Derrière + Gauche | Coût: 8 mana | Jet de risque : 1d3</span>
                             </label>
                             <label style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer;">
                                 <input type="radio" name="statueCount" value="3" style="margin-right: 8px;">
-                                <span><strong>3 Statues</strong> - Derrière + Gauche + Droite | Jet de risque : 1d4</span>
+                                <span><strong>3 Statues</strong> - Derrière + Gauche + Droite | Coût: 12 mana | Jet de risque : 1d4</span>
                             </label>
+                        </div>
+
+                        <div style="margin: 10px 0; padding: 8px; background: rgba(255,152,0,0.1); border-radius: 4px; border: 1px solid #ff9800;">
+                            <strong>💰 Coût du sort :</strong> 4 mana × nombre de statues (NON FOCUSABLE)
+                            <br><small style="color: #e65100;">⚠️ Ce sort ne bénéficie d'aucune réduction de coût, quelle que soit la stance</small>
                         </div>
                     </div>
 
@@ -222,7 +216,7 @@
                         <h4 style="margin-top: 0; color: #f57c00;">⚠️ Mécaniques du Sort</h4>
                         <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9em;">
                             <li><strong>Jets d'attaque séparés</strong> pour chaque statue (Esprit sans bonus)</li>
-                            <li><strong>Jet principal d'Ora</strong> (Esprit + niveau 3)</li>
+                            <li><strong>Jet principal d'Ora</strong> (Esprit + niveau 6)</li>
                             <li><strong>Dégâts :</strong> 1d8 + Xd6 + Esprit + (X×Esprit/2)</li>
                             <li><strong>Jet de risque :</strong> 1d(X+1) - Échec sur résultat "1"</li>
                             <li><strong>Conséquences :</strong> Perte défense/tour selon résultat</li>
@@ -262,6 +256,9 @@
 
     const { statueCount } = configResult;
 
+    // Calculer le coût de mana basé sur le nombre de statues
+    const manaCost = calculateManaCost(statueCount);
+
     // ===== CIBLAGE PRINCIPAL =====
     let target;
     try {
@@ -295,9 +292,12 @@
             y: casterPos.y + (gridSize / 2)
         };
 
+        // Aligner targetPos sur la grille et centrer (comme dans nuages-dombre.js)
+        const targetGridX = Math.floor(targetPos.x / gridSize) * gridSize;
+        const targetGridY = Math.floor(targetPos.y / gridSize) * gridSize;
         const targetCenter = {
-            x: targetPos.x + (gridSize / 2),
-            y: targetPos.y + (gridSize / 2)
+            x: targetGridX + (gridSize / 2),
+            y: targetGridY + (gridSize / 2)
         };
 
         // Calculer le vecteur directionnel de Ora vers la cible
@@ -386,9 +386,12 @@
             y: casterPos.y + (gridSize / 2)
         };
 
+        // Aligner targetPos sur la grille et centrer (comme dans nuages-dombre.js)
+        const targetGridX = Math.floor(targetPos.x / gridSize) * gridSize;
+        const targetGridY = Math.floor(targetPos.y / gridSize) * gridSize;
         const targetCenter = {
-            x: targetPos.x + (gridSize / 2),
-            y: targetPos.y + (gridSize / 2)
+            x: targetGridX + (gridSize / 2),
+            y: targetGridY + (gridSize / 2)
         };
 
         // Calculer le vecteur directionnel de Ora vers la cible
@@ -537,10 +540,12 @@
         const sequence = new Sequence();
         const gridSize = canvas.grid.size;
 
-        // Position centrale de la cible
+        // Position centrale de la cible (aligner sur grille comme nuages-dombre.js)
+        const targetGridX = Math.floor(target.x / gridSize) * gridSize;
+        const targetGridY = Math.floor(target.y / gridSize) * gridSize;
         const targetCenter = {
-            x: target.x + (gridSize / 2),
-            y: target.y + (gridSize / 2)
+            x: targetGridX + (gridSize / 2),
+            y: targetGridY + (gridSize / 2)
         };
 
         // Position centrale de la position de saut d'Ora
@@ -658,8 +663,9 @@
             });
         }
 
-        // Jet d'attaque principal d'Ora (Esprit + niveau de sort)
-        const oraAttackRoll = new Roll(`${characteristicInfo.final}d7 + ${SPELL_CONFIG.spellLevel}`);
+        // Jet d'attaque principal d'Ora (Esprit + niveau de sort x2)
+        const levelBonus = 2 * SPELL_CONFIG.spellLevel;
+        const oraAttackRoll = new Roll(`${characteristicInfo.final}d7 + ${levelBonus}`);
         await oraAttackRoll.evaluate({ async: true });
 
         // Calcul des dégâts d'Ora: 1d8 + Xd6 + Esprit + (X*Esprit/2)
@@ -731,7 +737,7 @@
                 <div style="text-align: center; margin-bottom: 8px;">
                     <h3 style="margin: 0; color: #1565c0;">❄️ ${SPELL_CONFIG.name} - Sort de Glace</h3>
                     <div style="margin-top: 3px; font-size: 0.9em; color: #424242;">
-                        <strong>Lanceur:</strong> ${actor.name} | <strong>Niveau:</strong> ${SPELL_CONFIG.spellLevel} | <strong>Coût:</strong> ${manaCost} mana
+                        <strong>Lanceur:</strong> ${actor.name} | <strong>Niveau:</strong> ${SPELL_CONFIG.spellLevel} | <strong>Coût:</strong> ${manaCost} mana (4×${statueCount}, NON FOCUSABLE)
                         ${currentStance ? ` | <strong>Position:</strong> ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)}` : ''}
                     </div>
                 </div>
@@ -745,7 +751,7 @@
 
                 <div style="text-align: center; margin: 8px 0; padding: 10px; background: rgba(255,255,255,0.3); border-radius: 4px;">
                     <div style="font-size: 1.4em; color: #1565c0; font-weight: bold;">🎯 ATTAQUE D'ORA: ${rollResults.oraAttackRoll.total}</div>
-                    <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${characteristicInfo.final}d7 + ${SPELL_CONFIG.spellLevel})</div>
+                    <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${characteristicInfo.final}d7 + ${2 * SPELL_CONFIG.spellLevel})</div>
                 </div>
 
                 <div style="text-align: center; margin: 8px 0; padding: 10px; background: rgba(21,101,192,0.2); border-radius: 4px;">
@@ -781,7 +787,8 @@
     });
 
     // Ajouter le jet d'attaque d'Ora
-    combinedRollParts.push(`${characteristicInfo.final}d7 + ${SPELL_CONFIG.spellLevel}`);
+    const levelBonus = 2 * SPELL_CONFIG.spellLevel;
+    combinedRollParts.push(`${characteristicInfo.final}d7 + ${levelBonus}`);
 
     // Ajouter les dégâts si pas en stance offensive
     if (currentStance !== 'offensif') {
