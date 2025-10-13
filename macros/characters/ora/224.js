@@ -52,8 +52,10 @@
         animations: {
             statueAppear: "jb2a_patreon.ice_spikes.radial.burst.white", // Nova de givre pour apparition
             iceBeam: "animated-spell-effects.ice.frost.beam.ray.01",
+            iceImpact: "jb2a.impact.frost.blue.01", // Impact des rayons de glace
             jump: "animated-spell-effects-cartoon.air.puff.01",
-            kick: "jb2a_patreon.unarmed_strike.physical.02.blue"
+            kick: "jb2a_patreon.unarmed_strike.physical.02.blue",
+            finalImpact: "jb2a.impact.ground_crack.blue.01" // Impact final après le coup de pied
         },
 
         // Configuration du ciblage
@@ -618,7 +620,7 @@
 
         // Impact des rayons de glace (une seule animation centrée sur la cible)
         sequence.effect()
-            .file("jb2a.impact.frost.blue.01") // Animation d'impact de glace
+            .file(SPELL_CONFIG.animations.iceImpact)
             .atLocation(targetCenter)
             .scale(0.8)
             .delay(1500) // 500ms après le début des ice beams
@@ -649,7 +651,7 @@
 
         // Impact final après le coup de pied
         sequence.effect()
-            .file("jb2a.impact.ground_crack.blue.01") // Animation d'impact final
+            .file(SPELL_CONFIG.animations.finalImpact)
             .atLocation(targetCenter)
             .scale(1.0)
             .delay(3600) // Légèrement après le début du kick
