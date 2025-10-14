@@ -79,7 +79,7 @@
         animations: {
             phase1: "jb2a_patreon.spirit_guardians.blue.particles", // Zone initiale
             phase2Particles: "jb2a_patreon.spirit_guardians.blue.spirits", // Particules ajoutées
-            syphonCenter: "jb2a_patreon.spirit_guardians.blue.spirits", // Animation centrale rotée
+            syphonCenter: "jb2a_patreon.spirit_guardians.blue.ring", // Animation centrale rotée
             impact: "animated-spell-effects-cartoon.water.water impact",
             cast: "jb2a.water_splash.circle.01.blue"
         },
@@ -101,7 +101,7 @@
                     extensions: 2, // Nombre base d'extensions (Phase 1 + Phase 2)
                     increasable: true
                 },
-                statuscounter: { value: 1 }
+                statuscounter: { value: 1, visible : true}
             },
             changes: [],
             tint: "#4169e1",
@@ -339,12 +339,12 @@
         sequence.effect()
             .file(SPELL_CONFIG.animations.phase1)
             .attachTo(caster)
-            .scale(radius * 0.4) // Échelle proportionnelle au rayon
+            .scale(radius * 0.35) // Échelle proportionnelle au rayon
             .fadeIn(1000)
             .persist(true)
             .name(`SyphonGrele_Phase1_${actorId}`)
             .belowTokens(true)
-            .opacity(1);
+            .opacity(0.7);
 
         await sequence.play();
     }
@@ -548,23 +548,23 @@
         extensionSequence.effect()
             .file(SPELL_CONFIG.animations.phase1)
             .attachTo(caster)
-            .scale(phase2Radius * 0.25) // Nouvelle échelle pour 6 cases
+            .scale(phase2Radius * 0.35) // Nouvelle échelle pour 6 cases
             .fadeIn(1000)
             .persist(true)
             .name(`SyphonGrele_Phase2_Zone_${actor.id}`)
             .belowTokens(true)
-            .opacity(0.15);
+            .opacity(0.7);
 
         // Ajout de l'animation de particules
         extensionSequence.effect()
             .file(SPELL_CONFIG.animations.phase2Particles)
             .attachTo(caster)
-            .scale(phase2Radius * 0.25)
+            .scale(phase2Radius * 0.35)
             .fadeIn(1000)
             .persist(true)
             .name(`SyphonGrele_Phase2_Particles_${actor.id}`)
             .belowTokens(false)
-            .opacity(0.2);
+            .opacity(0.5);
 
         await extensionSequence.play();
 
@@ -573,6 +573,7 @@
             "flags.world.currentPhase": 2,
             "flags.world.currentRadius": phase2Radius,
             "flags.statuscounter.value": 2,
+            "flags.statuscounter.visible": true,
             "description": `Syphon de Grêle - Première Extension (${phase2Radius} cases)`
         });
 
@@ -737,22 +738,22 @@
             extensionSequence.effect()
                 .file(SPELL_CONFIG.animations.phase1)
                 .attachTo(caster)
-                .scale(newRadius * 0.25) // Nouvelle échelle étendue
+                .scale(newRadius * 0.35) // Nouvelle échelle étendue
                 .fadeIn(1000)
                 .persist(true)
                 .name(`SyphonGrele_Phase3_Zone_${actor.id}`)
                 .belowTokens(true)
-                .opacity(0.15);
+                .opacity(0.7);
 
             extensionSequence.effect()
                 .file(SPELL_CONFIG.animations.phase2Particles)
                 .attachTo(caster)
-                .scale(newRadius * 0.25)
+                .scale(newRadius * 0.35)
                 .fadeIn(1000)
                 .persist(true)
                 .name(`SyphonGrele_Phase3_Particles_${actor.id}`)
-                .belowTokens(false)
-                .opacity(0.2);
+                .belowTokens(true)
+                .opacity(0.4);
 
             await extensionSequence.play();
 
@@ -762,6 +763,7 @@
                 "flags.world.currentRadius": newRadius,
                 "flags.world.extensions": newExtensions,
                 "flags.statuscounter.value": 3,
+                "flags.statuscounter.visible": true,
                 "description": `Syphon de Grêle - Extension ${newExtensions} (${newRadius} cases)`
             });
 
@@ -841,6 +843,7 @@
             await syphonEffect.update({
                 "flags.world.currentPhase": 4,
                 "flags.statuscounter.value": 4,
+                "flags.statuscounter.visible": true,
                 "description": `Syphon de Grêle - Transition vers Forme Finale`
             });
 
@@ -940,34 +943,34 @@
             finalSequence.effect()
                 .file(SPELL_CONFIG.animations.phase1)
                 .attachTo(caster)
-                .scale(finalRadius * 0.25)
+                .scale(finalRadius * 0.35)
                 .fadeIn(2000)
                 .persist(true)
                 .name(`SyphonGrele_Final_Zone_${actor.id}`)
                 .belowTokens(true)
-                .opacity(0.1);
+                .opacity(0.7);
 
             // Animation de particules
             finalSequence.effect()
                 .file(SPELL_CONFIG.animations.phase2Particles)
                 .attachTo(caster)
-                .scale(finalRadius * 0.25)
+                .scale(finalRadius * 0.35)
                 .fadeIn(2000)
                 .persist(true)
                 .name(`SyphonGrele_Final_Particles_${actor.id}`)
-                .belowTokens(false)
-                .opacity(0.15);
+                .belowTokens(true)
+                .opacity(0.4);
 
             // Animation du syphon central (rotation 180°)
             finalSequence.effect()
                 .file(SPELL_CONFIG.animations.syphonCenter)
                 .attachTo(caster)
-                .scale(1.2)
+                .scale(finalRadius * 0.35)
                 .fadeIn(2000)
                 .persist(true)
                 .name(`SyphonGrele_Final_Syphon_${actor.id}`)
-                .belowTokens(false)
-                .opacity(0.6)
+                .belowTokens(true)
+                .opacity(0.4)
                 .rotate(180); // Rotation de 180°
 
             await finalSequence.play();
@@ -976,7 +979,8 @@
             await syphonEffect.update({
                 "flags.world.currentPhase": "final",
                 "flags.world.finalRadius": finalRadius,
-                "flags.statuscounter.value": 10, // Valeur spéciale pour phase finale
+                "flags.statuscounter.value": 10,
+                "flags.statuscounter.visible": true,
                 "description": `Syphon de Grêle - Forme Finale (${finalRadius} cases, ${extensions} extensions)`
             });
 
@@ -1222,7 +1226,7 @@
                     .fadeIn(1500)
                     .persist(true)
                     .name(`SyphonGrele_Final_Particles_${actor.id}`)
-                    .belowTokens(false)
+                    .belowTokens(true)
                     .opacity(0.15);
 
                 extendedSequence.effect()
@@ -1232,7 +1236,7 @@
                     .fadeIn(1500)
                     .persist(true)
                     .name(`SyphonGrele_Final_Syphon_${actor.id}`)
-                    .belowTokens(false)
+                    .belowTokens(true)
                     .opacity(0.7)
                     .rotate(180);
 
