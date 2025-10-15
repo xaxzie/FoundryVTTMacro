@@ -20,6 +20,25 @@
             description: "Bonus de +3 aux dégâts",
             category: "custom",
             increasable: false
+        },
+        "Ailes de papillion": {
+            name: "Ailes de papillon",
+            icon: "icons/creatures/abilities/wing-batlike-white-blue.webp",
+            flags: [
+                { key: "movement", value: 6 }
+            ],
+            description: "Yunyun peut voler",
+            category: "custom",
+            increasable: false,
+            hasAnimation: true,
+            animation: {
+                effectFile: "worlds/ft/OBJET/Les WEBM/WingPapillion.webm",
+                persistent: true,
+                scale: 0.6,
+                belowTokens: true,
+                opacity: 0.9,
+                sequencerName: "MocteiSuperiorWings",
+            }
         }
 
         // TODO: Add more Yunyun-specific water magic effects here
@@ -301,6 +320,10 @@
                 // Apply opacity if specified
                 if (animConfig.opacity !== undefined) {
                     effect.opacity(animConfig.opacity);
+                }
+
+                if (animConfig.belowTokens !== undefined) {
+                    effect.belowTokens(animConfig.belowTokens);
                 }
 
                 await seq.play();

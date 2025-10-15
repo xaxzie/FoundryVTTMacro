@@ -77,6 +77,38 @@
                 const slowdown = effect.flags?.world?.slowdownAmount || 1;
                 return `Ralentissement: ${slowdown} case${slowdown > 1 ? 's' : ''} de déplacement`;
             }
+        },
+        "Mur de Pierre": {
+            displayName: "Mur de Pierre",
+            icon: "icons/magic/earth/projectile-stone-landslide.webp",
+            description: "Mur de pierre créé par Yunyun",
+            sectionTitle: "🧱 Murs de Pierre",
+            sectionIcon: "🧱",
+            cssClass: "mur-de-pierre-effect",
+            borderColor: "#8d6e63",
+            bgColor: "#efebe9",
+            detectFlags: [
+                { path: "name", matchValue: "Mur de Pierre" },
+                { path: "flags.world.yunyunCaster", matchValue: "CASTER_ID" }
+            ],
+            mechanicType: "persistentWall",
+            cleanup: {
+                sequencerPatterns: ["mur_de_pierre_yunyun_wall"]
+            },
+            getExtraData: (effect) => ({
+                wallHitPoints: effect.flags?.world?.wallHitPoints || 0,
+                sourceSpell: "Mur de Pierre",
+                position: effect.flags?.world?.wallPosition || { gridX: 0, gridY: 0 },
+                sequencerName: effect.flags?.world?.sequencerName || ""
+            }),
+            getDynamicDescription: (effect) => {
+                const hitPoints = effect.flags?.world?.wallHitPoints || 0;
+                const pos = effect.flags?.world?.wallPosition || { gridX: 0, gridY: 0 };
+                const dimensions = effect.flags?.world?.wallDimensions || { length: 2, width: 1 };
+                const rotation = effect.flags?.world?.wallRotation || 0;
+                const rotationText = rotation === 90 ? ' Vert.' : rotation === 0 ? ' Hor.' : ` ${rotation}°`;
+                return `PV: ${hitPoints} | Taille: ${dimensions.length}×${dimensions.width}${rotationText} | Pos: (${pos.gridX}, ${pos.gridY})`;
+            }
         }
         // Futurs effets seront ajoutés ici quand de nouveaux sorts sont créés
     };
@@ -428,9 +460,17 @@
                     if (config.cleanup.sequencerPatterns) {
                         for (const pattern of config.cleanup.sequencerPatterns) {
                             try {
-                                await Sequencer.EffectManager.endEffects({ name: pattern });
-                                results.sequencerCleaned.push(pattern);
-                                console.log(`[DEBUG] Cleaned Sequencer pattern: ${pattern}`);
+                                // Pour les murs, utiliser le nom spécifique s'il est disponible
+                                if (effectData.extraData && effectData.extraData.sequencerName) {
+                                    await Sequencer.EffectManager.endEffects({ name: effectData.extraData.sequencerName });
+                                    results.sequencerCleaned.push(effectData.extraData.sequencerName);
+                                    console.log(`[DEBUG] Cleaned specific Sequencer effect: ${effectData.extraData.sequencerName}`);
+                                } else {
+                                    // Fallback vers le pattern générique
+                                    await Sequencer.EffectManager.endEffects({ name: pattern });
+                                    results.sequencerCleaned.push(pattern);
+                                    console.log(`[DEBUG] Cleaned Sequencer pattern: ${pattern}`);
+                                }
                             } catch (seqError) {
                                 console.error(`[DEBUG] Failed to clean Sequencer pattern ${pattern}:`, seqError);
                             }
