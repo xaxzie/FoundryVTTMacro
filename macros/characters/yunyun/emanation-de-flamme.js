@@ -39,7 +39,7 @@
             ligne: {
                 name: "Ligne",
                 description: "Ligne droite depuis Yunyun dans la direction choisie",
-                maxRange: 6, // cases
+                maxRange: 12, // cases
                 width: 1 // largeur en cases
             },
             cone: {
@@ -51,12 +51,12 @@
         },
         animations: {
             ligne: {
-                flame: "jb2a.breath_weapons02.fire.line.orange",
-                cast: "jb2a.cast_generic.02.orange.0"
+                flame: "jb2a_patreon.breath_weapons.fire.line.orange",
+                cast: "jb2a.cast_generic.fire.01.orange.0"
             },
             cone: {
-                flame: "jb2a.breath_weapons.fire.cone.orange.02",
-                cast: "jb2a.cast_generic.02.red.0"
+                flame: "jb2a_patreon.breath_weapons.fire.cone.orange.01",
+                cast: "jb2a.cast_generic.fire.01.orange.0"
             },
             sound: null
         },
@@ -99,21 +99,20 @@
      * @param {string} flagKey - The flag key to look for (e.g., "damage", "charisme")
      * @returns {number} Total bonus from all matching active effects
      */
-    function getActiveEffectBonus(actor, flagKey) {
+  function getActiveEffectBonus(actor, flagKey) {
         if (!actor?.effects) return 0;
 
         let totalBonus = 0;
 
         for (const effect of actor.effects.contents) {
-            if (!effect.flags?.world) continue;
-
-            for (const [key, value] of Object.entries(effect.flags.world)) {
-                if (key === flagKey && typeof value === 'number') {
-                    totalBonus += value;
-                }
+            const flagValue = effect.flags?.[flagKey]?.value;
+            if (typeof flagValue === 'number') {
+                totalBonus += flagValue;
+                console.log(`[DEBUG] Active effect "${effect.name}" provides ${flagKey} bonus: ${flagValue}`);
             }
         }
 
+        console.log(`[DEBUG] Total ${flagKey} bonus from active effects: ${totalBonus}`);
         return totalBonus;
     }
 
@@ -291,19 +290,20 @@
      * @returns {Object|null} Target coordinates for direction or null if cancelled
      */
     async function selectDirection() {
+        ui.notifications.info(`🎯 Sélectionnez la direction pour ${SPELL_CONFIG.name} - ${modeConfig.name}...`);
+
         try {
             const targetColor = selectedMode === 'ligne' ? SPELL_CONFIG.targeting.colorLigne : SPELL_CONFIG.targeting.colorCone;
             const targetTexture = selectedMode === 'ligne' ? SPELL_CONFIG.targeting.textureLigne : SPELL_CONFIG.targeting.textureCone;
 
-            const crosshairs = await portal.crosshairs.show({
-                size: canvas.grid.size / 2,
-                icon: targetTexture,
-                label: `${SPELL_CONFIG.name} - ${modeConfig.name} (Direction)`,
-                borderColor: targetColor,
-                fillAlpha: 0.25,
-                interval: -1
-            });
-            return crosshairs;
+            const portal = new Portal()
+                .origin(caster)
+                .range(SPELL_CONFIG.targeting.range)
+                .color(targetColor)
+                .texture(targetTexture);
+
+            const target = await portal.pick();
+            return target;
         } catch (error) {
             console.error("[DEBUG] Portal targeting error:", error);
             ui.notifications.error("❌ Erreur lors du ciblage. Vérifiez que le module Portal est installé et actif.");
@@ -466,7 +466,6 @@
                     .file(animations.cast)
                     .attachTo(caster)
                     .scale(0.8)
-                    .waitUntilFinished(-500);
 
             if (selectedMode === 'ligne') {
                 // Line animation from caster towards direction
@@ -484,7 +483,32 @@
                     .file(animations.flame)
                     .attachTo(caster)
                     .rotateTowards({ x: direction.x, y: direction.y })
-                    .scale(0.6);
+                    .scale(0.8);
+
+                    sequence.effect()
+                    .file(animations.flame)
+                    .attachTo(caster)
+                    .rotateTowards({ x: direction.x, y: direction.y })
+                    .scale(0.8)
+                    .rotate(-30);
+                    sequence.effect()
+                    .file(animations.flame)
+                    .attachTo(caster)
+                    .rotateTowards({ x: direction.x, y: direction.y })
+                    .scale(0.8)
+                    .rotate(30);
+                     sequence.effect()
+                    .file(animations.flame)
+                    .attachTo(caster)
+                    .rotateTowards({ x: direction.x, y: direction.y })
+                    .scale(0.8)
+                    .rotate(-15);
+                    sequence.effect()
+                    .file(animations.flame)
+                    .attachTo(caster)
+                    .rotateTowards({ x: direction.x, y: direction.y })
+                    .scale(0.8)
+                    .rotate(15);
             }
 
             await sequence.play();
@@ -533,40 +557,44 @@
 
     // Build enhanced flavor for the final dice roll message
     function createChatFlavor() {
-        const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
+        const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
+        const modeIcon = selectedMode === 'ligne' ? "🔥" : "🌋";
+        const borderColor = selectedMode === 'ligne' ? '#ff6b35' : '#ff4500';
+        const bgGradient = selectedMode === 'ligne'
+            ? "linear-gradient(135deg, #ffebee, #fff3e0)"
+            : "linear-gradient(135deg, #fff3e0, #ffcc80)";
+
         const targetNames = flameTargets.map(t => t.name).join(', ');
         const zoneDescription = selectedMode === 'ligne'
             ? `Ligne ${modeConfig.maxRange} cases`
             : `Cône ${modeConfig.angle}° sur ${modeConfig.maxRange} cases`;
 
+        const actualManaCostDisplay = actualManaCost === 0
+            ? 'GRATUIT (Position Focus)'
+            : `${actualManaCost} mana`;
+
         return `
-        <div style="background: linear-gradient(135deg, #ffebee, #fff3e0); padding: 12px; border-radius: 8px; border: 2px solid ${selectedMode === 'ligne' ? '#ff6b35' : '#ff4500'};">
-            <div style="text-align: center; margin-bottom: 10px;">
-                <h3 style="color: ${selectedMode === 'ligne' ? '#bf360c' : '#d84315'}; margin: 0;">🔥 ${SPELL_CONFIG.name} - ${modeConfig.name} 🔥</h3>
-                <div style="color: #666; font-size: 0.9em;">Lanceur: <strong>${actor.name}</strong>${stanceInfo}</div>
-                <div style="color: #666; font-size: 0.85em; margin-top: 5px;">Cibles (${flameTargets.length}): ${targetNames}</div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 10px 0;">
-                <div style="background: rgba(76, 175, 80, 0.1); padding: 8px; border-radius: 5px; text-align: center;">
-                    <strong>Niveau ${SPELL_CONFIG.spellLevel}</strong><br>
-                    <span style="font-size: 0.85em;">Bonus Hit: +${levelBonus}</span>
+            <div style="background: ${bgGradient}; padding: 12px; border-radius: 8px; border: 2px solid ${borderColor}; margin: 8px 0;">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; color: #1976d2;">${modeIcon} Sort de ${SPELL_CONFIG.name} - ${modeConfig.name}</h3>
+                    <div style="margin-top: 3px; font-size: 0.9em;">
+                        <strong>Personnage:</strong> ${actor.name} | <strong>Coût:</strong> ${actualManaCostDisplay}
+                    </div>
                 </div>
-                <div style="background: rgba(255, 152, 0, 0.1); padding: 8px; border-radius: 5px; text-align: center;">
-                    <strong>${actualManaCost} mana</strong><br>
-                    <span style="font-size: 0.85em;">${actualManaCost === 0 ? 'Gratuit (Focus)' : 'Coût normal'}</span>
+                <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff3e0; border-radius: 4px;">
+                    <div style="font-size: 1.4em; color: #e65100; font-weight: bold;">🎯 ATTAQUE: ${attackResult.result}</div>
                 </div>
-                <div style="background: rgba(244, 67, 54, 0.1); padding: 8px; border-radius: 5px; text-align: center;">
-                    <strong>${zoneDescription}</strong><br>
-                    <span style="font-size: 0.85em;">Zone d'effet</span>
+                <div style="text-align: center; margin: 8px 0; padding: 10px; background: #ffebee; border-radius: 4px;">
+                    <div style="font-size: 1.1em; color: #c62828; margin-bottom: 6px;"><strong>${modeIcon} ${modeConfig.name}${stanceNote}</strong></div>
+                    <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cibles (${flameTargets.length}):</strong> ${targetNames}</div>
+                    <div style="font-size: 1.4em; color: #d32f2f; font-weight: bold;">💥 DÉGÂTS: ${finalDamageResult.total}</div>
+                    <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${SPELL_CONFIG.damageFormula} + ${damageResult.totalBonus})</div>
+                </div>
+                <div style="text-align: center; margin: 6px 0; padding: 6px; background: #f0f4ff; border-radius: 4px;">
+                    <div style="font-size: 0.9em; color: #1976d2;"><strong>🎯 Zone:</strong> ${zoneDescription} • <strong>✨ Niveau:</strong> ${SPELL_CONFIG.spellLevel}</div>
                 </div>
             </div>
-
-            <div style="background: rgba(33, 150, 243, 0.1); padding: 8px; border-radius: 5px; margin: 10px 0;">
-                <div><strong>Attaque:</strong> ${totalAttackDice}d7 + ${levelBonus}${attackBonus > 0 ? ` + ${attackBonus}` : ''} = <span style="color: #1976d2; font-weight: bold;">${attackResult.result}</span></div>
-                <div><strong>Dégâts:</strong> ${SPELL_CONFIG.damageFormula} + ${damageResult.totalBonus} = <span style="color: #d32f2f; font-weight: bold;">${finalDamageResult.total}</span></div>
-            </div>
-        </div>`;
+        `;
     }
 
     const enhancedFlavor = createChatFlavor();

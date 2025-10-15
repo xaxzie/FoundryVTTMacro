@@ -57,7 +57,7 @@
     const EFFECT_CONFIG = {
         "Sol Ramoli": {
             displayName: "Sol Ramoli",
-            icon: "icons/magic/earth/barrier-stone-brown.webp",
+            icon: "icons/magic/earth/projectile-stone-landslide.webp",
             description: "Sol ramolli par Yunyun (ralentissement de déplacement)",
             sectionTitle: "🌍 Sol Ramoli",
             sectionIcon: "🌍",
@@ -68,10 +68,6 @@
                 { path: "name", matchValue: "Sol Ramoli" },
                 { path: "flags.world.yunyunCaster", matchValue: "CASTER_ID" }
             ],
-            cleanup: {
-                sequencerPatterns: ["ramollissement_yunyun_zone_*"],
-                utilityFunction: "YunyunRamollissementUtils.endSpell"
-            },
             mechanicType: "slowdown",
             getExtraData: (effect) => ({
                 slowdownAmount: effect.flags?.world?.slowdownAmount || 1,
@@ -103,6 +99,19 @@
             register: registerYunyunEffect,
             getConfig: () => EFFECT_CONFIG
         };
+    }
+
+    // ===== FONCTION DE DÉLÉGATION GM =====
+    /**
+     * Supprime un effet avec délégation GM si nécessaire
+     * @param {Actor} targetActor - L'acteur cible
+     * @param {string} effectId - L'ID de l'effet à supprimer
+     */
+    async function removeEffectWithGMDelegation(targetActor, effectId) {
+        if (!globalThis.gmSocket) {
+            return { success: false, error: "GM Socket non disponible" };
+        }
+        return await globalThis.gmSocket.executeAsGM("removeEffectFromActor", targetActor.id, effectId);
     }
 
     // ===== VALIDATION BASIQUE =====
@@ -392,12 +401,26 @@
             try {
                 // Supprimer l'effet d'acteur (si présent)
                 if (effectData.effect) {
-                    await effectData.effect.delete();
+                    const targetActor = effectData.token.actor;
+                    if (targetActor.isOwner) {
+                        // Le joueur possède l'acteur, suppression directe
+                        await effectData.effect.delete();
+                        console.log(`[DEBUG] Removed ${config.displayName} from ${effectData.token.name}`);
+                    } else {
+                        // Délégation GM nécessaire
+                        const result = await removeEffectWithGMDelegation(targetActor, effectData.effect.id);
+                        if (result.success) {
+                            console.log(`[DEBUG] Removed effect via GM: ${config.displayName} from ${effectData.token.name}`);
+                        } else {
+                            console.error(`[DEBUG] Failed to remove effect via GM: ${result.error}`);
+                            throw new Error(`GM delegation failed: ${result.error}`);
+                        }
+                    }
+
                     results.removed.push({
                         name: config.displayName,
                         target: effectData.token.name
                     });
-                    console.log(`[DEBUG] Removed ${config.displayName} from ${effectData.token.name}`);
                 }
 
                 // Nettoyer les animations Sequencer

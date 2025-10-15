@@ -356,6 +356,50 @@ new Sequence()
   .play();
 ```
 
+### ⚠️ CRITICAL: Portal API Compatibility
+
+**🚨 NEVER USE `portal.crosshairs.show()` - Use Portal Constructor**
+
+The deprecated `portal.crosshairs.show()` method fails to open crosshairs properly in newer Portal versions, causing targeting to fail silently.
+
+**❌ INCORRECT - Deprecated API:**
+
+```javascript
+// ❌ BAD: Crosshairs won't open properly
+const crosshairs = await portal.crosshairs.show({
+  size: canvas.grid.size,
+  icon: "icons/magic/fire/fireball.webp",
+  label: "Spell Target",
+  borderColor: "#ff6400",
+  fillAlpha: 0.25,
+  interval: -1,
+});
+```
+
+**✅ CORRECT - Current Portal API:**
+
+```javascript
+// ✅ GOOD: Proper Portal constructor pattern
+const portal = new Portal()
+  .origin(caster) // Set caster as origin
+  .range(SPELL_CONFIG.targeting.range) // Set targeting range
+  .color("#ff6400") // Set crosshair color
+  .texture("icons/magic/fire/fireball.webp"); // Set crosshair texture
+
+const target = await portal.pick(); // Use pick() method
+if (!target) {
+  ui.notifications.info("❌ Ciblage annulé.");
+  return;
+}
+```
+
+**Key Benefits:**
+
+- Crosshairs display correctly
+- Proper range validation
+- Better error handling
+- Consistent user experience
+
 ### Performance Optimization
 
 ```javascript

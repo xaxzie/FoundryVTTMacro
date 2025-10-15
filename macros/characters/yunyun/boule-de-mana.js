@@ -51,14 +51,14 @@
         },
         animations: {
             simple: {
-                projectile: "jb2a.magic_missile.02.blue",
-                impact: "jb2a.impact.010.blue",
-                cast: "jb2a.cast_generic.02.blue.0"
+                projectile: "jb2a_patreon.magic_missile.blue",
+                impact: "animated-spell-effects-cartoon.energy.04",
+                cast: "animated-spell-effects-cartoon.energy.10"
             },
             lourde: {
-                projectile: "jb2a.magic_missile.02.purple",
-                impact: "jb2a.explosion.02.purple",
-                cast: "jb2a.cast_generic.02.purple.0"
+                projectile: "jb2a.ranged.03.projectile.01.bluegreen",
+                impact: "animated-spell-effects-cartoon.energy.04",
+                cast: "animated-spell-effects-cartoon.energy.10"
             },
             sound: null
         },
@@ -102,24 +102,22 @@
      * @param {string} flagKey - The flag key to look for (e.g., "damage", "charisme")
      * @returns {number} Total bonus from all matching active effects
      */
-    function getActiveEffectBonus(actor, flagKey) {
+  function getActiveEffectBonus(actor, flagKey) {
         if (!actor?.effects) return 0;
 
         let totalBonus = 0;
 
         for (const effect of actor.effects.contents) {
-            if (!effect.flags?.world) continue;
-
-            for (const [key, value] of Object.entries(effect.flags.world)) {
-                if (key === flagKey && typeof value === 'number') {
-                    totalBonus += value;
-                }
+            const flagValue = effect.flags?.[flagKey]?.value;
+            if (typeof flagValue === 'number') {
+                totalBonus += flagValue;
+                console.log(`[DEBUG] Active effect "${effect.name}" provides ${flagKey} bonus: ${flagValue}`);
             }
         }
 
+        console.log(`[DEBUG] Total ${flagKey} bonus from active effects: ${totalBonus}`);
         return totalBonus;
     }
-
     /**
      * Obtient et calcule la valeur finale de la caractéristique avec injuries et effets
      */
@@ -299,27 +297,26 @@
      * @returns {Object|null} Target coordinates or null if cancelled
      */
     async function selectTarget() {
+        ui.notifications.info(`🎯 Sélectionnez la cible pour ${SPELL_CONFIG.name} - ${modeConfig.name}...`);
+
         try {
             const targetColor = selectedMode === 'simple' ? SPELL_CONFIG.targeting.colorSimple : SPELL_CONFIG.targeting.colorLourde;
             const targetTexture = selectedMode === 'simple' ? SPELL_CONFIG.targeting.textureSimple : SPELL_CONFIG.targeting.textureLourde;
 
-            const crosshairs = await portal.crosshairs.show({
-                size: canvas.grid.size / 2,
-                icon: targetTexture,
-                label: `${SPELL_CONFIG.name} - ${modeConfig.name}`,
-                borderColor: targetColor,
-                fillAlpha: 0.25,
-                interval: -1
-            });
-            return crosshairs;
+            const portal = new Portal()
+                .origin(caster)
+                .range(SPELL_CONFIG.targeting.range)
+                .color(targetColor)
+                .texture(targetTexture);
+
+            const target = await portal.pick();
+            return target;
         } catch (error) {
             console.error("[DEBUG] Portal targeting error:", error);
             ui.notifications.error("❌ Erreur lors du ciblage. Vérifiez que le module Portal est installé et actif.");
             return null;
         }
-    }
-
-    const target = await selectTarget();
+    }    const target = await selectTarget();
     if (!target) {
         ui.notifications.info("❌ Ciblage annulé.");
         return;
@@ -441,7 +438,7 @@
                 .effect()
                     .file(animations.cast)
                     .attachTo(caster)
-                    .scale(0.6)
+                    .scale(0.2)
                     .waitUntilFinished(-500)
 
                 .effect()
@@ -449,12 +446,12 @@
                     .attachTo(caster)
                     .stretchTo(targetActor.token)
                     .scale(0.8)
-                    .waitUntilFinished(-200)
+                    .waitUntilFinished(-1000)
 
                 .effect()
                     .file(animations.impact)
                     .attachTo(targetActor.token)
-                    .scale(0.6);
+                    .scale(0.4);
 
             await sequence.play();
         } catch (error) {
@@ -502,33 +499,48 @@
 
     // Build enhanced flavor for the final dice roll message
     function createChatFlavor() {
-        const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
-        const fatigueWarning = modeConfig.appliesFatigue ? '<div style="color: #d32f2f; font-weight: bold; text-align: center; margin-top: 10px;">⚠️ Yunyun devient Très Fatigué ⚠️</div>' : '';
+        const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
+        const modeIcon = selectedMode === 'simple' ? "✨" : "💫";
+        const borderColor = selectedMode === 'simple' ? '#4a90e2' : '#8a2be2';
+        const bgGradient = selectedMode === 'simple'
+            ? "linear-gradient(135deg, #e3f2fd, #f3e5f5)"
+            : "linear-gradient(135deg, #f3e5f5, #e8eaf6)";
+
+        const actualManaCostDisplay = actualManaCost === 0
+            ? 'GRATUIT (Position Focus)'
+            : actualManaCost < modeConfig.manaCost
+                ? `${actualManaCost} mana (Réduit Focus)`
+                : `${actualManaCost} mana`;
+
+        const fatigueWarning = modeConfig.appliesFatigue
+            ? `<div style="text-align: center; margin: 6px 0; padding: 6px; background: #ffebee; border-radius: 4px; border: 1px solid #f44336;">
+                 <div style="font-size: 0.9em; color: #d32f2f; font-weight: bold;">⚠️ Yunyun devient Très Fatigué</div>
+               </div>`
+            : '';
 
         return `
-        <div style="background: linear-gradient(135deg, #e3f2fd, #f3e5f5); padding: 12px; border-radius: 8px; border: 2px solid ${selectedMode === 'simple' ? '#4a90e2' : '#8a2be2'};">
-            <div style="text-align: center; margin-bottom: 10px;">
-                <h3 style="color: ${selectedMode === 'simple' ? '#2c5aa0' : '#6a1b9a'}; margin: 0;">✨ ${SPELL_CONFIG.name} - ${modeConfig.name} ✨</h3>
-                <div style="color: #666; font-size: 0.9em;">Lanceur: <strong>${actor.name}</strong> → Cible: <strong>${targetName}</strong>${stanceInfo}</div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0;">
-                <div style="background: rgba(76, 175, 80, 0.1); padding: 8px; border-radius: 5px; text-align: center;">
-                    <strong>Niveau ${modeConfig.spellLevel}</strong><br>
-                    <span style="font-size: 0.85em;">Bonus Hit: +${levelBonus}</span>
+            <div style="background: ${bgGradient}; padding: 12px; border-radius: 8px; border: 2px solid ${borderColor}; margin: 8px 0;">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; color: #1976d2;">${modeIcon} Sort de ${SPELL_CONFIG.name} - ${modeConfig.name}</h3>
+                    <div style="margin-top: 3px; font-size: 0.9em;">
+                        <strong>Personnage:</strong> ${actor.name} | <strong>Coût:</strong> ${actualManaCostDisplay}
+                    </div>
                 </div>
-                <div style="background: rgba(255, 152, 0, 0.1); padding: 8px; border-radius: 5px; text-align: center;">
-                    <strong>${actualManaCost} mana</strong><br>
-                    <span style="font-size: 0.85em;">${actualManaCost === 0 ? 'Gratuit (Focus)' : actualManaCost < modeConfig.manaCost ? 'Réduit (Focus)' : 'Coût normal'}</span>
+                <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff3e0; border-radius: 4px;">
+                    <div style="font-size: 1.4em; color: #e65100; font-weight: bold;">🎯 ATTAQUE: ${attackResult.result}</div>
                 </div>
+                <div style="text-align: center; margin: 8px 0; padding: 10px; background: #ffebee; border-radius: 4px;">
+                    <div style="font-size: 1.1em; color: #c62828; margin-bottom: 6px;"><strong>${modeIcon} ${modeConfig.name}${stanceNote}</strong></div>
+                    <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cible:</strong> ${targetName}</div>
+                    <div style="font-size: 1.4em; color: #d32f2f; font-weight: bold;">💥 DÉGÂTS: ${finalDamageResult.total}</div>
+                    <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${modeConfig.damageFormula} + ${damageResult.totalBonus})</div>
+                </div>
+                <div style="text-align: center; margin: 6px 0; padding: 6px; background: #f0f4ff; border-radius: 4px;">
+                    <div style="font-size: 0.9em; color: #1976d2;"><strong>✨ Niveau:</strong> ${modeConfig.spellLevel} (+${levelBonus} bonus hit)</div>
+                </div>
+                ${fatigueWarning}
             </div>
-
-            <div style="background: rgba(33, 150, 243, 0.1); padding: 8px; border-radius: 5px; margin: 10px 0;">
-                <div><strong>Attaque:</strong> ${totalAttackDice}d7 + ${levelBonus}${attackBonus > 0 ? ` + ${attackBonus}` : ''} = <span style="color: #1976d2; font-weight: bold;">${attackResult.result}</span></div>
-                <div><strong>Dégâts:</strong> ${modeConfig.damageFormula} + ${damageResult.totalBonus} = <span style="color: #d32f2f; font-weight: bold;">${finalDamageResult.total}</span></div>
-            </div>
-            ${fatigueWarning}
-        </div>`;
+        `;
     }
 
     const enhancedFlavor = createChatFlavor();

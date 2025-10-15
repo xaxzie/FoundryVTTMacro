@@ -55,14 +55,14 @@
         },
         animations: {
             simple: {
-                explosion: "jb2a.fireball.explosion.orange",
-                cast: "jb2a.cast_generic.02.orange.0",
-                template: "jb2a.template_circle.aura.01.complete.02.orange"
+                explosion: "jb2a.explosion.01.orange",
+                cast: "jb2a.cast_generic.fire.01.orange.0",
+                template: "jb2a.explosion.08.orange"
             },
             concentre: {
                 explosion: "jb2a.explosion.01.orange",
-                cast: "jb2a.cast_generic.02.red.0",
-                template: "jb2a.template_circle.aura.01.complete.02.red"
+                cast: "jb2a.cast_generic.fire.01.orange.0",
+                template: "jb2a.explosion.08.orange"
             },
             sound: null
         },
@@ -105,24 +105,22 @@
      * @param {string} flagKey - The flag key to look for (e.g., "damage", "charisme")
      * @returns {number} Total bonus from all matching active effects
      */
-    function getActiveEffectBonus(actor, flagKey) {
+  function getActiveEffectBonus(actor, flagKey) {
         if (!actor?.effects) return 0;
 
         let totalBonus = 0;
 
         for (const effect of actor.effects.contents) {
-            if (!effect.flags?.world) continue;
-
-            for (const [key, value] of Object.entries(effect.flags.world)) {
-                if (key === flagKey && typeof value === 'number') {
-                    totalBonus += value;
-                }
+            const flagValue = effect.flags?.[flagKey]?.value;
+            if (typeof flagValue === 'number') {
+                totalBonus += flagValue;
+                console.log(`[DEBUG] Active effect "${effect.name}" provides ${flagKey} bonus: ${flagValue}`);
             }
         }
 
+        console.log(`[DEBUG] Total ${flagKey} bonus from active effects: ${totalBonus}`);
         return totalBonus;
     }
-
     /**
      * Obtient et calcule la valeur finale de la caractéristique avec injuries et effets
      */
@@ -292,20 +290,21 @@
      * @returns {Object|null} Target coordinates or null if cancelled
      */
     async function selectTargetArea() {
+        ui.notifications.info(`🎯 Sélectionnez la zone pour ${SPELL_CONFIG.name} - ${modeConfig.name} (${modeConfig.radius} cases)...`);
+
         try {
             const targetColor = selectedMode === 'simple' ? SPELL_CONFIG.targeting.colorSimple : SPELL_CONFIG.targeting.colorConcentre;
             const targetTexture = selectedMode === 'simple' ? SPELL_CONFIG.targeting.textureSimple : SPELL_CONFIG.targeting.textureConcentre;
             const radius = modeConfig.radius;
 
-            const crosshairs = await portal.crosshairs.show({
-                size: canvas.grid.size * radius * 2, // Diamètre = rayon * 2
-                icon: targetTexture,
-                label: `${SPELL_CONFIG.name} - ${modeConfig.name} (${radius} cases)`,
-                borderColor: targetColor,
-                fillAlpha: 0.25,
-                interval: -1
-            });
-            return crosshairs;
+            const portal = new Portal()
+                .origin(caster)
+                .range(SPELL_CONFIG.targeting.range)
+                .color(targetColor)
+                .texture(targetTexture);
+
+            const target = await portal.pick();
+            return target;
         } catch (error) {
             console.error("[DEBUG] Portal targeting error:", error);
             ui.notifications.error("❌ Erreur lors du ciblage. Vérifiez que le module Portal est installé et actif.");
@@ -321,7 +320,7 @@
 
     // ===== AREA TARGET DETECTION =====
     /**
-     * Finds targets in the spell area using grid-aware detection
+     * Finds targets in the spell area using circular radius detection
      * @param {number} centerX - Center X coordinate
      * @param {number} centerY - Center Y coordinate
      * @param {number} radius - Radius in grid squares
@@ -335,31 +334,51 @@
         const centerGridX = Math.floor(centerX / gridSize);
         const centerGridY = Math.floor(centerY / gridSize);
 
-        console.log(`[DEBUG] Searching for targets in ${radius}-square radius around (${centerGridX}, ${centerGridY})`);
+        console.log(`[DEBUG] Searching for targets in ${radius}-case radius (circular) around (${centerGridX}, ${centerGridY})`);
 
         for (const token of canvas.tokens.placeables) {
-            if (!token.visible) continue;
+            // Visibility filtering
+            if (!(token.isVisible || token.isOwner || game.user.isGM)) {
+                continue;
+            }
 
-            // Get token center and convert to grid coordinates
-            const tokenCenterX = token.x + (token.width / 2);
-            const tokenCenterY = token.y + (token.height / 2);
-            const tokenGridX = Math.floor(tokenCenterX / gridSize);
-            const tokenGridY = Math.floor(tokenCenterY / gridSize);
+            // Skip the caster
+            if (token === caster) {
+                continue;
+            }
 
-            // Calculate grid distance from explosion center
-            const deltaX = Math.abs(tokenGridX - centerGridX);
-            const deltaY = Math.abs(tokenGridY - centerGridY);
+            // Convert token position to grid coordinates
+            const tokenGridX = Math.floor(token.x / gridSize);
+            const tokenGridY = Math.floor(token.y / gridSize);
+            const tokenWidth = token.document.width;
+            const tokenHeight = token.document.height;
 
-            // Use Chebyshev distance (max of deltaX, deltaY) for square grid
-            const gridDistance = Math.max(deltaX, deltaY);
+            // Check if any part of the token overlaps with the circular spell area
+            let tokenInRange = false;
+            let minDistance = Infinity;
 
-            if (gridDistance <= radius) {
-                console.log(`[DEBUG] Target found: ${token.name} at grid distance ${gridDistance}`);
+            for (let tx = tokenGridX; tx < tokenGridX + tokenWidth; tx++) {
+                for (let ty = tokenGridY; ty < tokenGridY + tokenHeight; ty++) {
+                    const distance = Math.sqrt(
+                        Math.pow(tx - centerGridX, 2) +
+                        Math.pow(ty - centerGridY, 2)
+                    );
+
+                    // Use radius + 0.5 for slightly extended range
+                    if (distance <= radius + 0.5) {
+                        tokenInRange = true;
+                        minDistance = Math.min(minDistance, distance);
+                    }
+                }
+            }
+
+            if (tokenInRange) {
+                console.log(`[DEBUG] Target found: ${token.name} at circular distance ${minDistance.toFixed(2)}`);
                 targets.push({
                     token: token,
                     name: token.name,
                     actor: token.actor,
-                    distance: gridDistance,
+                    distance: minDistance,
                     gridX: tokenGridX,
                     gridY: tokenGridY
                 });
@@ -430,16 +449,12 @@
                 .effect()
                     .file(animations.template)
                     .atLocation({ x: target.x, y: target.y })
-                    .scale(modeConfig.radius * 0.5)
-                    .fadeIn(500)
-                    .fadeOut(1000)
-                    .belowTokens()
-                    .waitUntilFinished(-1000)
+                    .scale(modeConfig.radius * 0.75)
 
                 .effect()
                     .file(animations.explosion)
                     .atLocation({ x: target.x, y: target.y })
-                    .scale(modeConfig.radius * 0.8);
+                    .scale(modeConfig.radius * 1.2);
 
             await sequence.play();
         } catch (error) {
@@ -487,40 +502,44 @@
 
     // Build enhanced flavor for the final dice roll message
     function createChatFlavor() {
-        const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
-        const fatigueWarning = modeConfig.appliesFatigue ? '<div style="color: #d32f2f; font-weight: bold; text-align: center; margin-top: 10px;">⚠️ Yunyun devient Très Fatigué ⚠️</div>' : '';
+        const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
+        const modeIcon = selectedMode === 'simple' ? "💥" : "💢";
+        const borderColor = selectedMode === 'simple' ? '#ff8c00' : '#ff4500';
+        const bgGradient = selectedMode === 'simple'
+            ? "linear-gradient(135deg, #fff3e0, #ffecb3)"
+            : "linear-gradient(135deg, #ffecb3, #ffcc80)";
+
         const targetNames = areaTargets.map(t => t.name).join(', ');
 
+        const fatigueWarning = modeConfig.appliesFatigue
+            ? `<div style="text-align: center; margin: 6px 0; padding: 6px; background: #ffebee; border-radius: 4px; border: 1px solid #f44336;">
+                 <div style="font-size: 0.9em; color: #d32f2f; font-weight: bold;">⚠️ Yunyun devient Très Fatigué</div>
+               </div>`
+            : '';
+
         return `
-        <div style="background: linear-gradient(135deg, #fff3e0, #ffecb3); padding: 12px; border-radius: 8px; border: 2px solid ${selectedMode === 'simple' ? '#ff8c00' : '#ff4500'};">
-            <div style="text-align: center; margin-bottom: 10px;">
-                <h3 style="color: ${selectedMode === 'simple' ? '#e65100' : '#bf360c'}; margin: 0;">💥 ${SPELL_CONFIG.name} - ${modeConfig.name} 💥</h3>
-                <div style="color: #666; font-size: 0.9em;">Lanceur: <strong>${actor.name}</strong>${stanceInfo}</div>
-                <div style="color: #666; font-size: 0.85em; margin-top: 5px;">Cibles (${areaTargets.length}): ${targetNames}</div>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 10px 0;">
-                <div style="background: rgba(76, 175, 80, 0.1); padding: 8px; border-radius: 5px; text-align: center;">
-                    <strong>Niveau ${SPELL_CONFIG.spellLevel}</strong><br>
-                    <span style="font-size: 0.85em;">Bonus Hit: +${levelBonus}</span>
+            <div style="background: ${bgGradient}; padding: 12px; border-radius: 8px; border: 2px solid ${borderColor}; margin: 8px 0;">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; color: #1976d2;">${modeIcon} Sort de ${SPELL_CONFIG.name} - ${modeConfig.name}</h3>
+                    <div style="margin-top: 3px; font-size: 0.9em;">
+                        <strong>Personnage:</strong> ${actor.name} | <strong>Coût:</strong> ${SPELL_CONFIG.manaCost} mana (Non focalisable)
+                    </div>
                 </div>
-                <div style="background: rgba(255, 152, 0, 0.1); padding: 8px; border-radius: 5px; text-align: center;">
-                    <strong>${SPELL_CONFIG.manaCost} mana</strong><br>
-                    <span style="font-size: 0.85em;">Non focalisable</span>
+                <div style="text-align: center; margin: 8px 0; padding: 10px; background: #fff3e0; border-radius: 4px;">
+                    <div style="font-size: 1.4em; color: #e65100; font-weight: bold;">🎯 ATTAQUE: ${attackResult.result}</div>
                 </div>
-                <div style="background: rgba(244, 67, 54, 0.1); padding: 8px; border-radius: 5px; text-align: center;">
-                    <strong>${modeConfig.radius} cases</strong><br>
-                    <span style="font-size: 0.85em;">Rayon d'effet</span>
+                <div style="text-align: center; margin: 8px 0; padding: 10px; background: #ffebee; border-radius: 4px;">
+                    <div style="font-size: 1.1em; color: #c62828; margin-bottom: 6px;"><strong>${modeIcon} ${modeConfig.name}${stanceNote}</strong></div>
+                    <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cibles (${areaTargets.length}):</strong> ${targetNames}</div>
+                    <div style="font-size: 1.4em; color: #d32f2f; font-weight: bold;">💥 DÉGÂTS: ${finalDamageResult.total}</div>
+                    <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${modeConfig.damageFormula} + ${damageResult.totalBonus})</div>
                 </div>
+                <div style="text-align: center; margin: 6px 0; padding: 6px; background: #f0f4ff; border-radius: 4px;">
+                    <div style="font-size: 0.9em; color: #1976d2;"><strong>🎯 Zone:</strong> ${modeConfig.radius} cases de rayon • <strong>Esquive:</strong> Dégâts ÷ 2</div>
+                </div>
+                ${fatigueWarning}
             </div>
-
-            <div style="background: rgba(33, 150, 243, 0.1); padding: 8px; border-radius: 5px; margin: 10px 0;">
-                <div><strong>Attaque:</strong> ${totalAttackDice}d7 + ${levelBonus}${attackBonus > 0 ? ` + ${attackBonus}` : ''} = <span style="color: #1976d2; font-weight: bold;">${attackResult.result}</span></div>
-                <div><strong>Dégâts:</strong> ${modeConfig.damageFormula} + ${damageResult.totalBonus} = <span style="color: #d32f2f; font-weight: bold;">${finalDamageResult.total}</span></div>
-                <div style="font-size: 0.85em; color: #666; margin-top: 5px;"><em>Esquive réussie = dégâts ÷ 2</em></div>
-            </div>
-            ${fatigueWarning}
-        </div>`;
+        `;
     }
 
     const enhancedFlavor = createChatFlavor();
