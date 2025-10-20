@@ -64,58 +64,58 @@ If you want to track the module in git, this repository contains a copy under `m
 
 ## GM Socket helpers (apply/update/remove effects)
 
-This module registers a small set of GM-side socket handlers (via SocketLib) to let player-run macros request that a GM create, update or remove Active Effects on actors the player does not own. This is intentionally minimal and safe: the handlers are implemented inside the module and exposed through a `globalThis.gmSocket` object when SocketLib is present.
+This module registers a small set of GM-side socket handlers (via SocketLib) to let player-run macros request that a GM create, update, or remove Active Effects on tokens. The handlers now require `tokenId` instead of `actorId` for better precision and compatibility.
 
 Handlers registered by the module (available after `Hooks.once("socketlib.ready", registerGMSocket)` runs):
 
-- `applyEffectToActor(actorId, effectData)`
+- `applyEffectToToken(tokenId, effectData)`
 
-  - Purpose: Create a new ActiveEffect on the actor with id `actorId`.
-  - Returns: `{ success: true, effects: [createdEffect] }` on success, or `{ success: false, error: "..." }`.
-  - Example (player macro):
+  - **Purpose:** Create a new ActiveEffect on the token with id `tokenId`.
+  - **Returns:** `{ success: true, effects: [createdEffect] }` on success, or `{ success: false, error: "..." }`.
+  - **Example (player macro):**
     ```js
     if (!globalThis.gmSocket) throw new Error("GM socket not available");
     const result = await globalThis.gmSocket.executeAsGM(
-      "applyEffectToActor",
-      targetActorId,
+      "applyEffectToToken",
+      targetTokenId,
       effectData
     );
     if (!result.success)
       ui.notifications.error(result.error || "Failed to apply effect");
     ```
 
-- `updateEffectOnActor(actorId, effectId, updateData)`
+- `updateEffectOnToken(tokenId, effectId, updateData)`
 
-  - Purpose: Update an existing ActiveEffect (identified by `effectId`) on the given actor.
-  - Returns: `{ success: true }` on success or `{ success: false, error: '...' }` on failure.
-  - Example (player macro):
+  - **Purpose:** Update an existing ActiveEffect (identified by `effectId`) on the given token.
+  - **Returns:** `{ success: true }` on success or `{ success: false, error: '...' }` on failure.
+  - **Example (player macro):**
     ```js
     const res = await globalThis.gmSocket.executeAsGM(
-      "updateEffectOnActor",
-      targetActorId,
+      "updateEffectOnToken",
+      targetTokenId,
       effectId,
       { "flags.statuscounter.value": 2 }
     );
     if (!res.success) console.error(res.error);
     ```
 
-- `removeEffectFromActor(actorId, effectId)`
-  - Purpose: Delete an ActiveEffect from an actor.
-  - Returns: `{ success: true }` or `{ success: false, error: '...' }`.
-  - Example (player macro):
+- `removeEffectFromToken(tokenId, effectId)`
+  - **Purpose:** Delete an ActiveEffect from a token.
+  - **Returns:** `{ success: true }` or `{ success: false, error: '...' }`.
+  - **Example (player macro):**
     ```js
     await globalThis.gmSocket.executeAsGM(
-      "removeEffectFromActor",
-      targetActorId,
+      "removeEffectFromToken",
+      targetTokenId,
       effectId
     );
     ```
 
-Notes and best-practices
+### Notes and Best Practices
 
 - The module exposes the SocketLib `gmSocket` object as `globalThis.gmSocket` for convenience. Always guard your macros with `if (!globalThis.gmSocket) { ui.notifications.error('GM socket not available'); return; }`.
 - All handlers run on the GM client and therefore require at least one GM to be online and SocketLib to be active.
-- The handlers perform basic validation (actor existence, effect existence). They return structured objects so your macro can present friendly errors to players.
+- The handlers perform basic validation (token existence, effect existence). They return structured objects so your macro can present friendly errors to players.
 - When creating effects intended to show a status counter on tokens, include a `flags.statuscounter` object with `value` and `visible: true` properties (for example: `flags: { statuscounter: { value: 1, visible: true } }`). This ensures the token HUD shows the stack number.
 
 Packaging / manifest notes
