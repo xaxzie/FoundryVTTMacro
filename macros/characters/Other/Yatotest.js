@@ -41,7 +41,7 @@ async function toggleBuffOnToken(token) {
 
   if (existingEffect) {
     // 🌙 Suppression du buff
-    const result = await globalThis.gmSocket.executeAsGM("removeEffectFromToken", token.id, existingEffect.id);
+    const result = await globalThis.gmSocket.executeAsGM("removeEffectFromActor", token.id, existingEffect.id);
 
     if (!result.success) {
       ui.notifications.error(`Impossible de retirer l'effet de ${actor.name} : ${result.error}`);
@@ -80,7 +80,7 @@ async function toggleBuffOnToken(token) {
       }
     };
 
-    const result = await globalThis.gmSocket.executeAsGM("applyEffectToToken", token.id, effectData);
+    const result = await globalThis.gmSocket.executeAsGM("applyEffectToActor", token.id, effectData);
     if (!result.success) {
       ui.notifications.error(`Impossible d'appliquer l'effet sur ${actor.name} : ${result.error}`);
       return;

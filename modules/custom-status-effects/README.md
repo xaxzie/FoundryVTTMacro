@@ -68,7 +68,7 @@ This module registers a small set of GM-side socket handlers (via SocketLib) to 
 
 Handlers registered by the module (available after `Hooks.once("socketlib.ready", registerGMSocket)` runs):
 
-- `applyEffectToToken(tokenId, effectData)`
+- `applyEffectToActor(tokenId, effectData)`
 
   - **Purpose:** Create a new ActiveEffect on the token with id `tokenId`.
   - **Returns:** `{ success: true, effects: [createdEffect] }` on success, or `{ success: false, error: "..." }`.
@@ -76,7 +76,7 @@ Handlers registered by the module (available after `Hooks.once("socketlib.ready"
     ```js
     if (!globalThis.gmSocket) throw new Error("GM socket not available");
     const result = await globalThis.gmSocket.executeAsGM(
-      "applyEffectToToken",
+      "applyEffectToActor",
       targetTokenId,
       effectData
     );
@@ -84,14 +84,14 @@ Handlers registered by the module (available after `Hooks.once("socketlib.ready"
       ui.notifications.error(result.error || "Failed to apply effect");
     ```
 
-- `updateEffectOnToken(tokenId, effectId, updateData)`
+- `updateEffectOnActor(tokenId, effectId, updateData)`
 
   - **Purpose:** Update an existing ActiveEffect (identified by `effectId`) on the given token.
   - **Returns:** `{ success: true }` on success or `{ success: false, error: '...' }` on failure.
   - **Example (player macro):**
     ```js
     const res = await globalThis.gmSocket.executeAsGM(
-      "updateEffectOnToken",
+      "updateEffectOnActor",
       targetTokenId,
       effectId,
       { "flags.statuscounter.value": 2 }
@@ -99,13 +99,13 @@ Handlers registered by the module (available after `Hooks.once("socketlib.ready"
     if (!res.success) console.error(res.error);
     ```
 
-- `removeEffectFromToken(tokenId, effectId)`
+- `removeEffectFromActor(tokenId, effectId)`
   - **Purpose:** Delete an ActiveEffect from a token.
   - **Returns:** `{ success: true }` or `{ success: false, error: '...' }`.
   - **Example (player macro):**
     ```js
     await globalThis.gmSocket.executeAsGM(
-      "removeEffectFromToken",
+      "removeEffectFromActor",
       targetTokenId,
       effectId
     );
