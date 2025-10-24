@@ -45,14 +45,14 @@
         explosive: {
             name: "Rune Explosive",
             displayName: "💥 Rune Explosive",
-            icon: "icons/magic/fire/explosion-fireball-medium-orange.webp",
+            icon: "icons/magic/symbols/runes-carved-stone-red.webp",
             manaCost: 6,
             manaType: "réservée",
             preparationAction: "Action Simple",
             activationAction: "Action Simple",
             description: "Déclenche une explosion dévastatrice",
             animation: {
-                rune: "jb2a.magic_signs.rune.fire.complete.orange",
+                rune: "jb2a.magic_signs.rune.evocation.loop.red",
                 scale: 0.6,
                 opacity: 0.8,
                 tint: "#ff8c00"
@@ -64,14 +64,14 @@
         transposition: {
             name: "Rune de Transposition",
             displayName: "🌀 Rune de Transposition",
-            icon: "icons/magic/movement/portal-vortex-blue.webp",
+            icon: "icons/magic/symbols/chevron-elipse-circle-blue.webp",
             manaCost: 2,
             manaType: "+/- réservée",
             preparationAction: "Action Simple",
             activationAction: "Action Rapide",
             description: "Téléporte Yunyun à l'emplacement de la rune",
             animation: {
-                rune: "jb2a.magic_signs.rune.conjuration.complete.blue",
+                rune: "jb2a.magic_signs.rune.abjuration.loop.blue",
                 scale: 0.5,
                 opacity: 0.8,
                 tint: "#4a90e2"
@@ -83,14 +83,14 @@
         murDeTerre: {
             name: "Rune Mur de Terre",
             displayName: "🧱 Rune Mur de Terre",
-            icon: "icons/magic/earth/barrier-stone-brown.webp",
+            icon: "icons/magic/earth/projectile-boulder-debris.webp",
             manaCost: 3,
             manaType: "réservée",
             preparationAction: "Action Simple",
             activationAction: "Action Rapide",
             description: "Crée un mur de terre solide",
             animation: {
-                rune: "jb2a.magic_signs.rune.abjuration.complete.yellow",
+                rune: "jb2a.magic_signs.rune.divination.loop.blue",
                 scale: 0.6,
                 opacity: 0.8,
                 tint: "#8d6e63"
@@ -102,14 +102,14 @@
         soin: {
             name: "Rune de Soin",
             displayName: "💚 Rune de Soin",
-            icon: "icons/magic/life/heart-glowing-green.webp",
+            icon: "icons/magic/symbols/rune-sigil-green.webp",
             manaCost: 3,
             manaType: "réservée",
             preparationAction: "2 Actions Simples",
             activationAction: "Action Immédiate",
             description: "Soigne Charisme × PV sur une cible",
             animation: {
-                rune: "jb2a.magic_signs.rune.evocation.complete.green",
+                rune: "jb2a_patreon.magic_signs.rune.transmutation.loop.green",
                 scale: 0.5,
                 opacity: 0.8,
                 tint: "#4caf50"
@@ -121,14 +121,14 @@
         generique: {
             name: "Rune Générique",
             displayName: "✨ Rune Générique",
-            icon: "icons/magic/symbols/runes-etched-stone-purple.webp",
+            icon: "icons/magic/symbols/rune-sigil-rough-white-teal.webp",
             manaCost: 0,
             manaType: "variable",
             preparationAction: "Variable",
             activationAction: "Variable",
             description: "Effet personnalisé accepté par le MJ",
             animation: {
-                rune: "jb2a.magic_signs.rune.transmutation.complete.purple",
+                rune: "jb2a_patreon.magic_signs.rune.abjuration.loop.red",
                 scale: 0.55,
                 opacity: 0.7,
                 tint: "#9c27b0"
@@ -142,12 +142,77 @@
     // ===== UTILITY FUNCTIONS =====
 
     /**
-     * Obtient la valeur de Charisme de Yunyun
+     * Gets active effect bonuses for a specific flag key
+     * @param {Actor} actor - The actor to check for active effects
+     * @param {string} flagKey - The flag key to look for (e.g., "damage", "charisme")
+     * @returns {number} Total bonus from all matching active effects
+     */
+    function getActiveEffectBonus(actor, flagKey) {
+        if (!actor?.effects) return 0;
+
+        let totalBonus = 0;
+
+        for (const effect of actor.effects.contents) {
+            const flagValue = effect.flags?.[flagKey]?.value;
+            if (typeof flagValue === 'number') {
+                totalBonus += flagValue;
+                console.log(`[Yunyun Runes] Active effect "${effect.name}" provides ${flagKey} bonus: ${flagValue}`);
+            }
+        }
+
+        console.log(`[Yunyun Runes] Total ${flagKey} bonus from active effects: ${totalBonus}`);
+        return totalBonus;
+    }
+
+    /**
+     * Obtient et calcule la valeur finale de la caractéristique avec injuries et effets
+     */
+    function getCharacteristicValue(actor, characteristic) {
+        // Get base characteristic from character sheet
+        const charAttribute = actor.system.attributes?.[characteristic];
+        if (!charAttribute) {
+            ui.notifications.error(`❌ Caractéristique '${characteristic}' non trouvée !`);
+            return { base: 3, injuries: 0, effectBonus: 0, injuryAdjusted: 3, final: 3 };
+        }
+        const baseValue = charAttribute.value || 3;
+
+        // Detect injury stacks and reduce characteristic accordingly
+        const injuryEffect = actor?.effects?.contents?.find(e =>
+            e.name?.toLowerCase() === 'blessures'
+        );
+        const injuryStacks = injuryEffect?.flags?.statuscounter?.value || 0;
+
+        // Get active effect bonuses for the characteristic
+        const effectBonus = getActiveEffectBonus(actor, characteristic);
+
+        console.log(`[Yunyun Runes] Base ${characteristic}: ${baseValue}, Injury stacks: ${injuryStacks}, Effect bonus: ${effectBonus}`);
+
+        // Calculate final value: base - injuries + effects, minimum of 1
+        const injuryAdjusted = Math.max(1, baseValue - injuryStacks);
+        const finalValue = Math.max(1, injuryAdjusted + effectBonus);
+
+        if (injuryStacks > 0) {
+            console.log(`[Yunyun Runes] ${characteristic} reduced by ${injuryStacks} due to injuries`);
+        }
+        if (effectBonus !== 0) {
+            console.log(`[Yunyun Runes] ${characteristic} ${effectBonus > 0 ? 'increased' : 'decreased'} by ${effectBonus} due to active effects`);
+        }
+
+        return {
+            base: baseValue,
+            injuries: injuryStacks,
+            effectBonus: effectBonus,
+            injuryAdjusted: injuryAdjusted,
+            final: finalValue
+        };
+    }
+
+    /**
+     * Obtient la valeur de Charisme de Yunyun avec tous les modificateurs
      */
     function getCharismaValue(actor) {
-        const charismaPath = "system.stats.charisme.value";
-        const charisma = foundry.utils.getProperty(actor, charismaPath) || 0;
-        return charisma;
+        const charismaInfo = getCharacteristicValue(actor, "charisme");
+        return charismaInfo.final;
     }
 
     /**
@@ -156,7 +221,7 @@
     function getExistingRunes() {
         const runes = {};
         for (const [key, config] of Object.entries(RUNE_TYPES)) {
-            const effect = actor.effects.find(e => e.label === config.name);
+            const effect = actor.effects.find(e => e.name === config.name || e.label === config.name);
             if (effect) {
                 const counter = effect.flags?.statuscounter?.value || 1;
                 runes[key] = {
@@ -184,8 +249,17 @@
 
         for (const effect of allEffects) {
             if (effect.data?.name?.startsWith("yunyun_rune_")) {
-                const runeType = effect.data.name.replace("yunyun_rune_", "");
+                // Extraire le type de rune du nom (format: yunyun_rune_TYPE_timestamp)
+                const nameParts = effect.data.name.split('_');
+                // nameParts[0] = "yunyun", nameParts[1] = "rune", nameParts[2] = type, nameParts[3] = timestamp
+                const runeType = nameParts[2];
                 const runeConfig = RUNE_TYPES[runeType];
+
+                // Récupérer la position correcte depuis data.source
+                const posX = effect.data?.source?.x || effect.data?.position?.x || 0;
+                const posY = effect.data?.source?.y || effect.data?.position?.y || 0;
+
+                console.log(`[Yunyun Runes] Found placed rune: ${effect.data.name}, type: ${runeType}, position: (${posX}, ${posY})`);
 
                 if (runeConfig) {
                     placedRunes.push({
@@ -193,14 +267,15 @@
                         config: runeConfig,
                         effectName: effect.data.name,
                         position: {
-                            x: effect.data.position?.x || 0,
-                            y: effect.data.position?.y || 0
+                            x: posX,
+                            y: posY
                         }
                     });
                 }
             }
         }
 
+        console.log(`[Yunyun Runes] Total placed runes detected: ${placedRunes.length}`);
         return placedRunes;
     }
 
@@ -469,56 +544,53 @@
 
     const dialogContent = buildDialogContent();
 
-    const dialog = new Dialog({
-        title: "✨ Gestion des Runes de Yunyun",
-        content: dialogContent,
-        buttons: {
-            prepare: {
-                label: "📝 Préparer",
-                callback: () => ({ action: "prepare", runeType: selectedRuneType })
+    const choice = await new Promise((resolve) => {
+        const dialog = new Dialog({
+            title: "✨ Gestion des Runes de Yunyun",
+            content: dialogContent,
+            buttons: {
+                prepare: {
+                    label: "📝 Préparer",
+                    callback: () => resolve({ action: "prepare", runeType: selectedRuneType })
+                },
+                place: {
+                    label: "📍 Placer",
+                    callback: () => resolve({ action: "place", runeType: selectedRuneType })
+                },
+                activate: {
+                    label: "⚡ Activer",
+                    callback: () => resolve({ action: "activate", runeType: selectedRuneType, effectName: selectedEffectName })
+                },
+                recycle: {
+                    label: "♻️ Recycler",
+                    callback: () => resolve({ action: "recycle", runeType: selectedRuneType, effectName: selectedEffectName })
+                },
+                cancel: {
+                    label: "❌ Annuler",
+                    callback: () => resolve(null)
+                }
             },
-            place: {
-                label: "📍 Placer",
-                callback: () => ({ action: "place", runeType: selectedRuneType })
+            default: "prepare",
+            render: (html) => {
+                // Gestion de la sélection de rune
+                html.find(".rune-item").on("click", function() {
+                    html.find(".rune-item").removeClass("selected");
+                    $(this).addClass("selected");
+
+                    selectedRuneType = $(this).data("rune-type");
+                    selectedAction = $(this).data("action");
+                    selectedEffectName = $(this).data("effect-name") || null;
+
+                    console.log(`[Yunyun Runes] Selected: ${selectedRuneType}, Action: ${selectedAction}`);
+                });
             },
-            activate: {
-                label: "⚡ Activer",
-                callback: () => ({ action: "activate", runeType: selectedRuneType, effectName: selectedEffectName })
-            },
-            recycle: {
-                label: "♻️ Recycler",
-                callback: () => ({ action: "recycle", runeType: selectedRuneType, effectName: selectedEffectName })
-            },
-            cancel: {
-                label: "❌ Annuler",
-                callback: () => null
-            }
-        },
-        default: "prepare",
-        render: (html) => {
-            // Gestion de la sélection de rune
-            html.find(".rune-item").on("click", function() {
-                html.find(".rune-item").removeClass("selected");
-                $(this).addClass("selected");
+            close: () => resolve(null)
+        }, {
+            width: 600,
+            height: "auto"
+        });
 
-                selectedRuneType = $(this).data("rune-type");
-                selectedAction = $(this).data("action");
-                selectedEffectName = $(this).data("effect-name") || null;
-
-                console.log(`[Yunyun Runes] Selected: ${selectedRuneType}, Action: ${selectedAction}`);
-            });
-        },
-        close: () => null
-    }, {
-        width: 600,
-        height: "auto"
-    });
-
-    const result = await dialog._render(true);
-    dialog.bringToTop();
-
-    const choice = await new Promise(resolve => {
-        dialog.callback = resolve;
+        dialog.render(true);
     });
 
     if (!choice || !choice.action) {
@@ -542,7 +614,7 @@
      * ACTION: PRÉPARER UNE RUNE
      */
     if (action === "prepare") {
-        const existingEffect = actor.effects.find(e => e.label === runeConfig.name);
+        const existingEffect = actor.effects.find(e => e.name === runeConfig.name || e.label === runeConfig.name);
 
         if (existingEffect) {
             // Augmenter le counter
@@ -550,10 +622,12 @@
             const newCount = currentCount + 1;
 
             const updateResult = await globalThis.gmSocket.executeAsGM(
-                "updateEffectOnToken",
+                "updateEffectOnActor",
                 casterToken.id,
                 existingEffect.id,
-                { "flags.statuscounter.value": newCount }
+                { "flags.statuscounter.value": newCount,
+                "flags.statuscounter.visible": true
+                 }
             );
 
             if (!updateResult.success) {
@@ -565,6 +639,7 @@
         } else {
             // Créer un nouvel effet
             const effectData = {
+                name: runeConfig.name,
                 label: runeConfig.name,
                 icon: runeConfig.icon,
                 origin: `Actor.${actor.id}`,
@@ -579,7 +654,7 @@
                 }
             };
 
-            const createResult = await globalThis.gmSocket.executeAsGM("applyEffectToToken", casterToken.id, effectData);
+            const createResult = await globalThis.gmSocket.executeAsGM("applyEffectToActor", casterToken.id, effectData);
 
             if (!createResult.success) {
                 ui.notifications.error(`❌ Impossible de créer la rune : ${createResult.error}`);
@@ -627,11 +702,11 @@
         // Sélection de position avec Portal
         let targetPosition;
         try {
-            targetPosition = await portal.pick({
-                range: 200,
-                color: runeConfig.color,
-                texture: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Purple_400x400.webm"
-            });
+            const portalInstance = new Portal()
+                .color(runeConfig.color)
+                .texture("modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Purple_400x400.webm");
+
+            targetPosition = await portalInstance.pick();
         } catch (error) {
             console.log("[Yunyun Runes] Portal targeting cancelled or failed:", error);
             ui.notifications.warn("⚠️ Ciblage annulé");
@@ -643,10 +718,16 @@
             return;
         }
 
-        // Centrer la position sur la grille
+        // Aligner sur la grille (comme dans simple-teleportation.js de Moctei)
         const gridSize = canvas.grid.size;
-        const centerX = targetPosition.x + (gridSize / 2);
-        const centerY = targetPosition.y + (gridSize / 2);
+        const targetGridX = Math.floor(targetPosition.x / gridSize);
+        const targetGridY = Math.floor(targetPosition.y / gridSize);
+        const snappedX = targetGridX * gridSize;
+        const snappedY = targetGridY * gridSize;
+
+        // Centrer sur la case
+        const centerX = snappedX + (gridSize / 2);
+        const centerY = snappedY + (gridSize / 2);
 
         // Placer l'animation de la rune
         const sequencerName = `yunyun_rune_${selectedRuneType}_${Date.now()}`;
@@ -669,7 +750,7 @@
         const currentCount = preparedRune.count;
         if (currentCount > 1) {
             const updateResult = await globalThis.gmSocket.executeAsGM(
-                "updateEffectOnToken",
+                "updateEffectOnActor",
                 casterToken.id,
                 preparedRune.effect.id,
                 { "flags.statuscounter.value": currentCount - 1 }
@@ -681,7 +762,7 @@
         } else {
             // Retirer l'effet complètement
             const removeResult = await globalThis.gmSocket.executeAsGM(
-                "removeEffectFromToken",
+                "removeEffectFromActor",
                 casterToken.id,
                 preparedRune.effect.id
             );
@@ -720,11 +801,13 @@
      * ACTION: ACTIVER UNE RUNE
      */
     if (action === "activate") {
-        // Trouver la rune placée
+        // Trouver la rune placée et/ou préparée
         const placedRune = placedRunes.find(r => r.type === selectedRuneType);
+        const preparedRune = existingRunes[selectedRuneType];
 
-        if (!placedRune && selectedAction !== "manage") {
-            ui.notifications.warn("⚠️ Cette rune n'est pas placée sur le terrain !");
+        // Si la rune n'est ni placée ni préparée, erreur
+        if (!placedRune && !preparedRune) {
+            ui.notifications.warn("⚠️ Cette rune n'existe pas (ni placée ni préparée) !");
             return;
         }
 
@@ -733,13 +816,53 @@
             Sequencer.EffectManager.endEffects({ name: placedRune.effectName });
         }
 
-        // Si la rune est dans l'inventaire (préparée), décrémenter
-        const preparedRune = existingRunes[selectedRuneType];
-        if (preparedRune && selectedAction === "manage") {
+        // Si la rune est préparée (et pas encore placée), déterminer si on a besoin de cibler
+        let activationPosition = null;
+        const needsTargeting = preparedRune && !placedRune &&
+            (runeConfig.activationEffect === 'teleportation' || runeConfig.activationEffect === 'healing');
+
+        if (needsTargeting) {
+            // Seulement les runes de transposition et de soin ont besoin de ciblage
+            ui.notifications.info("🎯 Sélectionnez où placer et activer la rune...");
+
+            try {
+                const portalInstance = new Portal()
+                    .color(runeConfig.color)
+                    .texture("modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Purple_400x400.webm");
+
+                activationPosition = await portalInstance.pick();
+            } catch (error) {
+                console.log("[Yunyun Runes] Portal targeting cancelled:", error);
+                ui.notifications.warn("⚠️ Ciblage annulé");
+                return;
+            }
+
+            if (!activationPosition) {
+                ui.notifications.warn("⚠️ Aucune position sélectionnée");
+                return;
+            }
+
+            // Centrer la position sur la grille
+            const gridSize = canvas.grid.size;
+            const targetGridX = Math.floor(activationPosition.x / gridSize);
+            const targetGridY = Math.floor(activationPosition.y / gridSize);
+            const snappedX = targetGridX * gridSize;
+            const snappedY = targetGridY * gridSize;
+
+            activationPosition.x = snappedX + (gridSize / 2);
+            activationPosition.y = snappedY + (gridSize / 2);
+        } else if (placedRune) {
+            // La rune était déjà placée, utiliser sa position
+            activationPosition = placedRune.position;
+        }
+        // Pour explosion/mur/générique préparées non placées : activationPosition reste null (pas besoin)
+
+        // Décrémenter le compteur de rune préparée
+        if (preparedRune) {
             const currentCount = preparedRune.count;
             if (currentCount > 1) {
                 const updateResult = await globalThis.gmSocket.executeAsGM(
-                    "updateEffectOnToken",
+                    "updateEffectOnActor",
                     casterToken.id,
                     preparedRune.effect.id,
                     { "flags.statuscounter.value": currentCount - 1 }
@@ -750,7 +873,7 @@
                 }
             } else {
                 const removeResult = await globalThis.gmSocket.executeAsGM(
-                    "removeEffectFromToken",
+                    "removeEffectFromActor",
                     casterToken.id,
                     preparedRune.effect.id
                 );
@@ -762,7 +885,7 @@
         }
 
         // Exécuter l'effet d'activation selon le type
-        await executeRuneActivation(selectedRuneType, runeConfig, placedRune);
+        await executeRuneActivation(selectedRuneType, runeConfig, activationPosition);
 
         return;
     }
@@ -788,7 +911,7 @@
             const currentCount = preparedRune.count;
             if (currentCount > 1) {
                 const updateResult = await globalThis.gmSocket.executeAsGM(
-                    "updateEffectOnToken",
+                    "updateEffectOnActor",
                     casterToken.id,
                     preparedRune.effect.id,
                     { "flags.statuscounter.value": currentCount - 1 }
@@ -799,7 +922,7 @@
                 }
             } else {
                 const removeResult = await globalThis.gmSocket.executeAsGM(
-                    "removeEffectFromToken",
+                    "removeEffectFromActor",
                     casterToken.id,
                     preparedRune.effect.id
                 );
@@ -841,8 +964,11 @@
 
     /**
      * Exécute l'effet d'activation de la rune
+     * @param {string} runeType - Type de rune
+     * @param {Object} config - Configuration de la rune
+     * @param {Object} position - Position {x, y} de la rune (peut être null pour certains types)
      */
-    async function executeRuneActivation(runeType, config, placedRune) {
+    async function executeRuneActivation(runeType, config, position) {
         const activationType = config.activationEffect;
 
         let messageHTML = `
@@ -869,17 +995,18 @@
 
             case "teleportation":
                 // Rune de Transposition - Téléporte Yunyun
-                if (!placedRune) {
-                    ui.notifications.error("❌ La rune doit être placée pour se téléporter !");
+                if (!position) {
+                    ui.notifications.error("❌ La rune doit avoir une position pour se téléporter !");
                     return;
                 }
 
-                const runePosition = placedRune.position;
                 const gridSize = canvas.grid.size;
 
-                // Calculer la position de grille
-                const gridX = Math.floor(runePosition.x / gridSize) * gridSize;
-                const gridY = Math.floor(runePosition.y / gridSize) * gridSize;
+                // Calculer la position de grille alignée
+                const targetGridX = Math.floor(position.x / gridSize);
+                const targetGridY = Math.floor(position.y / gridSize);
+                const gridX = targetGridX * gridSize;
+                const gridY = targetGridY * gridSize;
 
                 // Animation de téléportation (inspirée de simple-teleportation.js de Moctei)
                 const originalCenter = {
@@ -902,11 +1029,12 @@
                             .fadeIn(300)
                             .fadeOut(500)
                         .effect()
-                            .file("jb2a.energy_strands.range.standard.blue.03")
+                            .file("jb2a.energy_strands.range.standard.purple.01")
                             .atLocation(originalCenter)
                             .stretchTo(destinationCenter)
                             .scale(0.6)
                             .waitUntilFinished(-500)
+                            .tint("#2600fd")
                         .effect()
                             .file("jb2a.misty_step.01.blue")
                             .atLocation(destinationCenter)
@@ -916,19 +1044,40 @@
 
                     teleportSeq.play();
 
-                    // Téléporter le token après 1 seconde
+                    // Téléporter le token après 1 seconde avec le mode blink
                     setTimeout(async () => {
+                        try {
+                            // Sauvegarder le mode de déplacement actuel
+                            const originalMovementType = casterToken.document.movementAction;
+
+                            // Activer le mode de déplacement "Teleportation" de FoundryVTT
+                            await casterToken.document.update({ movementAction: 'blink' });
+
+                            // Effectuer le déplacement
+                            await casterToken.document.update({
+                                x: gridX,
+                                y: gridY
+                            });
+
+                            // Restaurer le mode de déplacement original
+                            await casterToken.document.update({ movementAction: originalMovementType });
+                        } catch (error) {
+                            console.error("[Yunyun Runes] Teleportation error:", error);
+                        }
+                    }, 1000);
+                } else {
+                    // Téléportation sans animation
+                    try {
+                        const originalMovementType = casterToken.document.movementAction;
+                        await casterToken.document.update({ movementAction: 'blink' });
                         await casterToken.document.update({
                             x: gridX,
                             y: gridY
                         });
-                    }, 1000);
-                } else {
-                    // Téléportation sans animation
-                    await casterToken.document.update({
-                        x: gridX,
-                        y: gridY
-                    });
+                        await casterToken.document.update({ movementAction: originalMovementType });
+                    } catch (error) {
+                        console.error("[Yunyun Runes] Teleportation error:", error);
+                    }
                 }
 
                 messageHTML += `
@@ -958,23 +1107,30 @@
                 break;
 
             case "healing":
-                // Rune de Soin - Sélectionner une cible et afficher le soin
+                // Rune de Soin - Utilise la position déjà ciblée ou demande une nouvelle position
                 let healingTarget;
-                try {
-                    healingTarget = await portal.pick({
-                        range: 200,
-                        color: "#4caf50",
-                        texture: "modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Green_400x400.webm"
-                    });
-                } catch (error) {
-                    console.log("[Yunyun Runes] Healing target cancelled:", error);
-                    ui.notifications.warn("⚠️ Ciblage de soin annulé");
-                    return;
-                }
 
-                if (!healingTarget) {
-                    ui.notifications.warn("⚠️ Aucune cible sélectionnée pour le soin");
-                    return;
+                // Si position déjà fournie (cas "placer + activer"), l'utiliser
+                if (position) {
+                    healingTarget = position;
+                } else {
+                    // Sinon demander le ciblage (cas rune déjà placée qu'on active)
+                    try {
+                        const healingPortal = new Portal()
+                            .color("#4caf50")
+                            .texture("modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Green_400x400.webm");
+
+                        healingTarget = await healingPortal.pick();
+                    } catch (error) {
+                        console.log("[Yunyun Runes] Healing target cancelled:", error);
+                        ui.notifications.warn("⚠️ Ciblage de soin annulé");
+                        return;
+                    }
+
+                    if (!healingTarget) {
+                        ui.notifications.warn("⚠️ Aucune cible sélectionnée pour le soin");
+                        return;
+                    }
                 }
 
                 // Trouver le token à la position
