@@ -3,10 +3,14 @@
 
 // --- CONFIGURATION ---
 const flagKey = "kawaiiDodgeBuff";
-const buffIcon = "icons/magic/shield/pink-shield.webp";
-const auraAnim = "jb2a.energy_field.02.pink";
-const castAnim = "jb2a.magic_signs.circle.pink";
+const buffIcon = "icons/magic/light/beam-deflect-path-yellow.webp";
+const auraAnim = "jb2a.wind_lines.01.leaves.02.pink";
+const castAnim = "jb2a.divine_smite.caster.reversed.pink";
 const dodgePath = "system.attributes.Combat.Dodge.value";
+const appliedTargets = []; // pour savoir si on doit envoyer le message chat
+
+// 🎯 Formules des jets
+const rollTouch = "@Dice.Magic-Check";      // Jet de réussite / touché
 
 // --- Vérif préliminaire ---
 if (!globalThis.gmSocket) {
@@ -57,10 +61,8 @@ async function toggleBuffOnToken(token) {
 
   } else {
     // 💖 Application du buff
-    // Récupérer la valeur actuelle de Dodge pour construire la formule
     const currentDodge = foundry.utils.getProperty(actor, dodgePath) || "2d6";
 
-    // Création d'un effet avec modification via Active Effect changes
     const effectData = {
       label: "Buff Dodge Kawaii",
       icon: buffIcon,
@@ -76,7 +78,7 @@ async function toggleBuffOnToken(token) {
       ],
       flags: {
         statuscounter: { value: 1, visible: true },
-        world: { [flagKey]: currentDodge } // Sauvegarder la valeur originale dans l'effet lui-même
+        world: { [flagKey]: currentDodge }
       }
     };
 
@@ -90,18 +92,25 @@ async function toggleBuffOnToken(token) {
     if (typeof Sequence !== "undefined") {
       new Sequence()
         .effect()
+          .file("jb2a.divine_smite.caster.pink")
+          .atLocation(token)
+          .scale(0.8)
+          .opacity(0.9)
+        .effect()
           .file(auraAnim)
           .name(`KawaiiDodgeAura-${token.id}`)
           .atLocation(token)
+          .fadeOut(1000)
           .attachTo(token)
           .persist(true)
-          .scale(0.8)
+          .scaleToObject(1.4)
+          .rotate(90)
           .opacity(0.85)
-          .belowTokens(true)
         .play();
     }
 
     ui.notifications.info(`💖 ${actor.name} reçoit un doux vent magique (+1d6 Dodge) !`);
+    appliedTargets.push(actor.name); // marquer comme appliqué
   }
 }
 
@@ -110,17 +119,41 @@ for (let target of targets) {
   await toggleBuffOnToken(target);
 }
 
-// --- Message RP dans le chat ---
-const targetNames = targets.map(t => t.name).join(", ");
-const messageHTML = `
-<div style="border:2px solid pink; background:#ffe6f2; border-radius:12px; padding:10px; font-family:'Comic Sans MS', cursive; color:#d63384;">
-  <h2 style="text-align:center;">🌸✨ Bénédiction Kawaii ✨🌸</h2>
-  <p style="text-align:center;">💖 <b>${caster.name}</b> envoie un nuage de cœurs vers <b>${targetNames}</b> 💫</p>
-  <p style="text-align:center; font-size:0.9em; color:#b03a84;">(Un doux vent magique entoure les alliés... 💕)</p>
-</div>
-`;
+// --- Si au moins une cible a reçu le buff, alors lancer le jet ---
+if (appliedTargets.length > 0) {
 
-ChatMessage.create({
-  speaker: ChatMessage.getSpeaker({ token: caster }),
-  content: messageHTML
-});
+  const actor = caster.actor; // pour le roll
+  const rollTouchResult = await new Roll(rollTouch, actor.getRollData()).roll({async:true});
+
+  // --- DÉS 3D ---
+  if (game.dice3d) {
+      await game.dice3d.showForRoll(rollTouchResult, game.user, true);
+  }
+
+  // --- DÉTECTION ÉCHEC CRITIQUE ---
+  const diceResults = rollTouchResult.dice[0]?.results.map(r=>r.result)||[];
+  const allOnes = diceResults.length>0 && diceResults.every(r=>r===1);
+  const crit= diceResults.filter(r => r === 6).length >= 2;
+
+  // --- RENDER HTML DES DÉS ---
+  let touchHTML = await rollTouchResult.render();
+  if(allOnes) touchHTML += `<div style="color:red; font-weight:bold;">⚠ Échec Critique !</div>`;
+  if(crit) touchHTML += `<div style="color:lime; font-weight:bold;">✨ RÉUSSITE CRITIQUE ✨</div>`;
+
+  // --- Message RP dans le chat ---
+  const targetNames = targets.map(t => t.name).join(", ");
+  const messageHTML = `
+  <div style="border:2px solid pink; background:#ffe6f2; border-radius:12px; padding:10px; font-family:'Comic Sans MS', cursive; color:#d63384;">
+    <h2 style="text-align:center;">🌸✨ Enchant ✨🌸 Evade </h2>
+    <p style="text-align:center;">💖 <b>${caster.name}</b> lance une douce brise protectrice entourant <b>${targetNames}</b> 💫</p>
+<p style="text-align:center;"> <b> +1d6 à l'esquive </b> </p>
+    <div style="margin:6px 0;"><b>🎯 Jet de Réussite :</b> ${touchHTML}</div>
+    <p style="text-align:center; font-size:0.7em; color:#b03a84;">20 m | 6 mana mono | 9 mana multi</p>
+  </div>
+  `;
+
+  ChatMessage.create({
+    speaker: ChatMessage.getSpeaker({ token: caster }),
+    content: messageHTML
+  });
+}
