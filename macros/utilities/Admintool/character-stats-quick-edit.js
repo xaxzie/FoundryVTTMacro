@@ -167,11 +167,21 @@
                 // Update cost display
                 html.find(`#cost-${key}`).text(`${cost} points`);
 
+                // Calculate and update next level cost display
+                const nextLevelCost = getNextLevelCost(value, effectiveBase, effectiveMaxLevel);
+                if (value >= effectiveMaxLevel) {
+                    html.find(`#next-cost-${key}`).text('MAX').css('color', '#999');
+                } else if (nextLevelCost === 0) {
+                    html.find(`#next-cost-${key}`).text('-').css('color', '#999');
+                } else {
+                    html.find(`#next-cost-${key}`).text(`${nextLevelCost} pt${nextLevelCost > 1 ? 's' : ''}`).css('color', '#2196f3');
+                }
+
                 // Update base display with max info
                 html.find(`#base-${key}`).text(`(Base: ${effectiveBase}, Max: ${effectiveMaxLevel})`);
 
                 // Update button states
-                const nextCost = getNextLevelCost(value, effectiveBase, effectiveMaxLevel);
+                const nextCost = nextLevelCost; // Use the same calculated value
                 const minimumValue = getMinimumValue(key, baseValue);
                 const canIncrease = (usedPoints + nextCost) <= totalPoints && value < effectiveMaxLevel && nextCost > 0;
                 const canDecrease = value > minimumValue;
@@ -252,12 +262,13 @@
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: auto 2fr auto auto auto auto auto; gap: 8px; align-items: center; margin: 10px 0;">
+                <div style="display: grid; grid-template-columns: auto 2fr auto auto auto auto auto auto; gap: 8px; align-items: center; margin: 10px 0;">
                     <div><strong>Principale</strong></div>
                     <div><strong>Caractéristique</strong></div>
                     <div><strong>Valeur</strong></div>
                     <div><strong>Base/Max Effectifs</strong></div>
-                    <div><strong>Coût</strong></div>
+                    <div><strong>Coût Total</strong></div>
+                    <div><strong>Prochain Niveau</strong></div>
                     <div><strong>Actions</strong></div>
                     <div></div>
 
@@ -275,6 +286,9 @@
                         </div>
                         <div style="text-align: center; font-size: 0.9em; color: #666;">
                             <span id="cost-${key}">0 points</span>
+                        </div>
+                        <div style="text-align: center; font-size: 0.9em; color: #2196f3; font-weight: bold;">
+                            <span id="next-cost-${key}">-</span>
                         </div>
                         <div style="text-align: center;">
                             <button type="button" id="dec-${key}" style="width: 30px; margin: 2px;">-</button>

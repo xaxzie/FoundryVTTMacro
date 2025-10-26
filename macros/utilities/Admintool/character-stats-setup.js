@@ -11,10 +11,15 @@
  * - Volonté (Will/Determination)
  * - Charisme (Charisma/Social Understanding)
  *
- * Admin Setup Tool:
+ * Character Setup Tool:
  * - No point restrictions or limits
  * - Flexible stat assignment for any character type
  * - Values between 1-20 for maximum flexibility
+ * - Works for any user with OWNER permissions on the actor
+ *
+ * Permissions: Requires OWNER permission on the actor (managed by FoundryVTT)
+ * - Configure macro permissions in FoundryVTT's native macro settings
+ * - Users need OWNER permission on the actor to edit its statistics
  *
  * Storage: Saves characteristics as individual attributes (actor.system.attributes.physique, etc.)
  * Usage: Select a token and run this macro to set up characteristics (editable from character sheet)
@@ -32,6 +37,13 @@
 
     if (!actor) {
         ui.notifications.error("No valid actor found for the selected token!");
+        return;
+    }
+
+    // Check if user has permission to edit this actor
+    if (!actor.canUserModify(game.user, "update")) {
+        ui.notifications.error(`You don't have permission to edit ${actor.name}. Ask a GM to grant you OWNER permissions on this actor.`);
+        console.warn(`[Character Stats Setup] User ${game.user.name} lacks OWNER permission on actor ${actor.name}`);
         return;
     }
 
@@ -59,8 +71,9 @@
             <div style="padding: 10px;">
                 <h3>Character Statistics Setup</h3>
                 <p><strong>Character:</strong> ${actor.name}</p>
+                <p style="font-size: 0.9em; color: #666;"><strong>User:</strong> ${game.user.name}</p>
                 <hr>
-                <h4>Admin Character Setup:</h4>
+                <h4>Character Setup:</h4>
                 <p style="margin: 10px 0; font-style: italic;">Set characteristic values as needed for this character. No point restrictions apply.</p>
                 <hr>
                 <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;">
@@ -249,6 +262,7 @@
             <div style="background: #f0f8ff; padding: 10px; border-radius: 5px;">
                 <h3>✅ Character Statistics Updated!</h3>
                 <p><strong>Character:</strong> ${actor.name}</p>
+                <p style="font-size: 0.9em; color: #666;"><strong>Updated by:</strong> ${game.user.name}</p>
                 <hr>
                 <div style="font-family: monospace; font-size: 0.9em;">
                     ${statsSummary}
