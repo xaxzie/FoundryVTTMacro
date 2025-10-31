@@ -34,7 +34,7 @@
         isDirect: true,
         isFocusable: true,
         hasNoDamage: false, // Ce sort fait des dégâts
-        dexterityDivisor: 2, // Dextérité/2 pour dégâts fixes
+        dexterityDivisor: 4, // Dextérité/2 pour dégâts fixes
         isMultipleAllowed: true, // Peut lancer plusieurs manipulations
 
         animations: {
@@ -174,8 +174,8 @@
                             <strong>📝 Effet du sort :</strong>
                             <ul style="margin: 5px 0; padding-left: 20px;">
                                 <li>🎯 <strong>Toucher :</strong> Dextérité (${characteristicInfo.final})</li>
-                                <li>⚔️ <strong>Dégâts initiaux :</strong> ${Math.floor(characteristicInfo.final / SPELL_CONFIG.dexterityDivisor)} (Dex/2, fixes)</li>
-                                <li>🔄 <strong>Dégâts/tour :</strong> ${Math.floor(characteristicInfo.final / SPELL_CONFIG.dexterityDivisor)} (Dex/2, fixes)</li>
+                                <li>⚔️ <strong>Dégâts initiaux :</strong> ${Math.ceil(characteristicInfo.final / SPELL_CONFIG.dexterityDivisor)} (Dex/2, fixes)</li>
+                                <li>🔄 <strong>Dégâts/tour :</strong> ${Math.ceil(characteristicInfo.final / SPELL_CONFIG.dexterityDivisor)} (Dex/2, fixes)</li>
                                 <li>🚫 <strong>Immobilisation :</strong> La cible ne peut pas se déplacer</li>
                                 <li>🎲 <strong>Libération :</strong> Jet de Volonté opposé (manuel chaque tour)</li>
                             </ul>
@@ -393,7 +393,7 @@
 
     // ===== DAMAGE CALCULATION (FIXED, NO DICE) =====
     const effectDamageBonus = getActiveEffectBonus(actor, 'damage');
-    const baseDamage = Math.floor(characteristicInfo.final / SPELL_CONFIG.dexterityDivisor);
+    const baseDamage = Math.ceil(characteristicInfo.final / SPELL_CONFIG.dexterityDivisor);
 
     // Dégâts initiaux (avec bonus d'effets)
     const initialDamage = baseDamage + (damageBonus || 0) + effectDamageBonus;
