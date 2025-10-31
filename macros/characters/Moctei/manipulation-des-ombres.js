@@ -34,7 +34,7 @@
         isDirect: true,
         isFocusable: true,
         hasNoDamage: false, // Ce sort fait des dégâts
-        dexterityDivisor: 4, // Dextérité/2 pour dégâts fixes
+        dexterityDivisor: 3, // Dextérité/2 pour dégâts fixes
         isMultipleAllowed: true, // Peut lancer plusieurs manipulations
 
         animations: {
