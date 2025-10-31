@@ -46,7 +46,7 @@ const AlohaResistanceManager = (() => {
     // Check if current user should handle Aloha resistance management
     function shouldHandleResistance() {
         // Only the GM named "GM" handles this to avoid conflicts
-        return game.user.name === "GM" && game.user.isGM;
+        return game.user.name === "MJ" && game.user.isGM;
     }
 
     // Calculate resistance based on missing HP
