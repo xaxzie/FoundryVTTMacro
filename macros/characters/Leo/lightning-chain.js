@@ -33,7 +33,7 @@
 
         animations: {
             cast: "jb2a.markers.chain.spectral_standard.loop.02.blue",
-            transition: "jaamod.misc.chain_figure8",
+            transition: "jaamod.misc.chain_figure.8",
             finish: "jb2a_patreon.chain_lightning.primary.red",
             sound: null
         },
@@ -112,11 +112,11 @@
 
         return new Promise(resolve => {
             new Dialog({
-                title: `${SPELL_CONFIG.name}${currentStance ? ` (Position: ${currentStance.charAt(0).toUpperCase()+currentStance.slice(1)})` : ''}`,
+                title: `${SPELL_CONFIG.name}${currentStance ? ` (Position: ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : ''}`,
                 content: `
                     <h3>${SPELL_CONFIG.name} :</h3>
                     <p>${manaInfo}</p>
-                    <p><strong>Caractéristique ${SPELL_CONFIG.characteristicDisplay} :</strong> ${characteristicInfo.final}${characteristicInfo.injuries>0||characteristicInfo.effectBonus?` <em>(${characteristicInfo.base}${characteristicInfo.injuries>0?` - ${characteristicInfo.injuries} blessures`:''}${characteristicInfo.effectBonus?` + ${characteristicInfo.effectBonus} effets`:''})</em>`:''}</p>
+                    <p><strong>Caractéristique ${SPELL_CONFIG.characteristicDisplay} :</strong> ${characteristicInfo.final}${characteristicInfo.injuries > 0 || characteristicInfo.effectBonus ? ` <em>(${characteristicInfo.base}${characteristicInfo.injuries > 0 ? ` - ${characteristicInfo.injuries} blessures` : ''}${characteristicInfo.effectBonus ? ` + ${characteristicInfo.effectBonus} effets` : ''})</em>` : ''}</p>
 
                     <div style="margin:10px 0;padding:10px;border:1px solid #ccc;background:#f0f8ff;">
                         <h4>Bonus Manuels</h4>
@@ -128,12 +128,14 @@
                     <p>Dégâts : <strong>${SPELL_CONFIG.damageFormula} + ${SPELL_CONFIG.fixedDamageBonus} + ${SPELL_CONFIG.characteristicDisplay}</strong>${damageBonusNote}</p>
                 `,
                 buttons: {
-                    confirm: { label: "Lancer", callback: html => {
-                        const dmg = parseInt(html.find('#damageBonus').val())||0;
-                        const atk = parseInt(html.find('#attackBonus').val())||0;
-                        resolve({ damageBonus: dmg, attackBonus: atk });
-                    }},
-                    cancel: { label: "Annuler", callback: ()=> resolve(null) }
+                    confirm: {
+                        label: "Lancer", callback: html => {
+                            const dmg = parseInt(html.find('#damageBonus').val()) || 0;
+                            const atk = parseInt(html.find('#attackBonus').val()) || 0;
+                            resolve({ damageBonus: dmg, attackBonus: atk });
+                        }
+                    },
+                    cancel: { label: "Annuler", callback: () => resolve(null) }
                 }
             }).render(true);
         });
@@ -248,7 +250,7 @@
         if (currentStance === 'offensif') {
             const diceMax = 6; // 1d6 maximized
             const maxDamage = diceMax + totalDamageBonus;
-            return { total: maxDamage, formula: `${diceMax} + ${totalDamageBonus}`, isMaximized:true };
+            return { total: maxDamage, formula: `${diceMax} + ${totalDamageBonus}`, isMaximized: true };
         }
         const damage = new Roll(`${SPELL_CONFIG.damageFormula} + @total`, { total: totalDamageBonus });
         await damage.evaluate({ async: true });
@@ -319,10 +321,10 @@
     // ===== CHAT MESSAGE =====
     function createFlavor() {
         const actualMana = (currentStance === 'focus' && SPELL_CONFIG.isFocusable) ? 'GRATUIT (Position Focus)' : `${SPELL_CONFIG.manaCost} mana`;
-        const injuryInfo = characteristicInfo.injuries>0 ? `<div style="color:#d32f2f;font-size:0.9em">⚠️ Ajusté pour blessures: Base ${characteristicInfo.base} - ${characteristicInfo.injuries} = ${characteristicInfo.injuryAdjusted}</div>` : '';
-        const effectDamageBonus = getActiveDamageBonusExcluding(actor,'Serpent');
-        const effectInfo = (characteristicInfo.effectBonus!==0 || effectDamageBonus!==0) ? `<div style="color:#2e7d32;font-size:0.9em">${characteristicInfo.effectBonus?`<div>✨ Bonus ${SPELL_CONFIG.characteristicDisplay}: +${characteristicInfo.effectBonus}</div>`:''}${effectDamageBonus?`<div>✨ Bonus de Dégâts (excl. Serpent): +${effectDamageBonus}</div>`:''}</div>` : '';
-        const bonusInfo = (damageBonus>0 || attackBonus>0) ? `<div style="color:#2e7d32;font-size:0.9em">${damageBonus?`<div>🔧 Bonus Manuel de Dégâts: +${damageBonus}</div>`:''}${attackBonus?`<div>⚡ Bonus Manuel d'Attaque: +${attackBonus} dés</div>`:''}</div>` : '';
+        const injuryInfo = characteristicInfo.injuries > 0 ? `<div style="color:#d32f2f;font-size:0.9em">⚠️ Ajusté pour blessures: Base ${characteristicInfo.base} - ${characteristicInfo.injuries} = ${characteristicInfo.injuryAdjusted}</div>` : '';
+        const effectDamageBonus = getActiveDamageBonusExcluding(actor, 'Serpent');
+        const effectInfo = (characteristicInfo.effectBonus !== 0 || effectDamageBonus !== 0) ? `<div style="color:#2e7d32;font-size:0.9em">${characteristicInfo.effectBonus ? `<div>✨ Bonus ${SPELL_CONFIG.characteristicDisplay}: +${characteristicInfo.effectBonus}</div>` : ''}${effectDamageBonus ? `<div>✨ Bonus de Dégâts (excl. Serpent): +${effectDamageBonus}</div>` : ''}</div>` : '';
+        const bonusInfo = (damageBonus > 0 || attackBonus > 0) ? `<div style="color:#2e7d32;font-size:0.9em">${damageBonus ? `<div>🔧 Bonus Manuel de Dégâts: +${damageBonus}</div>` : ''}${attackBonus ? `<div>⚡ Bonus Manuel d'Attaque: +${attackBonus} dés</div>` : ''}</div>` : '';
 
         const attackDisplay = `<div style="text-align:center;margin:8px 0;padding:10px;background:#fff3e0;border-radius:4px;"><div style="font-size:1.4em;color:#e65100;font-weight:bold">🎯 ATTAQUE: ${attackResult.result}</div></div>`;
         const damageDisplay = `<div style="text-align:center;margin:8px 0;padding:10px;background:#e8f5e8;border-radius:4px;"><div style="font-size:1.1em;color:#2e7d32;margin-bottom:6px"><strong>⚡ ${SPELL_CONFIG.name}</strong></div><div style="font-size:0.9em;margin-bottom:4px"><strong>Cible:</strong> ${targetName}</div><div style="font-size:1.4em;color:#1565c0;font-weight:bold">💥 DÉGÂTS: ${finalDamage.total}</div><div style="font-size:0.8em;color:#666;margin-top:2px">(${SPELL_CONFIG.damageFormula} + ${SPELL_CONFIG.fixedDamageBonus} + Physique + bonus)</div></div>`;
@@ -330,7 +332,7 @@
         return `<div style="background:linear-gradient(135deg,#e3f2fd,#f3e5f5);padding:12px;border-radius:8px;border:2px solid #2196f3;margin:8px 0"><div style="text-align:center;margin-bottom:8px"><h3 style="margin:0;color:#1976d2">⚡ ${SPELL_CONFIG.name}</h3><div style="margin-top:3px;font-size:0.9em"><strong>Personnage:</strong> ${actor.name} | <strong>Coût:</strong> ${actualMana}</div></div>${injuryInfo}${effectInfo}${bonusInfo}${attackDisplay}${damageDisplay}</div>`;
     }
 
-    await combinedRoll.toMessage({ speaker: ChatMessage.getSpeaker({ token: caster }), flavor: createFlavor(), rollMode: game.settings.get('core','rollMode') });
+    await combinedRoll.toMessage({ speaker: ChatMessage.getSpeaker({ token: caster }), flavor: createFlavor(), rollMode: game.settings.get('core', 'rollMode') });
 
     ui.notifications.info(`${SPELL_CONFIG.name} lancé ! Cible: ${targetName}. Attaque: ${attackResult.result}, Dégâts: ${finalDamage.total}.`);
 
