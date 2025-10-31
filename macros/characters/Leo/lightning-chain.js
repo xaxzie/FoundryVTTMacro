@@ -33,7 +33,7 @@
 
         animations: {
             cast: "jb2a.markers.chain.spectral_standard.loop.02.blue",
-            transition: "jaamod.misc.chain_figure.8",
+            transition: "jaamod.misc.chain_figure8",
             finish: "jb2a_patreon.chain_lightning.primary.red",
             sound: null
         },
