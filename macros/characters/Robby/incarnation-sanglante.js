@@ -2,13 +2,11 @@
  * Incarnation Sanglante - Robby
  *
  * Robby utilise son esprit pour créer un petit rongeur de sang qui se propulse vers une cible.
- * La cible peut résister partiellement aux dégâts avec un jet de physique.
  *
  * - Caractéristique d'attaque : Esprit (+ effets actifs + bonus manuels)
  * - Dégâts : 1d6 + Esprit + bonus manuels + bonus d'effets actifs
  * - Coût de base : 4 mana (focalisable)
  * - Niveau de sort : 1
- * - Résistance : La cible peut faire un jet de Physique pour résister à la moitié des dégâts
  *
  * Usage : Sélectionner le token de Robby, lancer la macro et choisir la cible.
  */
@@ -25,9 +23,6 @@
         damageFormula: "1d6",
         isDirect: true,
         isFocusable: true,
-        hasResistance: true,
-        resistanceCharacteristic: "physique",
-        resistanceCharacteristicDisplay: "Physique",
         animations: {
             cast: "jb2a.cast_generic.02.blue",
             projectile: "jb2a_patreon.magic_missile.dark_red",
@@ -72,7 +67,7 @@
      * @param {string} flagKey - The flag key to look for (e.g., "damage", "esprit")
      * @returns {number} Total bonus from all matching active effects
      */
-   function getActiveEffectBonus(actor, flagKey) {
+    function getActiveEffectBonus(actor, flagKey) {
         if (!actor?.effects) return 0;
 
         let totalBonus = 0;
@@ -184,11 +179,6 @@
                             <p style="margin: 5px 0; color: #333;"><strong>${SPELL_CONFIG.characteristicDisplay}:</strong> ${characteristicInfo.final} ${characteristicBonus !== 0 ? `(+${characteristicBonus} effets)` : ''}</p>
                             <p style="margin: 5px 0; color: #333;"><strong>Blessures:</strong> ${injuryDisplay}</p>
                             <p style="margin: 5px 0; color: #333;"><strong>Dégâts estimés:</strong> ${SPELL_CONFIG.damageFormula} + ${characteristicInfo.final + characteristicBonus + damageBonus}</p>
-                        </div>
-
-                        <div style="margin: 15px 0; padding: 10px; background: #ffebee; border-radius: 4px;">
-                            <h4 style="margin-top: 0; color: #d32f2f;">🛡️ Résistance</h4>
-                            <p style="margin: 5px 0; color: #333; font-size: 0.9em;">La cible peut faire un jet de <strong>${SPELL_CONFIG.resistanceCharacteristicDisplay}</strong> pour résister à la moitié des dégâts.</p>
                         </div>
                     </div>
                 `,
@@ -377,27 +367,6 @@
 
     const damageResult = await calculateDamage();
 
-    // ===== RESISTANCE CHECK =====
-    let resistanceResult = null;
-    if (targetActor && SPELL_CONFIG.hasResistance) {
-        const targetCharacteristicInfo = getCharacteristicValue(targetActor.actor, SPELL_CONFIG.resistanceCharacteristic);
-        if (targetCharacteristicInfo) {
-            const targetCharacteristicBonus = getActiveEffectBonus(targetActor.actor, SPELL_CONFIG.resistanceCharacteristic);
-            const totalResistanceDice = targetCharacteristicInfo.final + targetCharacteristicBonus;
-
-            const resistanceRoll = new Roll(`${totalResistanceDice}d7`);
-            await resistanceRoll.evaluate({ async: true });
-
-            resistanceResult = {
-                roll: resistanceRoll,
-                result: resistanceRoll.total,
-                characteristic: targetCharacteristicInfo.final,
-                bonus: targetCharacteristicBonus,
-                dice: totalResistanceDice
-            };
-        }
-    }
-
     // ===== SEQUENCER ANIMATION =====
     async function playSpellAnimation() {
         let sequence = new Sequence();
@@ -439,7 +408,7 @@
     const totalAttackDice = characteristicInfo.final + characteristicBonus + attackBonus;
     const levelBonus = 2 * SPELL_CONFIG.spellLevel;
 
-    // Build combined roll formula: attack roll + damage roll + resistance roll
+    // Build combined roll formula: attack roll + damage roll only
     let combinedRollParts = [`${totalAttackDice}d7 + ${levelBonus}`];
 
     // Add damage roll to the combined formula (only if not maximized)
@@ -450,18 +419,12 @@
         combinedRollParts.push(`${SPELL_CONFIG.damageFormula} + ${totalDamageBonus}`);
     }
 
-    // Add resistance roll if applicable
-    if (resistanceResult) {
-        combinedRollParts.push(`${resistanceResult.dice}d7`);
-    }
-
     const combinedRoll = new Roll(`{${combinedRollParts.join(', ')}}`);
     await combinedRoll.evaluate({ async: true });
 
     // Extract results from the combined roll
     const attackResult = combinedRoll.terms[0].results[0];
     let finalDamageResult = damageResult;
-    let finalResistanceResult = resistanceResult;
 
     if (currentStance !== 'offensif') {
         // Extract damage result from dice roll
@@ -479,26 +442,8 @@
         };
     }
 
-    if (resistanceResult) {
-        // Extract resistance result from dice roll
-        const resistanceRollResult = combinedRoll.terms[0].results[combinedRollParts.length - 1];
-        finalResistanceResult = {
-            ...resistanceResult,
-            result: resistanceRollResult.result
-        };
-    }
-
-    // Calculate final damage after resistance
-    let appliedDamage = finalDamageResult.total;
-    let damageReduced = false;
-
-    if (finalResistanceResult && targetActor) {
-        // Compare attack vs resistance - if resistance succeeds, halve damage
-        if (finalResistanceResult.result >= attackResult.result) {
-            appliedDamage = Math.floor(finalDamageResult.total / 2);
-            damageReduced = true;
-        }
-    }
+    // No automatic resistance calculation - GM handles target's response
+    const appliedDamage = finalDamageResult.total;
 
     // Build enhanced flavor for the final dice roll message
     function createChatFlavor() {
@@ -511,16 +456,14 @@
         `;
 
         const stanceNote = currentStance === 'offensif' ? ' <em>(MAXIMISÉ)</em>' : '';
-        const resistanceNote = finalResistanceResult ?
-            (damageReduced ? ' <em>(RÉDUIT DE MOITIÉ)</em>' : ' <em>(RÉSISTANCE ÉCHOUÉE)</em>') : '';
 
         const damageDisplay = `
             <div style="text-align: center; margin: 8px 0; padding: 10px; background: #f5f5f5; border-radius: 4px;">
                 <div style="font-size: 1.1em; color: #424242; margin-bottom: 6px;"><strong>🩸 ${SPELL_CONFIG.name}${stanceNote}</strong></div>
                 <div style="font-size: 0.9em; margin-bottom: 4px;"><strong>Cible:</strong> ${targetName}</div>
-                <div style="font-size: 1.4em; color: #d32f2f; font-weight: bold;">💥 DÉGÂTS: ${appliedDamage}${resistanceNote}</div>
+                <div style="font-size: 1.4em; color: #d32f2f; font-weight: bold;">💥 DÉGÂTS: ${appliedDamage}</div>
                 <div style="font-size: 0.8em; color: #666; margin-top: 2px;">(${SPELL_CONFIG.damageFormula} + ${SPELL_CONFIG.characteristicDisplay} + bonus)</div>
-                ${finalResistanceResult ? `<div style="font-size: 0.8em; color: #666;">🛡️ Résistance (${SPELL_CONFIG.resistanceCharacteristicDisplay}): ${finalResistanceResult.result}</div>` : ''}
+                ${targetActor ? `<div style="font-size: 0.8em; color: #e65100; margin-top: 4px; font-style: italic;">🛡️ Le GM peut faire un jet de résistance pour ${targetName}</div>` : ''}
             </div>
         `;
 
@@ -551,11 +494,10 @@
     // ===== FINAL NOTIFICATION =====
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
     const manaCostInfo = actualManaCost === 0 ? ' GRATUIT (Focus)' : ` - ${actualManaCost} mana`;
-    const resistanceInfo = finalResistanceResult ?
-        (damageReduced ? ` (résisté: ${finalDamageResult.total} → ${appliedDamage})` : ' (résistance échouée)') : '';
+    const resistanceInfo = targetActor ? ' (Le GM peut faire un jet de résistance)' : '';
 
     ui.notifications.info(`${SPELL_CONFIG.name} lancé !${stanceInfo} Cible: ${targetName}. Attaque: ${attackResult.result}, Dégâts: ${appliedDamage}${manaCostInfo}${resistanceInfo}`);
 
-    console.log(`[DEBUG] Incarnation Sanglante cast complete - Caster: ${actor.name}, Target: ${targetName}, Damage: ${appliedDamage}, Resistance: ${finalResistanceResult?.result || 'N/A'}`);
+    console.log(`[DEBUG] Incarnation Sanglante cast complete - Caster: ${actor.name}, Target: ${targetName}, Damage: ${appliedDamage}`);
 
 })();

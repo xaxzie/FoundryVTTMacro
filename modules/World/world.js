@@ -1,7 +1,7 @@
 // World script for default door sounds and GM socket handlers
- // World script for default door sounds and GM socket handlers
+// World script for default door sounds and GM socket handlers
 Hooks.on('ready', async () => {
-  console.log("[DEBUG]FT World | Initializing default door sounds");
+    console.log("[DEBUG]FT World | Initializing default door sounds");
     await game.settings.register("world", "defaultDoorSound", {
         name: "Default Door Sound",
         scope: "world",
@@ -11,7 +11,7 @@ Hooks.on('ready', async () => {
     });
     await game.settings.set("world", "defaultDoorSound", "woodBasic");
     // Hook for new door creation
-     Hooks.on('createWall', (document, data, options) => {
+    Hooks.on('createWall', (document, data, options) => {
         if (document.door !== 0) {
             document.update({ doorSound: "woodBasic" });
         }
@@ -24,7 +24,7 @@ Hooks.on('ready', async () => {
             macro.execute();
         });
     });
-console.log("[DEBUG]FT World | default door sounds setted");
+    console.log("[DEBUG]FT World | default door sounds setted");
 });
 
 // Note: GM Socket Handlers for Effect Management are now handled by the custom-status-effects module
@@ -42,6 +42,12 @@ const AlohaResistanceManager = (() => {
         resistancePerMissingHP: 3, // 1 resistance per 3 missing HP
         resistanceValue: 1
     };
+
+    // Check if current user should handle Aloha resistance management
+    function shouldHandleResistance() {
+        // Only the GM named "GM" handles this to avoid conflicts
+        return game.user.name === "GM" && game.user.isGM;
+    }
 
     // Calculate resistance based on missing HP
     function calculateResistance(currentHP, maxHP) {
@@ -138,6 +144,9 @@ const AlohaResistanceManager = (() => {
     // Hook into actor updates
     Hooks.on("updateActor", async (actor, changes, options, userId) => {
         try {
+            // Only handle if current user is the designated GM
+            if (!shouldHandleResistance()) return;
+
             // Check if health changed
             if (changes.system?.health) {
                 await updateAlohaResistance(actor);
@@ -150,6 +159,9 @@ const AlohaResistanceManager = (() => {
     // Hook into token updates (in case HP is managed via token bars)
     Hooks.on("updateToken", async (tokenDoc, changes, options, userId) => {
         try {
+            // Only handle if current user is the designated GM
+            if (!shouldHandleResistance()) return;
+
             if (changes.actorData?.system?.health || changes.bar1 || changes.bar2) {
                 const actor = tokenDoc.actor;
                 if (actor) await updateAlohaResistance(actor);
@@ -162,11 +174,17 @@ const AlohaResistanceManager = (() => {
     // Initial setup when world loads
     Hooks.once("ready", async () => {
         try {
+            // Only initialize if current user is the designated GM
+            if (!shouldHandleResistance()) {
+                console.log(`[DEBUG] AlohaResistance: User ${game.user.name} is not the designated GM, skipping initialization`);
+                return;
+            }
+
             // Find Aloha and initialize resistance
             for (const actor of game.actors.contents) {
                 if (actor.name === CONFIG.actorName) {
                     await updateAlohaResistance(actor);
-                    console.log(`[DEBUG] AlohaResistance: Initialized for ${actor.name}`);
+                    console.log(`[DEBUG] AlohaResistance: Initialized for ${actor.name} by GM ${game.user.name}`);
                 }
             }
         } catch (e) {
@@ -174,53 +192,53 @@ const AlohaResistanceManager = (() => {
         }
     });
 
-    console.log("[DEBUG] AlohaResistance: System initialized");
+    console.log(`[DEBUG] AlohaResistance: System initialized for user ${game.user.name} (${game.user.isGM ? 'GM' : 'Player'})`);
 })();
 
 Hooks.on("createMacro", async (macro, options, userId) => {
-  try {
-    console.log("[DEBUG] createMacro hook fired", macro);
+    try {
+        console.log("[DEBUG] createMacro hook fired", macro);
 
-    // Résolution sûre de l'auteur — plusieurs emplacements possibles selon la version et la source
-    const authorId =
-      macro?.data?._source?.author ??
-      macro?.data?.author ??
-      macro?._source?.author ??
-      macro?.author?.id ??
-      userId ??
-      game.user?.id;
+        // Résolution sûre de l'auteur — plusieurs emplacements possibles selon la version et la source
+        const authorId =
+            macro?.data?._source?.author ??
+            macro?.data?.author ??
+            macro?._source?.author ??
+            macro?.author?.id ??
+            userId ??
+            game.user?.id;
 
-    console.log("[DEBUG]Resolved authorId:", authorId);
+        console.log("[DEBUG]Resolved authorId:", authorId);
 
-    const user = game.users.get(authorId) || game.users.get(userId) || game.user;
-    if (!user) {
-      console.log("[DEBUG]No user found for macro author, aborting");
-      return;
+        const user = game.users.get(authorId) || game.users.get(userId) || game.user;
+        if (!user) {
+            console.log("[DEBUG]No user found for macro author, aborting");
+            return;
+        }
+        console.log("[DEBUG]Macro created by user:", user.name);
+
+        // Cherche un dossier Macro existant pour cet utilisateur
+        let folder = game.folders.find(f => f.type === "Macro" && f.name === user.name);
+        console.log("[DEBUG]Found folder:", folder);
+
+        // Crée le dossier si nécessaire
+        if (!folder) {
+            console.log("[DEBUG]No folder found, creating folder for user", user.name);
+            folder = await Folder.create({ name: user.name, type: "Macro", parent: null });
+            console.log("[DEBUG]Folder created:", folder);
+        }
+
+        // Assure que le macro est bien enregistré (id présent) avant update ; si besoin, attendre un court instant
+        if (!macro?.id) {
+            // normalement non nécessaire mais garde un fallback
+            await new Promise(r => setTimeout(r, 50));
+        }
+
+        console.log("[DEBUG]Updating macro", macro.name, "to folder", folder.name);
+        await macro.update({ folder: folder.id });
+        console.log("[DEBUG]Macro updated successfully");
+    } catch (err) {
+        console.error("[DEBUG] createMacro hook error:", err);
     }
-    console.log("[DEBUG]Macro created by user:", user.name);
-
-    // Cherche un dossier Macro existant pour cet utilisateur
-    let folder = game.folders.find(f => f.type === "Macro" && f.name === user.name);
-    console.log("[DEBUG]Found folder:", folder);
-
-    // Crée le dossier si nécessaire
-    if (!folder) {
-      console.log("[DEBUG]No folder found, creating folder for user", user.name);
-      folder = await Folder.create({ name: user.name, type: "Macro", parent: null });
-      console.log("[DEBUG]Folder created:", folder);
-    }
-
-    // Assure que le macro est bien enregistré (id présent) avant update ; si besoin, attendre un court instant
-    if (!macro?.id) {
-      // normalement non nécessaire mais garde un fallback
-      await new Promise(r => setTimeout(r, 50));
-    }
-
-    console.log("[DEBUG]Updating macro", macro.name, "to folder", folder.name);
-    await macro.update({ folder: folder.id });
-    console.log("[DEBUG]Macro updated successfully");
-  } catch (err) {
-    console.error("[DEBUG] createMacro hook error:", err);
-  }
 });
 

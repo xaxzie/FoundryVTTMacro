@@ -597,7 +597,7 @@
             const result = await applyEffectWithGMDelegation(targetActorInfo.token, effectData);
             if (result.success) {
                 attachmentSuccess = true;
-                attachmentMessage = `� Livre monstrueux attaché (Protection: ${counterValue})`;
+                attachmentMessage = `Livre monstrueux attaché (Dégâts par tours : ${counterValue})`;
                 console.log(`[DEBUG] Applied new effect to ${targetActorInfo.name}: counter ${counterValue}`);
             } else {
                 console.error(`[DEBUG] Failed to apply effect: ${result.error}`);
