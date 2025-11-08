@@ -323,6 +323,20 @@
                     sequencerName: "RaynartStellaire"
                 }
             }
+        },
+        "InvocationsComplexe": {
+            name: "InvocationsComplexe",
+            icon: "icons/magic/symbols/runes-star-pentagon-orange.webp",
+            flags: [],
+            description: "Compteur de complexité des invocations actives. Araignées: 0, Gatling: 2, Autres: 1. Mode Eclipse double la limite.",
+            category: "custom",
+            increasable: true,
+            counterName: "Complexité",
+            defaultValue: 0,
+            maxValue: 20,
+            hasStatusCounter: true,
+            statusCounterVisible: true,
+            manualAdjustment: true
         }
     };
 
@@ -773,7 +787,7 @@
     const getCustomOutsideEffects = () => {
         const outsideEffects = [];
         const knownEffectNames = new Set([
-            ...Object.keys(CUSTOM_EFFECTS),
+            ...Object.values(CUSTOM_EFFECTS).map(e => e.name.toLowerCase()),
             ...Object.keys(POSTURES).map(k => (POSTURES[k].name || POSTURES[k].label).toLowerCase()),
             ...Object.keys(INJURY_EFFECTS).map(k => (INJURY_EFFECTS[k].name || INJURY_EFFECTS[k].label).toLowerCase()),
             ...Object.keys(configStatusEffects.other).map(k => (configStatusEffects.other[k].name || configStatusEffects.other[k].label).toLowerCase())
@@ -831,22 +845,27 @@
         dialogContent += `
             <div class="effect-section" style="border-color: #9e9e9e;">
                 <h4>⚠️ Effets Externes Détectés</h4>
-                <p style="font-size: 0.9em; color: #666;">Ces effets ne sont pas gérés par ce système.</p>
+                <p style="font-size: 0.9em; color: #666;">Ces effets ne sont pas gérés par ce système mais peuvent être supprimés.</p>
         `;
 
         for (const effect of outsideEffects) {
             const isSvg = effect.icon.endsWith('.svg');
             dialogContent += `
-                <div class="effect-item">
-                    <div style="display: flex; align-items: center;">
+                <div class="effect-item" id="external-${effect.id}">
+                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
                         <div class="effect-icon" data-is-svg="${isSvg}" style="background-image: url('${effect.icon}');"></div>
                         <div style="flex-grow: 1;">
                             <strong>${effect.name}</strong>
-                            <br><small style="color: #999;">Effet externe (non modifiable ici)</small>
+                            <br><small style="color: #999;">Effet externe</small>
                         </div>
                         <div class="status-indicator" style="color: #2e7d32;">
                             ✅ ACTIVE
                         </div>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" class="btn btn-toggle active" data-action="toggle" data-effect="${effect.id}" data-category="external" data-current-state="active">
+                            ➖ Supprimer
+                        </button>
                     </div>
                 </div>
             `;
@@ -868,8 +887,14 @@
         const statusColor = isActive ? "#2e7d32" : "#d32f2f";
         const isSvg = config.icon.endsWith('.svg');
 
-        // Calculate mana cost dynamically
-        const costCalc = calculateManaCost(config, actor);
+        // Calculate mana cost dynamically (skip for increasable manual effects)
+        const costCalc = config.manualAdjustment ? null : calculateManaCost(config, actor);
+
+        // Get current counter value for increasable effects
+        let currentCounter = 0;
+        if (config.increasable && isActive) {
+            currentCounter = currentState.customEffects[key]?.flags?.statuscounter?.value || 0;
+        }
 
         dialogContent += `
             <div class="effect-item" id="effect-${key}">
@@ -880,13 +905,23 @@
                         <br><small style="color: #666;">${config.description}</small>
                         ${config.isPerTurn ? `<br><small style="color: #f57c00;">⏱️ Coût par tour: ${config.manaPerTurn || config.manaCost} mana</small>` : ''}
                         ${config.forcesFocusPosture ? `<br><small style="color: #ff9800;">⚡ Force la posture Focus</small>` : ''}
-                        <div class="mana-cost">💎 ${costCalc.displayMessage}</div>
+                        ${costCalc ? `<div class="mana-cost">💎 ${costCalc.displayMessage}</div>` : ''}
+                        ${config.increasable && isActive ? `<div style="margin-top: 5px; color: #ff9800; font-weight: bold;">${config.counterName}: ${currentCounter}</div>` : ''}
                     </div>
                     <div class="status-indicator status-${key}" style="color: ${statusColor};">
                         ${statusIcon} ${statusText}
                     </div>
                 </div>
                 <div class="button-group">
+                    ${config.increasable && isActive ? `
+                        <button type="button" class="btn" style="background: #ff9800; color: white;" data-action="decrease" data-effect="${key}" data-category="custom">
+                            ➖
+                        </button>
+                        <input type="number" id="counter-${key}" value="${currentCounter}" min="0" max="${config.maxValue || 20}" style="width: 60px; text-align: center;" onclick="event.stopPropagation()">
+                        <button type="button" class="btn" style="background: #ff9800; color: white;" data-action="increase" data-effect="${key}" data-category="custom">
+                            ➕
+                        </button>
+                    ` : ''}
                     <button type="button" class="btn btn-toggle ${isActive ? 'active' : 'inactive'}" data-action="toggle" data-effect="${key}" data-category="custom" data-current-state="${isActive ? 'active' : 'inactive'}">
                         ${isActive ? '➖ Désactiver' : '➕ Activer'}
                     </button>
@@ -969,14 +1004,15 @@
 
         for (const [key, injuryData] of Object.entries(INJURY_EFFECTS)) {
             const currentCount = currentState.injuryCount;
-            const isSvg = injuryData.icon.endsWith('.svg');
+            const injuryIcon = (injuryData.icon || injuryData.img) || "icons/svg/blood.svg";
+            const isSvg = injuryIcon.endsWith('.svg');
 
             dialogContent += `
                 <div class="effect-item">
                     <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                        <div class="effect-icon" data-is-svg="${isSvg}" style="background-image: url('${injuryData.icon}');"></div>
+                        <div class="effect-icon" data-is-svg="${isSvg}" style="background-image: url('${injuryIcon}');"></div>
                         <div style="flex-grow: 1;">
-                            <strong>${injuryData.name}</strong>
+                            <strong>${injuryData.name || injuryData.label}</strong>
                             <br><small style="color: #666;">Chaque blessure réduit toutes les caractéristiques de -1</small>
                         </div>
                         <div class="status-indicator" style="color: ${currentCount > 0 ? '#d32f2f' : '#2e7d32'};">
@@ -984,13 +1020,10 @@
                         </div>
                     </div>
                     <div class="button-group">
-                        <button type="button" class="btn btn-add" data-action="addInjury" data-effect="${key}">
-                            ➕ Ajouter
-                        </button>
-                        <button type="button" class="btn btn-remove" data-action="removeInjury" data-effect="${key}" ${currentCount === 0 ? 'disabled' : ''}>
-                            ➖ Retirer
-                        </button>
-                        <label style="margin-left: 10px;">Quantité: <input type="number" id="injury-amount" min="1" max="10" value="1" style="width: 50px;"></label>
+                        <label style="display: flex; align-items: center; gap: 10px;">
+                            <span>Nombre de blessures:</span>
+                            <input type="number" id="injury-count-${key}" value="${currentCount}" min="0" max="10" style="width: 60px; text-align: center;">
+                        </label>
                     </div>
                 </div>
             `;
@@ -1010,10 +1043,31 @@
                 apply: {
                     label: "✅ Appliquer",
                     callback: (html) => {
+                        // Récupérer les valeurs des compteurs d'effets increasables
+                        const counterValues = {};
+                        for (const [key, config] of Object.entries(CUSTOM_EFFECTS)) {
+                            if (config.increasable) {
+                                const input = html.find(`#counter-${key}`)[0];
+                                if (input) {
+                                    counterValues[key] = parseInt(input.value || 0);
+                                }
+                            }
+                        }
+
+                        // Récupérer les valeurs des blessures
+                        const injuryValues = {};
+                        for (const key of Object.keys(INJURY_EFFECTS)) {
+                            const input = html.find(`#injury-count-${key}`)[0];
+                            if (input) {
+                                injuryValues[key] = parseInt(input.value || 0);
+                            }
+                        }
+
                         resolve({
                             action: "apply",
                             pendingChanges: pendingChanges,
-                            injuryAmount: parseInt(html.find("#injury-amount")[0]?.value || 1)
+                            counterValues: counterValues,
+                            injuryValues: injuryValues
                         });
                     }
                 },
@@ -1047,6 +1101,23 @@
 
                     if (action === "removePostures") {
                         pendingChanges["removeAllPostures"] = true;
+                    } else if (action === "increase" || action === "decrease") {
+                        // Handle counter increase/decrease
+                        const input = html.find(`#counter-${effectKey}`)[0];
+                        if (input) {
+                            let currentValue = parseInt(input.value || 0);
+                            const config = CUSTOM_EFFECTS[effectKey];
+
+                            if (action === "increase") {
+                                if (!config.maxValue || currentValue < config.maxValue) {
+                                    input.value = currentValue + 1;
+                                }
+                            } else if (action === "decrease") {
+                                if (currentValue > 0) {
+                                    input.value = currentValue - 1;
+                                }
+                            }
+                        }
                     } else if (action === "toggle") {
                         // Handle toggle button
                         const currentState = button.data("current-state");
@@ -1124,7 +1195,7 @@
     }
 
     // === PROCESS CHANGES ===
-    const { pendingChanges: changes, injuryAmount } = result;
+    const { pendingChanges: changes, counterValues, injuryValues } = result;
 
     try {
         // Handle Remove All Postures
@@ -1211,6 +1282,90 @@
                         }
                     } else {
                         await handleGenericEffectDeactivation(actor, effectConfig, casterToken, key);
+                    }
+                }
+            }
+        }
+
+        // Handle Counter Value Changes (for increasable effects like InvocationsComplexe)
+        if (counterValues) {
+            for (const [key, newValue] of Object.entries(counterValues)) {
+                const effectConfig = CUSTOM_EFFECTS[key];
+                if (!effectConfig || !effectConfig.increasable) continue;
+
+                const existingEffect = actor.effects.contents.find(e => e.name === effectConfig.name);
+                if (existingEffect) {
+                    const currentValue = existingEffect.flags?.statuscounter?.value || 0;
+
+                    if (newValue !== currentValue) {
+                        await existingEffect.update({
+                            "flags.statuscounter.value": newValue
+                        });
+                        console.log(`[Raynart] Updated ${effectConfig.name} counter: ${currentValue} → ${newValue}`);
+                        ui.notifications.info(`📊 ${effectConfig.counterName || "Compteur"} mis à jour: ${newValue}`);
+                    }
+                }
+            }
+        }
+
+        // Handle Injury Value Changes (from direct number input)
+        if (injuryValues) {
+            for (const [key, newValue] of Object.entries(injuryValues)) {
+                const injuryConfig = INJURY_EFFECTS[key];
+                if (!injuryConfig) continue;
+
+                const existingEffect = actor.effects.contents.find(e =>
+                    e.name === injuryConfig.name && e.flags?.statuscounter !== undefined
+                );
+
+                const currentValue = existingEffect?.flags?.statuscounter?.value || 0;
+
+                if (newValue !== currentValue) {
+                    if (newValue === 0 && existingEffect) {
+                        // Remove injury if count is 0
+                        await existingEffect.delete();
+                        ui.notifications.info(`🩹 ${injuryConfig.name} retiré !`);
+                        console.log(`[Raynart] Removed injury: ${injuryConfig.name}`);
+                    } else if (newValue > 0) {
+                        if (existingEffect) {
+                            // Update existing injury count
+                            await existingEffect.update({
+                                "flags.statuscounter.value": newValue
+                            });
+                            ui.notifications.info(`🩹 ${injuryConfig.name}: ${currentValue} → ${newValue}`);
+                            console.log(`[Raynart] Updated injury ${injuryConfig.name}: ${currentValue} → ${newValue}`);
+                        } else {
+                            // Create new injury
+                            await actor.createEmbeddedDocuments("ActiveEffect", [{
+                                name: injuryConfig.name,
+                                icon: injuryConfig.icon || injuryConfig.img,
+                                changes: injuryConfig.changes || [],
+                                flags: {
+                                    statuscounter: {
+                                        value: newValue,
+                                        visible: true
+                                    }
+                                },
+                                duration: { seconds: 86400 },
+                                origin: actor.uuid
+                            }]);
+                            ui.notifications.info(`🩹 ${injuryConfig.name} ajouté (×${newValue}) !`);
+                            console.log(`[Raynart] Added injury: ${injuryConfig.name} ×${newValue}`);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Handle External Effects (deletion)
+        if (changes.external) {
+            for (const [effectId, action] of Object.entries(changes.external)) {
+                if (action === "remove") {
+                    const effect = actor.effects.get(effectId);
+                    if (effect) {
+                        await effect.delete();
+                        ui.notifications.info(`🗑️ Effet externe "${effect.name}" retiré !`);
+                        console.log(`[Raynart] Removed external effect: ${effect.name}`);
                     }
                 }
             }
