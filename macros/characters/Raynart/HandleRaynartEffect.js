@@ -440,55 +440,91 @@
 
     /**
      * Calculate real mana cost based on effect type, current stance, and Armure Infini
-     * @returns {Object} { realCost, savedMana, displayMessage }
+     * @returns {Object} { realCost, savedMana, savedByArmure, displayMessage }
      */
     function calculateManaCost(effectConfig, actor) {
         const currentStance = getCurrentStance(actor);
         const hasArmure = hasArmureInfini(actor);
         const baseCost = effectConfig.manaCost || 0;
-        let costType = effectConfig.costType || "focusable";
-
-        // Armure Infini modifies focusability
-        if (hasArmure && effectConfig.name !== "Armure du Fléau de l'Infini") {
-            if (costType === "non-focusable") {
-                costType = "demi-focus";
-            } else if (costType === "demi-focus") {
-                costType = "focusable";
-            }
-        }
+        const originalCostType = effectConfig.costType || "focusable";
+        let costType = originalCostType;
 
         let realCost = baseCost;
         let savedMana = 0;
+        let savedByArmure = 0; // Mana économisée grâce à l'armure (à ajouter au compteur)
+
+        // Armure Infini modifies focusability ONLY for non-focusable and demi-focus
+        if (hasArmure && effectConfig.name !== "Armure du Fléau de l'Infini") {
+            if (originalCostType === "non-focusable") {
+                // Non-focusable → demi-focus
+                costType = "demi-focus";
+            } else if (originalCostType === "demi-focus") {
+                // Demi-focus → focusable
+                costType = "focusable";
+            }
+            // Si déjà focusable, pas de changement
+        }
 
         // Calculate real cost based on stance and modified cost type
         if (currentStance === 'focus') {
             if (costType === "focusable") {
+                // Focusable en Focus = gratuit
                 realCost = 0;
                 savedMana = baseCost;
+
+                // L'armure ne stocke QUE si le sort n'était PAS focusable de base
+                if (originalCostType === "demi-focus") {
+                    // Était demi-focus, maintenant focusable grâce à l'armure
+                    savedByArmure = Math.floor(baseCost / 2); // Moitié inférieure
+                }
+                // Si focusable de base, savedByArmure = 0 (pas d'aide de l'armure)
+
             } else if (costType === "demi-focus") {
-                realCost = Math.floor(baseCost / 2);
+                // Demi-focus en Focus = moitié supérieure
+                realCost = Math.ceil(baseCost / 2);
                 savedMana = baseCost - realCost;
+
+                // L'armure stocke la moitié inférieure (était non-focusable)
+                if (originalCostType === "non-focusable") {
+                    savedByArmure = Math.floor(baseCost / 2);
+                }
+
+            } else if (costType === "non-focusable") {
+                // Non-focusable en Focus = coût plein (pas de réduction)
+                realCost = baseCost;
+                savedMana = 0;
+                savedByArmure = 0;
             }
+        } else {
+            // Pas en Focus : pas de réduction de coût
+            realCost = baseCost;
+            savedMana = 0;
+            savedByArmure = 0;
         }
 
         // Build display message
         let displayMessage = "";
-        if (hasArmure && effectConfig.name !== "Armure du Fléau de l'Infini") {
-            const originalCostType = effectConfig.costType;
+        if (hasArmure && effectConfig.name !== "Armure du Fléau de l'Infini" && originalCostType !== costType) {
             displayMessage = `<span style="color: #ff9800;">[Armure: ${originalCostType} → ${costType}]</span> `;
         }
 
-        if (currentStance === 'focus' && savedMana > 0) {
-            displayMessage += `<span style="color: #4caf50;">GRATUIT (Focus économise ${savedMana} mana)</span>`;
+        if (currentStance === 'focus' && realCost === 0) {
+            displayMessage += `<span style="color: #4caf50;">GRATUIT (Focus)</span>`;
+            if (savedByArmure > 0) {
+                displayMessage += ` <span style="color: #ff9800;">(+${savedByArmure} stocké dans Armure)</span>`;
+            }
+        } else if (currentStance === 'focus' && costType === "demi-focus") {
+            displayMessage += `${realCost} mana <em style="font-size: 0.85em; color: #4caf50;">(demi-focus: économie ${savedMana})</em>`;
+            if (savedByArmure > 0) {
+                displayMessage += ` <span style="color: #ff9800;">(+${savedByArmure} stocké dans Armure)</span>`;
+            }
         } else if (currentStance === 'focus' && costType === "non-focusable") {
             displayMessage += `${realCost} mana <em style="font-size: 0.85em;">(non-focusable)</em>`;
-        } else if (realCost < baseCost) {
-            displayMessage += `${realCost} mana <em style="font-size: 0.85em; color: #4caf50;">(économie: ${savedMana} mana)</em>`;
         } else {
             displayMessage += `${realCost} mana`;
         }
 
-        return { realCost, savedMana, displayMessage, modifiedCostType: costType };
+        return { realCost, savedMana, savedByArmure, displayMessage, modifiedCostType: costType };
     }
 
     /**
@@ -1584,8 +1620,8 @@
         }]);
 
         // Update Armure Infini counter if applicable
-        if (costCalc.savedMana > 0) {
-            await updateArmureInfiniCounter(actor, costCalc.savedMana);
+        if (costCalc.savedByArmure > 0) {
+            await updateArmureInfiniCounter(actor, costCalc.savedByArmure);
         }
 
         // Chat message
@@ -1599,7 +1635,6 @@
                     <p><strong>💎 Coût:</strong> ${costCalc.displayMessage}</p>
                     <p><strong>🛡️ Résistance accordée:</strong> ${resistanceValue}</p>
                     <p><strong>📊 Invocations affectées:</strong> ${result.success}/${result.total}</p>
-                    ${costCalc.savedMana > 0 ? `<p style="color: #4caf50;">⚡ +${costCalc.savedMana} mana ajoutée au compteur Armure Infini</p>` : ''}
                 </div>
             `
         });
@@ -1640,8 +1675,8 @@
         }
 
         // Update Armure Infini counter if applicable
-        if (costCalc.savedMana > 0) {
-            await updateArmureInfiniCounter(actor, costCalc.savedMana);
+        if (costCalc.savedByArmure > 0) {
+            await updateArmureInfiniCounter(actor, costCalc.savedByArmure);
         }
 
         // Chat message
@@ -1661,7 +1696,6 @@
                         <li>🚫 Interdit: explosions et magie stellaire</li>
                         <li>⚡ Posture Focus forcée</li>
                     </ul>
-                    ${costCalc.savedMana > 0 ? `<p style="color: #4caf50;">⚡ +${costCalc.savedMana} mana ajoutée au compteur Armure Infini</p>` : ''}
                 </div>
             `
         });
@@ -1726,8 +1760,8 @@
         }
 
         // Update Armure Infini counter if applicable
-        if (costCalc.savedMana > 0) {
-            await updateArmureInfiniCounter(actor, costCalc.savedMana);
+        if (costCalc.savedByArmure > 0) {
+            await updateArmureInfiniCounter(actor, costCalc.savedByArmure);
         }
 
         // Chat message
@@ -1742,10 +1776,6 @@
 
         if (effectConfig.isPerTurn) {
             chatContent += `<p style="color: #f57c00;">⏱️ Coût par tour: ${effectConfig.manaPerTurn || effectConfig.manaCost} mana</p>`;
-        }
-
-        if (costCalc.savedMana > 0) {
-            chatContent += `<p style="color: #4caf50;">⚡ +${costCalc.savedMana} mana ajoutée au compteur Armure Infini</p>`;
         }
 
         chatContent += `</div>`;
