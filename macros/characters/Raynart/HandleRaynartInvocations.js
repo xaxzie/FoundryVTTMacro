@@ -266,6 +266,64 @@
     }
 
     /**
+     * Calcule la valeur d'InvocationsComplexe pour un type d'invocation
+     * - Araignées: 0 (ne comptent pas)
+     * - Gatling: 2
+     * - Autres: 1
+     */
+    function getInvocationComplexityValue(invocationType) {
+        if (invocationType === 'araignee' || invocationType === 'murMecanique') return 0;
+        if (invocationType === 'gatling') return 2;
+        return 1;
+    }
+
+    /**
+     * Met à jour le compteur InvocationsComplexe sur Raynart
+     */
+    async function updateInvocationsComplexeCounter(actor, delta) {
+        if (delta === 0) return;
+
+        // Chercher l'effet InvocationsComplexe existant
+        let invocationsEffect = actor.effects.contents.find(e =>
+            e.name === "InvocationsComplexe"
+        );
+
+        if (!invocationsEffect) {
+            // Créer l'effet s'il n'existe pas
+            if (delta > 0) {
+                await actor.createEmbeddedDocuments("ActiveEffect", [{
+                    name: "InvocationsComplexe",
+                    icon: "icons/magic/symbols/runes-star-pentagon-orange.webp",
+                    flags: {
+                        statuscounter: {
+                            value: delta,
+                            visible: true
+                        }
+                    },
+                    duration: { rounds: 999 },
+                    origin: actor.uuid
+                }]);
+                console.log(`[Raynart] Created InvocationsComplexe effect with value: ${delta}`);
+            }
+        } else {
+            // Mettre à jour l'effet existant
+            const currentValue = invocationsEffect.flags?.statuscounter?.value || 0;
+            const newValue = Math.max(0, currentValue + delta);
+
+            if (newValue === 0) {
+                // Supprimer l'effet si le compteur atteint 0
+                await invocationsEffect.delete();
+                console.log(`[Raynart] Removed InvocationsComplexe effect (reached 0)`);
+            } else {
+                await invocationsEffect.update({
+                    "flags.statuscounter.value": newValue
+                });
+                console.log(`[Raynart] Updated InvocationsComplexe: ${currentValue} -> ${newValue} (delta: ${delta})`);
+            }
+        }
+    }
+
+    /**
      * Détecte les invocations existantes de Raynart sur le terrain
      */
     function getExistingInvocations() {
@@ -910,7 +968,14 @@
                         await invocation.token.document.delete();
 
                         destroyedSummary[key].count++;
-                        console.log(`[Raynart] Destroyed ${config.name}: ${invocation.name}`);
+
+                        // Décrémenter le compteur InvocationsComplexe
+                        const complexityValue = getInvocationComplexityValue(key);
+                        if (complexityValue > 0) {
+                            await updateInvocationsComplexeCounter(actor, -complexityValue);
+                        }
+
+                        console.log(`[Raynart] Destroyed ${config.name}: ${invocation.name} (complexité: -${complexityValue})`);
 
                     } catch (error) {
                         console.error(`[Raynart] Error destroying ${config.name}:`, error);
@@ -1027,7 +1092,9 @@
                     if (spawnToken && spawnToken.actor) {
                         const updateData = {
                             "system.health.value": calculatedHP,
-                            "system.health.max": calculatedHP
+                            "system.health.max": calculatedHP,
+                            "flags.world.RaynartInvocations": true,
+                            "flags.world.raynartInvocationType": invocationType
                         };
 
                         // Si créé en stance Focus, ajouter un flag pour la gestion du remboursement de mana
@@ -1039,7 +1106,7 @@
                         }
 
                         await spawnToken.actor.update(updateData);
-                        console.log(`[Raynart] Updated ${config.name} HP to ${calculatedHP}`);
+                        console.log(`[Raynart] Updated ${config.name} HP to ${calculatedHP}, tagged as RaynartInvocations`);
                     }
 
                     // Animation de création à l'emplacement (utilise scaleToObject)
@@ -1073,7 +1140,13 @@
                         hp: calculatedHP
                     });
 
-                    console.log(`[Raynart] ${config.name} ${i + 1} créé avec ${calculatedHP} PV`);
+                    // Incrémenter le compteur InvocationsComplexe
+                    const complexityValue = getInvocationComplexityValue(invocationType);
+                    if (complexityValue > 0) {
+                        await updateInvocationsComplexeCounter(actor, complexityValue);
+                    }
+
+                    console.log(`[Raynart] ${config.name} ${i + 1} créé avec ${calculatedHP} PV (complexité: ${complexityValue})`);
 
                 } catch (error) {
                     console.error(`[Raynart] Error creating ${config.name}:`, error);
@@ -1087,6 +1160,8 @@
         let chatMessage = "";
         let totalCreated = 0;
         let totalDestroyed = 0;
+        let totalComplexityCreated = 0;
+        let totalComplexityDestroyed = 0;
 
         // Section création
         if (hasCreation && Object.keys(allCreatedInvocations).length > 0) {
@@ -1101,6 +1176,9 @@
                 if (createdList.length > 0) {
                     const config = createdList[0].config;
                     totalCreated += createdList.length;
+
+                    const complexityValue = getInvocationComplexityValue(invocationType);
+                    totalComplexityCreated += complexityValue * createdList.length;
 
                     const actualCost = isFocusStance
                         ? `<span style="color: #4caf50;">GRATUIT (Focus)</span> <em style="font-size: 0.85em;">(Coût normal: ${config.manaCostDisplay})</em>`
@@ -1136,6 +1214,7 @@
 
             chatMessage += `
                     <p style="margin-top: 10px;"><strong>Total créé:</strong> ${totalCreated} invocation(s)</p>
+                    ${totalComplexityCreated > 0 ? `<p style="margin-top: 5px; color: #667eea;"><strong>Complexité ajoutée:</strong> +${totalComplexityCreated}</p>` : ''}
                 </div>
             `;
         }
@@ -1161,6 +1240,9 @@
                         const noRefundCount = data.noRefundCount || 0;
                         const refundableCount = data.count - noRefundCount;
 
+                        const complexityValue = getInvocationComplexityValue(key);
+                        totalComplexityDestroyed += complexityValue * data.count;
+
                         chatMessage += `<p><strong>${data.config.displayName}:</strong> ${data.count} détruit(e)s`;
                         if (noRefundCount > 0) {
                             chatMessage += ` <em style="font-size: 0.85em; color: #999;">(${noRefundCount} créé(e)s en Focus - pas de remboursement)</em>`;
@@ -1170,6 +1252,9 @@
                 }
 
                 chatMessage += `<p><strong>Mana récupéré:</strong> ${totalManaRefund} mana</p>`;
+                if (totalComplexityDestroyed > 0) {
+                    chatMessage += `<p style="color: #f44336;"><strong>Complexité retirée:</strong> -${totalComplexityDestroyed}</p>`;
+                }
                 if (totalManaRefund > 0) {
                     chatMessage += `<p style="font-size: 0.85em; font-style: italic; color: #666;">Note: La récupération de mana doit être gérée manuellement sur la fiche de personnage.</p>`;
                 } else {
