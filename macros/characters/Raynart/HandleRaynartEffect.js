@@ -1451,11 +1451,11 @@
                     <hr>
                     <p>Indiquez le nombre de tours passés dans ces modes:</p>
                     <div style="margin: 10px 0;">
-                        <label>Tours en Extension d'Invocations (2 mana/tour):</label>
+                        <label>Tours en Extension d'Invocations (2 mana/tour, x1):</label>
                         <input type="number" id="extension-turns" min="0" value="0" style="width: 60px;">
                     </div>
                     <div style="margin: 10px 0;">
-                        <label>Tours en Mécanique Analytique (2 mana/tour):</label>
+                        <label>Tours en Mécanique Analytique (2 mana/tour, x1):</label>
                         <input type="number" id="analytique-turns" min="0" value="0" style="width: 60px;">
                     </div>
                     <div style="margin: 10px 0;">
@@ -1489,8 +1489,8 @@
         }
 
         // Calculate total saved mana
-        const extensionCost = endDialog.extensionTurns * 2;
-        const analytiqueCost = endDialog.analytiqueTurns * 2;
+        const extensionCost = endDialog.extensionTurns;
+        const analytiqueCost = endDialog.analytiqueTurns;
         const stellaireCost = Math.floor(endDialog.stellaireTurns * 3 / 2); // 1.5 per turn, rounded down
         const totalSaved = currentCounter + extensionCost + analytiqueCost + stellaireCost;
 
@@ -1527,8 +1527,8 @@
                     <p><strong>💎 Mana économisée totale: ${totalSaved}</strong></p>
                     <ul>
                         <li>Compteur de base: ${currentCounter}</li>
-                        ${endDialog.extensionTurns > 0 ? `<li>Extension Invocations: ${endDialog.extensionTurns} tour(s) × 2 = ${extensionCost}</li>` : ''}
-                        ${endDialog.analytiqueTurns > 0 ? `<li>Mécanique Analytique: ${endDialog.analytiqueTurns} tour(s) × 2 = ${analytiqueCost}</li>` : ''}
+                        ${endDialog.extensionTurns > 0 ? `<li>Extension Invocations: ${endDialog.extensionTurns} tour(s) = ${extensionCost}</li>` : ''}
+                        ${endDialog.analytiqueTurns > 0 ? `<li>Mécanique Analytique: ${endDialog.analytiqueTurns} tour(s) = ${analytiqueCost}</li>` : ''}
                         ${endDialog.stellaireTurns > 0 ? `<li>Mode Stellaire: ${endDialog.stellaireTurns} tour(s) × 1.5 = ${stellaireCost}</li>` : ''}
                     </ul>
                     <p style="font-style: italic; color: #666;">Note: Gestion de mana à gérer manuellement</p>

@@ -7,9 +7,115 @@
 ### Caractéristiques principales
 
 - **Dextérité** : Utilisée pour déterminer les PV et l'efficacité de la plupart des invocations
-- **Esprit** : Utilisée pour les calculs de défense (RD foudre) et certaines invocations spéciales
-- **Style de jeu** : Contrôle de zone, support défensif, pression offensive à distance
-- **Complexité** : Élevée - nécessite une gestion stratégique des ressources et du positionnement
+- **Esprit** : Utilisée pour les calculs de défense (RD foudre), certaines invocations spéciales, et les modes avancés
+- **Style de jeu** : Contrôle de zone, support défensif, pression offensive à distance, transformation tactique
+- **Complexité** : Très élevée - nécessite une gestion stratégique des ressources, du positionnement, et des modes de combat
+
+## 🎯 Passif : Maître Mécaniste
+
+Raynart possède un système unique de **complexité d'invocations** qui limite le nombre et le type de créations qu'il peut maintenir simultanément.
+
+### Compteur de Complexité
+
+Le compteur **InvocationsComplexe** suit la charge mentale de Raynart :
+
+- **Araignées Mécaniques** : 0 complexité (ne comptent pas, créations simples)
+- **Murs Mécaniques** : 0 complexité (structures statiques)
+- **Invocations standards** (Balliste, ParaTonnerre, Velkoz) : 1 complexité chacune
+- **Gatling** : 2 complexité (tourelle lourde et sophistiquée)
+
+**Limite de base** : 20 points de complexité
+**Gestion** : Le compteur s'incrémente/décrémente automatiquement lors de la création/destruction d'invocations
+**Mode Eclipse** : Double la limite (40 points) mais impose des restrictions sévères
+
+### Stance Focus
+
+Raynart bénéficie de la **Posture Focus** comme les autres personnages :
+
+- **Invocations gratuites** : Toutes les invocations créées en stance Focus ne coûtent pas de mana
+- **Récupération de mana** : Les invocations créées en Focus ne remboursent PAS de mana à la destruction
+- **Traçage automatique** : Un flag `raynartCreatedInFocus` est ajouté aux invocations pour gérer correctement la récupération
+
+## 🎭 Modes de Combat Avancés
+
+Raynart dispose de plusieurs modes spéciaux qui transforment radicalement son style de jeu. Tous ces modes sont gérés via la macro **HandleRaynartEffect.js**.
+
+### ⚔️ Armure du Fléau de l'Infini
+
+**Coût** : Spécial (sort légendaire)
+**Type** : Transformation complète
+**Durée** : Jusqu'à désactivation
+
+**Effets** :
+
+- ✨ **Modification des coûts** :
+  - Effets non-focusables → demi-focusables
+  - Effets demi-focusables → focusables
+- ⚡ **Force la Posture Focus** : Raynart ne peut être qu'en Focus
+- 📊 **Compteur de mana économisée** : Suit la mana économisée grâce à l'armure
+- 🎬 **Animation spectaculaire** : Séquence d'activation épique avec effets persistants
+
+**À la désactivation** : Dialog pour calculer le coût total final (mana économisée + tours en modes spéciaux)
+
+### 🌐 Expansion du Monde Intérieur
+
+**Coût** : 5 mana (non-focusable)
+**Type** : Buff global aux invocations
+
+**Effets** :
+
+- 🛡️ **Résistance aux invocations** : Accorde Résistance = Esprit/2 (arrondi inférieur) à TOUTES les invocations existantes
+- 🔄 **Application automatique** : Tous les tokens d'invocations reçoivent l'effet de résistance
+- ⚠️ **Ne retire PAS la résistance** : À la désactivation, les invocations conservent leur résistance
+
+### 🌑 Mode Eclipse
+
+**Coût** : 6 mana (non-focusable)
+**Type** : Mode de création maximale
+**Durée** : Jusqu'à désactivation
+
+**Avantages** :
+
+- ✨ **Double la limite de complexité** : 40 points au lieu de 20
+- ⚡ **Force la Posture Focus** : Invocations gratuites
+
+**Inconvénients** :
+
+- ❌ **Ne peut plus esquiver** : Aucune esquive possible
+- 🎲 **Jet de Volonté si dégâts** : DD = 25 + PV manquants pour garder le contrôle
+- 🚫 **Interdit explosions et magie stellaire** : Certaines créations impossibles
+
+**Usage** : Pour créer une armée massive d'invocations dans des situations critiques
+
+### 🌟 Mode Stellaire
+
+**Coût** : 3 mana par tour (demi-focusable)
+**Type** : Mode d'attaque à distance
+
+**Avantages** :
+
+- 💥 **Explosions à distance** : Peut créer des explosions n'importe où sur le champ de bataille
+- ✨ **Projection de mana** : Déploie sa mana autour de lui
+
+**Inconvénients** :
+
+- ⚠️ **Limite de complexité sévère** : Maximum 1 invocation complexe
+- 💰 **Coût par tour** : 3 mana chaque tour en mode Stellaire
+
+**Usage** : Pour des frappes de précision à longue portée sans invocations lourdes
+
+### 🔫 Mode Big Gun
+
+**Coût** : 4 mana (focusable)
+**Type** : Buff de dégâts personnels
+
+**Avantages** :
+
+- ⚔️ **Bonus aux dégâts** : +Esprit/4 (arrondi supérieur) aux tirs
+- 🛡️ **Résistance limitée** : Esprit/2 (arrondi supérieur) avec 3 utilisations
+- ♻️ **Recharge** : 1 utilisation de résistance recharge par tour (gestion manuelle)
+
+**Usage** : Pour participer directement au combat avec bonus de dégâts
 
 ## 🔧 Système d'Invocations Mécaniques
 
@@ -22,6 +128,7 @@ Cette macro est le cœur du système d'invocations de Raynart. Elle permet de :
 - **Détruire** les invocations pour récupérer du mana
 - **Calculer automatiquement** les PV selon les statistiques de Raynart
 - **Afficher** des animations appropriées pour chaque action
+- **Gérer le compteur de complexité** automatiquement
 
 #### Fonctionnalités clés
 
@@ -29,8 +136,11 @@ Cette macro est le cœur du système d'invocations de Raynart. Elle permet de :
 ✅ **Création multiple** d'invocations en une seule action
 ✅ **Animation unique** de cast pour plusieurs invocations
 ✅ **Animations individuelles** de création pour chaque invocation
-✅ **Destruction avec récupération de mana** (calcul automatique)
+✅ **Destruction avec récupération de mana** (calcul automatique, sauf si créées en Focus)
 ✅ **Interface intuitive** avec sélection visuelle
+✅ **Gestion automatique du compteur InvocationsComplexe** (incrémentation/décrémentation)
+✅ **Token Magic FX** : Effet de lévitation pour Velkoz
+✅ **Animations persistantes** : Bouclier pour ParaTonnerre
 
 ## 📋 Types d'Invocations
 
@@ -38,70 +148,107 @@ Cette macro est le cœur du système d'invocations de Raynart. Elle permet de :
 
 **Type** : Défensif - Barrière
 **Actor ID** : `9NXEFMzzBF3nmByB`
+**Complexité** : 0 (ne compte pas dans la limite)
 
 - **Coût** : 4 mana / 3 murs
 - **PV** : (4 + Dextérité + Esprit) × 2
 - **Spécial** :
   - 3 murs instantanés par combat (gestion manuelle)
   - Récupère 2 mana si démontés manuellement (pour 3 murs)
+  - Ne compte pas dans la limite de complexité (structures statiques)
+- **Animations** :
+  - Cast : Cercle de magie mécanique sur Raynart
+  - Création : Impact avec fissures oranges au sol
+  - Destruction : Explosion orange
 - **Usage** : Bloquer des passages, créer des choke points, protéger des alliés
 
 ### 🎯 Balliste
 
 **Type** : Offensif - Tourelle à distance
 **Actor ID** : `FQzsrD4o20avg7co`
+**Complexité** : 1
 
 - **Coût** : 4 mana par tourelle
 - **PV** : 4 + Dextérité
-- **Récupération mana** : 4 mana (destruction)
+- **Récupération mana** : 4 mana (destruction, sauf si créée en Focus)
+- **Animations** :
+  - Cast : Cercle de magie mécanique sur Raynart
+  - Création : Impact orange
+  - Destruction : Explosion orange
 - **Usage** : Pression offensive à distance, couverture de zone
 
 ### ⚔️ Gatling
 
 **Type** : Offensif - Tourelle lourde
 **Actor ID** : `M7oAyZmgzi5XEYNE`
+**Complexité** : 2 (tourelle sophistiquée)
 
 - **Coût** : 4 mana + sacrifice d'une Balliste
 - **PV** : 4 + Dextérité
-- **Récupération mana** : 4 mana (destruction)
+- **Récupération mana** : 4 mana (destruction, sauf si créée en Focus)
 - **Spécial** : Nécessite le sacrifice d'une Balliste (non vérifié automatiquement par la macro)
+- **Animations** :
+  - Cast : Cercle de magie mécanique sur Raynart
+  - Création : Impact avec fissures oranges
+  - Destruction : Explosion orange
 - **Usage** : Dégâts massifs concentrés, destruction de cibles prioritaires
 
 ### 🕷️ Araignée Mécanique
 
 **Type** : Reconnaissance - Éclaireur
 **Actor ID** : `P0NlGCJh7r6K5yuc`
+**Complexité** : 0 (créations simples)
 
 - **Coût** : 3 mana par araignée
 - **PV** : Dextérité / 2 (arrondi inférieur)
-- **Récupération mana** : 3 mana (destruction)
-- **Spécial** : Raynart partage 2 sens avec ses araignées
+- **Récupération mana** : 3 mana (destruction, sauf si créée en Focus)
+- **Spécial** :
+  - Raynart partage 2 sens avec ses araignées
+  - Ne comptent pas dans la limite de complexité
+- **Animations** :
+  - Cast : Cercle de magie mécanique sur Raynart
+  - Création : Impact jaune
+  - Destruction : Explosion orange
 - **Usage** : Exploration, détection d'ennemis, contrôle de vision
 
 ### ⚡ ParaTonnerre
 
 **Type** : Défensif - Protection contre la foudre
 **Actor ID** : `pJuR9WIyouueE6Kv`
+**Complexité** : 1
 
 - **Coût** : 4 mana par paratonnerre
 - **PV** : 4 + Dextérité
-- **Récupération mana** : 4 mana (destruction)
+- **Récupération mana** : 4 mana (destruction, sauf si créée en Focus)
 - **Spécial** :
   - Zone de protection : 4 cases de rayon
   - RD Foudre : Dextérité + Esprit
   - Offre un jet de déviation sur toutes les attaques foudre dans la zone
-  - Animation persistante de protection
+  - **Animation persistante** : Bouclier de protection bleu autour du paratonnerre
+- **Animations** :
+  - Cast : Cercle de magie mécanique sur Raynart
+  - Création : Effet électrique cartoon
+  - Persistant : Bouclier circulaire magique (opacity 0.2)
+  - Destruction : Explosion orange
 - **Usage** : Défense contre les ennemis utilisant la foudre, contrôle de zone défensif
 
 ### 👁️ Velkoz
 
 **Type** : Défensif - Protection active
 **Actor ID** : `DCUdL8S8N6t9eSMF`
+**Complexité** : 1
 
 - **Coût** : 4 mana par velkoz
 - **PV** : Esprit / 2 (arrondi inférieur)
-- **Récupération mana** : 4 mana (destruction)
-- **Spécial** : Protège une cible par tour de maximum 25 dégâts par velkoz
+- **Récupération mana** : 4 mana (destruction, sauf si créée en Focus)
+- **Spécial** :
+  - Protège une cible par tour de maximum 25 dégâts par velkoz
+  - **Token Magic FX** : Effet de lévitation avec oscillation sinusoïdale
+- **Animations** :
+  - Cast : Cercle de magie mécanique sur Raynart
+  - Création : Impact rouge sombre
+  - Token Magic : Transformation continue avec oscillation translationX/Y (val1: -0.015, val2: +0.015, loop 2000ms)
+  - Destruction : Explosion orange
 - **Usage** : Protection d'alliés vulnérables, absorption de dégâts
 
 ## 🎮 Utilisation
@@ -214,26 +361,101 @@ La macro détecte automatiquement toutes les invocations existantes sur le terra
 
 ## 🎯 Stratégies d'Utilisation
 
-### Défense en profondeur
+### Défense en profondeur (Standard)
 
 1. Placer des Murs Mécaniques pour créer des choke points
 2. Positionner des Ballistes derrière pour couverture
 3. Utiliser ParaTonnerre contre ennemis électriques
 4. Velkoz pour protéger les alliés fragiles
+5. **Expansion du Monde Intérieur** pour renforcer toutes les invocations
 
-### Pression offensive
+**Limite** : 20 points de complexité (environ 20 invocations standards ou 10 Gatlings)
 
-1. Déployer plusieurs Ballistes en arc de cercle
-2. Sacrifier une pour créer une Gatling
-3. Araignées pour vision et flanking
-4. Murs pour bloquer les retraites ennemies
+### Pression offensive (Big Gun)
+
+1. Activer **Mode Big Gun** pour bonus aux dégâts
+2. Déployer plusieurs Ballistes en arc de cercle
+3. Sacrifier une pour créer une Gatling (2 complexité)
+4. Araignées pour vision et flanking (0 complexité)
+5. Murs pour bloquer les retraites ennemies (0 complexité)
+
+**Avantage** : Participe directement au combat avec +Esprit/4 dégâts
+
+### Frappe à distance (Stellaire)
+
+1. Activer **Mode Stellaire** (3 mana/tour)
+2. Limiter à 1 invocation complexe maximum
+3. Créer des explosions n'importe où sur le champ de bataille
+4. Utiliser Araignées pour vision (0 complexité)
+5. Positionner stratégiquement pour couverture maximale
+
+**Coût** : 3 mana par tour maintenu
+
+### Armée massive (Eclipse)
+
+1. Activer **Mode Eclipse** (6 mana, force Focus)
+2. Créer jusqu'à 40 points de complexité d'invocations (GRATUITES en Focus)
+3. Combiner : 20 Ballistes (20) + 10 ParaTonnerre (10) + 10 Velkoz (10) = 40 complexité
+4. Ou : 20 Gatlings (40 complexité) pour dégâts maximaux
+5. **ATTENTION** : Ne peut plus esquiver, jet Volonté si dégâts
+
+**Usage critique** : Situations désespérées ou combats boss
+
+### Transformation ultime (Armure Infini + Eclipse)
+
+1. Activer **Armure du Fléau de l'Infini** (transformation complète)
+2. Tous les effets deviennent gratuits ou presque en Focus
+3. Activer **Mode Eclipse** (6 mana → 0 mana avec Armure)
+4. Créer 40 points de complexité d'invocations GRATUITES
+5. Tous les modes deviennent gratuits ou demi-coût
+
+**Coût total** : Calcul à la désactivation (mana économisée + tours en modes spéciaux)
 
 ### Reconnaissance et contrôle
 
-1. Déployer Araignées pour cartographier
-2. ParaTonnerre en zones clés
-3. Velkoz près des objectifs
-4. Murs pour canaliser les mouvements
+1. Déployer Araignées pour cartographier (0 complexité)
+2. ParaTonnerre en zones clés (1 complexité chacun)
+3. Velkoz près des objectifs (1 complexité chacun)
+4. Murs pour canaliser les mouvements (0 complexité)
+5. Garder de la complexité disponible pour réagir
+
+## 🔄 Macro de Gestion des Effets : `HandleRaynartEffect.js`
+
+Cette macro gère tous les effets spéciaux, modes de combat et postures de Raynart.
+
+### Fonctionnalités
+
+✅ **Gestion des modes de combat** : Armure Infini, Eclipse, Stellaire, Big Gun, Expansion
+✅ **Gestion des postures** : Offensif, Défensif, Focus (avec détection des statuts CONFIG)
+✅ **Gestion des blessures** : Blessures légères/graves avec compteur de stacks
+✅ **Effets externes** : Détection et suppression des effets non-Raynart
+✅ **Compteur InvocationsComplexe** : Modification manuelle du compteur de complexité
+✅ **Calculs automatiques** : Coûts de mana avec modificateurs Armure Infini
+✅ **Interface unifiée** : Dialog unique pour tous les effets avec sections organisées
+
+### Sections de l'Interface
+
+1. **Effets Personnalisés** : Modes de combat spéciaux (Armure, Eclipse, Stellaire, etc.)
+2. **Postures de Combat** : Offensif, Défensif, Focus (avec bouton "Retirer toutes")
+3. **Blessures** : Gestion des stacks de blessures légères/graves
+4. **Effets Externes** : Liste et suppression des effets non-Raynart
+
+### Détection Intelligente
+
+- **Postures** : Détection automatique depuis `CONFIG.statusEffects`
+- **Blessures** : Détection automatique depuis `CONFIG.statusEffects`
+- **Effets externes** : Tout effet qui n'est pas dans `CUSTOM_EFFECTS`, `POSTURES`, ou `INJURIES`
+
+### Calcul des Coûts avec Armure Infini
+
+Lorsque l'Armure du Fléau de l'Infini est active :
+
+- **Non-focusable** → **Demi-focusable** (coût = coût/2 en Focus, coût normal sinon)
+- **Demi-focusable** → **Focusable** (coût = 0 en Focus, coût/2 sinon)
+- **Focusable** → **Reste focusable** (coût = 0 en Focus)
+- **Spécial** : Pas de modification (ex: Armure Infini elle-même)
+
+Le compteur de mana économisée est automatiquement incrémenté lors de l'activation d'effets.
 
 ## ⚙️ Prérequis Techniques
 
@@ -241,7 +463,9 @@ La macro détecte automatiquement toutes les invocations existantes sur le terra
 
 - ✅ **Portal** - Ciblage et spawn de tokens
 - ✅ **Sequencer** - Animations
-- ✅ **JB2A** - Effets visuels
+- ✅ **JB2A** (Free + Patreon) - Effets visuels
+- ✅ **Token Magic FX** - Effet de lévitation Velkoz (optionnel mais recommandé)
+- ✅ **Animated Spell Effects** - Effets supplémentaires (optionnel)
 
 ### Actors Requis
 
@@ -263,6 +487,16 @@ Chaque actor d'invocation doit avoir :
 
 ## 📝 Notes Importantes
 
+### Gestion Automatique
+
+✅ **Compteur InvocationsComplexe** : Incrémentation/décrémentation automatique
+✅ **Flag Focus** : Les invocations créées en Focus sont marquées automatiquement
+✅ **Calcul des PV** : Selon les stats de Raynart (Dex, Esprit, blessures, effets actifs)
+✅ **Animations** : Toutes les animations sont gérées automatiquement
+✅ **Token Magic FX** : Application/suppression automatique pour Velkoz
+✅ **Animations persistantes** : ParaTonnerre (bouclier), Velkoz (lévitation)
+✅ **Résistance Expansion** : Application automatique à toutes les invocations existantes
+
 ### Gestion Manuelle
 
 Les éléments suivants sont **gérés manuellement** (pas de code automatique) :
@@ -271,6 +505,8 @@ Les éléments suivants sont **gérés manuellement** (pas de code automatique) 
 - ✋ **Murs Instantanés** : Les 3 murs gratuits par combat
 - ✋ **Sacrifice de Balliste** : Vérification pour créer une Gatling
 - ✋ **Actions de combat** : Les actions des invocations (attaques, protections, etc.)
+- ✋ **Jet de Volonté** : Pour Mode Eclipse si dégâts subis (DD 25 + PV manquants)
+- ✋ **Résistance Mode Big Gun** : 3 utilisations avec recharge 1/tour
 
 ### Détection Robuste
 
@@ -285,6 +521,67 @@ Les éléments suivants sont **gérés manuellement** (pas de code automatique) 
 - 🔧 Formules de calcul modulaires et personnalisables
 - 🔧 Animations et couleurs configurables par type
 
+## 🎬 Système d'Animations
+
+### Animations d'Invocations
+
+Toutes les invocations utilisent des animations JB2A et Animated Spell Effects :
+
+**Cast unifié** : `modules/Animation%20Custom/Raynart/Cercle%20magie%20mecanique%20V1_VP9.webm`
+
+- Joué sur Raynart AVANT toute action (création ou destruction)
+- Scale 2.0, belowTokens, fadeIn 300ms, fadeOut 500ms
+
+**Animations de création** : Spécifiques par type
+
+- Mur : Impact avec fissures oranges
+- Balliste : Impact orange
+- Gatling : Impact avec fissures oranges
+- Araignée : Impact jaune
+- ParaTonnerre : Effet électrique + bouclier persistant
+- Velkoz : Impact rouge sombre + Token Magic FX lévitation
+
+**Animations persistantes** :
+
+- ParaTonnerre : `animated-spell-effects.magic.shield.circle.04` (opacity 0.2, scale 2.0)
+- Velkoz : Token Magic FX Transform filter avec oscillation sinusoïdale/cosinusoïdale
+
+**Animations de destruction** :
+
+- Toutes : Explosion orange JB2A
+
+### Animations de Modes
+
+**Armure du Fléau de l'Infini** :
+
+- Séquence d'activation épique (11 étapes)
+- Cercle mécanique avec rotation et scale out
+- Divine smite bleu-jaune
+- Pulse d'impulsion
+- Fissures au sol (bleues et oranges)
+- Effets d'énergie et de feu cartoon avec filtres Glow
+- Animation persistante : `worlds/ft/TOKEN/Token%20anim%20v18.1_VP9.webm` (scale 1.3)
+
+**Expansion du Monde Intérieur** :
+
+- Cast : Cercle mécanique sur Raynart
+- Pulse : Effet TMFx outpulse lent
+
+**Mode Eclipse** :
+
+- Cast : Template circle pulse bleu-blanc
+- Persistant : Aura circulaire bleue (opacity 0.2, scale 0.8)
+
+**Mode Stellaire** :
+
+- Cast : Shockwave circulaire magique
+- Persistant : Aura large bleu-rose (opacity 0.4, scale 1, belowTokens)
+
+**Mode Big Gun** :
+
+- Cast : Shockwave explosion orange
+- Persistant : Distorsion (force 1, padding 70)
+
 ## 🚀 Évolutions Futures
 
 ### Améliorations Possibles
@@ -295,36 +592,84 @@ Les éléments suivants sont **gérés manuellement** (pas de code automatique) 
 - [ ] Statistiques de combat des invocations
 - [ ] Effets de synergie entre différentes invocations
 - [ ] Amélioration des invocations (upgrades)
+- [ ] Présets de formations tactiques
 
 ### Extensions
 
 - [ ] Nouvelles invocations spécialisées
-- [ ] Modes de comportement des tourelles
-- [ ] Formations tactiques prédéfinies
+- [ ] Modes de comportement des tourelles (agressif, défensif, attente)
+- [ ] Formations tactiques prédéfinies (défense, assaut, reconnaissance)
 - [ ] Système de recycling avancé avec bonus
+- [ ] Invocations hybrides (combinaison de types)
 
 ## 📚 Référence Rapide
 
+### Macros Principales
+
+| Macro                         | Description                      | Usage                              |
+| ----------------------------- | -------------------------------- | ---------------------------------- |
+| `HandleRaynartInvocations.js` | Gestion complète des invocations | Créer/détruire invocations         |
+| `HandleRaynartEffect.js`      | Gestion des modes et effets      | Activer/désactiver modes de combat |
+
+### Complexité des Invocations
+
+| Type         | Complexité | Coût Mana  | PV               |
+| ------------ | ---------- | ---------- | ---------------- |
+| Araignée     | 0          | 3          | Dex/2            |
+| Mur          | 0          | 4/3        | (4+Dex+Esprit)×2 |
+| Balliste     | 1          | 4          | 4+Dex            |
+| ParaTonnerre | 1          | 4          | 4+Dex            |
+| Velkoz       | 1          | 4          | Esprit/2         |
+| Gatling      | 2          | 4+Balliste | 4+Dex            |
+
+**Limite** : 20 points (40 en Mode Eclipse)
+
+### Modes de Combat
+
+| Mode          | Coût    | Type           | Effet Principal                            |
+| ------------- | ------- | -------------- | ------------------------------------------ |
+| Armure Infini | Spécial | Transformation | Réduit tous les coûts, force Focus         |
+| Expansion     | 5       | Non-focusable  | Résistance à toutes invocations            |
+| Eclipse       | 6       | Non-focusable  | Double limite complexité (40), force Focus |
+| Stellaire     | 3/tour  | Demi-focusable | Explosions à distance, max 1 complexe      |
+| Big Gun       | 4       | Focusable      | +dégâts, résistance 3 charges              |
+
+### Coûts Mana avec Armure Infini
+
+| Type Original  | Sans Armure                  | Avec Armure (hors Focus)       | Avec Armure (Focus) |
+| -------------- | ---------------------------- | ------------------------------ | ------------------- |
+| Non-focusable  | Coût                         | Coût/2                         | Coût/2              |
+| Demi-focusable | Coût (hors Focus), 0 (Focus) | 0 (Focus), Coût/2 (hors Focus) | 0                   |
+| Focusable      | 0 (Focus), Coût (hors Focus) | 0 (Focus), Coût (hors Focus)   | 0                   |
+
 ### Commandes Clés
 
-- **Créer** : Sélectionner type → Indiquer nombre → Cibler emplacements
-- **Détruire** : Cliquer sur invocations dans liste → Confirmer
+**Invocations** :
+
+- **Créer** : Macro → Sélectionner type → Indiquer nombre → Cibler avec Portal
+- **Détruire** : Macro → Cliquer invocations dans liste → Confirmer
 - **Annuler** : Bouton "Annuler" ou fermer dialog
 
-### Coûts Mana
+**Effets** :
 
-- Murs : 4 mana / 3 (3 gratuits/combat)
-- Balliste : 4 mana
-- Gatling : 4 mana + 1 Balliste
-- Araignée : 3 mana
-- ParaTonnerre : 4 mana
-- Velkoz : 4 mana
+- **Activer mode** : Macro HandleRaynartEffect → Sélectionner effet → Appliquer
+- **Désactiver mode** : Macro HandleRaynartEffect → Toggle effet actif
+- **Modifier compteur** : Macro HandleRaynartEffect → Increase/Decrease sur InvocationsComplexe
 
-### Récupération
+### Récupération Mana
 
-- Murs : 2 mana / 3
-- Autres : Coût complet
+- **Murs** : 2 mana par groupe de 3 détruit
+- **Autres invocations** : Coût complet
+- **⚠️ Exception** : Invocations créées en stance Focus ne remboursent RIEN
+
+### Animations Spéciales
+
+- **Velkoz** : Token Magic FX lévitation avec oscillation
+- **ParaTonnerre** : Bouclier de protection persistant
+- **Armure Infini** : Séquence épique 11 étapes + aura persistante
 
 ---
 
 _Raynart - Maître de la Mécanique Magique_ ⚙️✨
+
+**Version** : 2.0 (avec système de complexité, modes avancés, et Token Magic FX)
