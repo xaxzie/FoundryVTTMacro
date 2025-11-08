@@ -1146,28 +1146,35 @@
                     // Effet Token Magic FX pour Velkoz (oscillation/lévitation)
                     if (invocationType === 'velkoz' && typeof TokenMagic !== "undefined") {
                         try {
-                            const velkozParams = [{
-                                filterType: "transform",
-                                filterId: "velkozFloat",
-                                padding: 50,
-                                animated: {
-                                    translationX: {
-                                        animType: "sinOscillation",
-                                        val1: -0.015,
-                                        val2: +0.015,
-                                        loopDuration: 2000,
-                                    },
-                                    translationY: {
-                                        animType: "cosOscillation",
-                                        val1: -0.015,
-                                        val2: +0.015,
-                                        loopDuration: 2000,
-                                    }
-                                }
-                            }];
+                            // Get the actual Token placeable object from canvas
+                            const tokenPlaceable = canvas.tokens.get(spawnToken.id);
 
-                            await TokenMagic.addUpdateFilters(spawnToken, velkozParams);
-                            console.log(`[Raynart] Applied Token Magic FX floating effect to Velkoz`);
+                            if (tokenPlaceable) {
+                                const velkozParams = [{
+                                    filterType: "transform",
+                                    filterId: "velkozFloat",
+                                    padding: 50,
+                                    animated: {
+                                        translationX: {
+                                            animType: "sinOscillation",
+                                            val1: -0.015,
+                                            val2: +0.015,
+                                            loopDuration: 2000,
+                                        },
+                                        translationY: {
+                                            animType: "cosOscillation",
+                                            val1: -0.015,
+                                            val2: +0.015,
+                                            loopDuration: 2000,
+                                        }
+                                    }
+                                }];
+
+                                await TokenMagic.addUpdateFilters(tokenPlaceable, velkozParams);
+                                console.log(`[Raynart] Applied Token Magic FX floating effect to Velkoz`);
+                            } else {
+                                console.warn(`[Raynart] Could not find Token placeable for Velkoz on canvas`);
+                            }
                         } catch (error) {
                             console.warn(`[Raynart] Could not apply Token Magic FX to Velkoz:`, error);
                         }
