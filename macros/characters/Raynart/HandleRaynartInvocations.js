@@ -300,6 +300,18 @@
     const stats = getRaynartStats(actor);
     const existingInvocations = getExistingInvocations();
 
+    // ===== DÉTECTION DE LA STANCE FOCUS =====
+    function getCurrentStance(actor) {
+        return actor?.effects?.contents?.find(e =>
+            ['focus', 'offensif', 'defensif'].includes(e.name?.toLowerCase())
+        )?.name?.toLowerCase() || null;
+    }
+
+    const currentStance = getCurrentStance(actor);
+    const isFocusStance = currentStance === 'focus';
+
+    console.log(`[Raynart] Current stance: ${currentStance || 'None'}, Focus active: ${isFocusStance}`);
+
     // ===== DIALOG BUILDER =====
 
     /**
@@ -469,6 +481,7 @@
                 <div class="stats-display">
                     <strong>🔧 Raynart - Mage de la Mécanique</strong><br>
                     Dextérité: ${stats.dex} | Esprit: ${stats.esprit}
+                    ${isFocusStance ? '<br><span style="color: #4caf50; font-weight: bold;">⚡ POSITION FOCUS - Invocations gratuites ⚡</span>' : ''}
                 </div>
         `;
 
@@ -504,6 +517,11 @@
                 rdDisplay = ` | <span style="color: #ffc107;">RD Foudre: ${rd}</span>`;
             }
 
+            // Affichage du coût en fonction de la stance Focus
+            const displayManaCost = isFocusStance
+                ? `<span style="color: #4caf50;">GRATUIT (Focus)</span> <em style="font-size: 0.85em;">(Coût normal: ${config.manaCostDisplay})</em>`
+                : config.manaCostDisplay;
+
             html += `
                 <div class="invocation-item" data-invocation="${key}" onclick="selectInvocation('${key}')">
                     <div class="invocation-header">
@@ -513,7 +531,7 @@
                     <div class="invocation-details">
                         <div>${config.description}</div>
                         <div style="margin-top: 5px;">
-                            <span class="invocation-cost">Coût: ${config.manaCostDisplay}</span>
+                            <span class="invocation-cost">Coût: ${displayManaCost}</span>
                             ${hpDisplay}${rdDisplay}
                         </div>
                         ${config.specialNote ? `<div class="special-note">⚠️ ${config.specialNote}</div>` : ''}
@@ -861,6 +879,17 @@
                     try {
                         console.log(`[Raynart] Destroying ${config.name}: ${invocation.name}`);
 
+                        // Vérifier si l'invocation a été créée en Focus
+                        const wasCreatedInFocus = invocation.token.actor?.flags?.world?.raynartCreatedInFocus || false;
+
+                        if (wasCreatedInFocus) {
+                            console.log(`[Raynart] ${config.name} was created in Focus - no mana refund will be given`);
+                            if (!destroyedSummary[key].noRefundCount) {
+                                destroyedSummary[key].noRefundCount = 0;
+                            }
+                            destroyedSummary[key].noRefundCount++;
+                        }
+
                         // Supprimer l'effet persistant si ParaTonnerre
                         if (key === 'paratonnerre') {
                             Sequencer.EffectManager.endEffects({ name: `paratonnerre_shield_${invocation.token.id}` });
@@ -889,13 +918,25 @@
                     }
                 }
 
-                // Calculer le mana récupéré
+                // Calculer le mana récupéré (seulement pour les invocations NON créées en Focus)
                 if (destroyedSummary[key].count > 0) {
-                    if (key === 'murMecanique') {
-                        const wallSets = Math.floor(destroyedSummary[key].count / 3);
-                        totalManaRefund += wallSets * config.manaRefund;
-                    } else {
-                        totalManaRefund += destroyedSummary[key].count * config.manaRefund;
+                    const refundableCount = destroyedSummary[key].count - (destroyedSummary[key].noRefundCount || 0);
+
+                    if (refundableCount > 0) {
+                        if (key === 'murMecanique') {
+                            const wallSets = Math.floor(refundableCount / 3);
+                            const refund = wallSets * config.manaRefund;
+                            totalManaRefund += refund;
+                            console.log(`[Raynart] Mana refund for ${refundableCount} walls: ${refund} mana (${wallSets} sets)`);
+                        } else {
+                            const refund = refundableCount * config.manaRefund;
+                            totalManaRefund += refund;
+                            console.log(`[Raynart] Mana refund for ${refundableCount} ${config.name}: ${refund} mana`);
+                        }
+                    }
+
+                    if (destroyedSummary[key].noRefundCount > 0) {
+                        console.log(`[Raynart] No mana refund for ${destroyedSummary[key].noRefundCount} ${config.name} (created in Focus)`);
                     }
                 }
             }
@@ -982,12 +1023,22 @@
                         continue;
                     }
 
-                    // Mettre à jour les PV du token créé
+                    // Mettre à jour les PV du token créé et ajouter un flag si créé en Focus
                     if (spawnToken && spawnToken.actor) {
-                        await spawnToken.actor.update({
+                        const updateData = {
                             "system.health.value": calculatedHP,
                             "system.health.max": calculatedHP
-                        });
+                        };
+
+                        // Si créé en stance Focus, ajouter un flag pour la gestion du remboursement de mana
+                        if (isFocusStance) {
+                            updateData["flags.world.raynartCreatedInFocus"] = true;
+                            updateData["flags.world.raynartCreator"] = actor.id;
+                            updateData["flags.world.raynartCreatedAt"] = Date.now();
+                            console.log(`[Raynart] ${config.name} created in Focus stance - no mana refund on destruction`);
+                        }
+
+                        await spawnToken.actor.update(updateData);
                         console.log(`[Raynart] Updated ${config.name} HP to ${calculatedHP}`);
                     }
 
@@ -1051,11 +1102,15 @@
                     const config = createdList[0].config;
                     totalCreated += createdList.length;
 
+                    const actualCost = isFocusStance
+                        ? `<span style="color: #4caf50;">GRATUIT (Focus)</span> <em style="font-size: 0.85em;">(Coût normal: ${config.manaCostDisplay})</em>`
+                        : config.manaCostDisplay;
+
                     chatMessage += `
                         <div style="margin: 10px 0; padding: 8px; background: ${config.bgColor}; border-left: 4px solid ${config.color}; border-radius: 4px;">
                             <p style="margin: 5px 0;"><strong style="color: ${config.color};">${config.displayName}</strong>: ${createdList.length}x créé(e)s</p>
                             <p style="margin: 5px 0; font-size: 0.9em;">${config.description}</p>
-                            <p style="margin: 5px 0;"><strong>Coût:</strong> ${config.manaCostDisplay}</p>
+                            <p style="margin: 5px 0;"><strong>Coût:</strong> ${actualCost}</p>
                     `;
 
                     // Afficher les PV
@@ -1103,12 +1158,23 @@
 
                 for (const [key, data] of Object.entries(destroyedSummary)) {
                     if (data.count > 0) {
-                        chatMessage += `<p><strong>${data.config.displayName}:</strong> ${data.count} détruit(e)s</p>`;
+                        const noRefundCount = data.noRefundCount || 0;
+                        const refundableCount = data.count - noRefundCount;
+
+                        chatMessage += `<p><strong>${data.config.displayName}:</strong> ${data.count} détruit(e)s`;
+                        if (noRefundCount > 0) {
+                            chatMessage += ` <em style="font-size: 0.85em; color: #999;">(${noRefundCount} créé(e)s en Focus - pas de remboursement)</em>`;
+                        }
+                        chatMessage += `</p>`;
                     }
                 }
 
                 chatMessage += `<p><strong>Mana récupéré:</strong> ${totalManaRefund} mana</p>`;
-                chatMessage += `<p style="font-size: 0.85em; font-style: italic; color: #666;">Note: La récupération de mana doit être gérée manuellement sur la fiche de personnage.</p>`;
+                if (totalManaRefund > 0) {
+                    chatMessage += `<p style="font-size: 0.85em; font-style: italic; color: #666;">Note: La récupération de mana doit être gérée manuellement sur la fiche de personnage.</p>`;
+                } else {
+                    chatMessage += `<p style="font-size: 0.85em; font-style: italic; color: #999;">Toutes les invocations ont été créées en Position Focus - aucun remboursement de mana.</p>`;
+                }
                 chatMessage += `</div>`;
             }
         }
