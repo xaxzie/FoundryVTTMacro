@@ -300,7 +300,7 @@
                             visible: true
                         }
                     },
-                    duration: { rounds: 999 },
+                    duration: { seconds : 84600 },
                     origin: actor.uuid
                 }]);
                 console.log(`[Raynart] Created InvocationsComplexe effect with value: ${delta}`);
@@ -953,6 +953,16 @@
                             Sequencer.EffectManager.endEffects({ name: `paratonnerre_shield_${invocation.token.id}` });
                         }
 
+                        // Supprimer l'effet Token Magic FX si Velkoz
+                        if (key === 'velkoz' && typeof TokenMagic !== "undefined") {
+                            try {
+                                await TokenMagic.deleteFilters(invocation.token, "velkozFloat");
+                                console.log(`[Raynart] Removed Token Magic FX floating effect from Velkoz`);
+                            } catch (error) {
+                                console.warn(`[Raynart] Could not remove Token Magic FX from Velkoz:`, error);
+                            }
+                        }
+
                         // Animation de destruction
                         const destructionSeq = new Sequence()
                             .effect()
@@ -1132,6 +1142,36 @@
                     }
 
                     creationSeq.play();
+
+                    // Effet Token Magic FX pour Velkoz (oscillation/lévitation)
+                    if (invocationType === 'velkoz' && typeof TokenMagic !== "undefined") {
+                        try {
+                            const velkozParams = [{
+                                filterType: "transform",
+                                filterId: "velkozFloat",
+                                padding: 50,
+                                animated: {
+                                    translationX: {
+                                        animType: "sinOscillation",
+                                        val1: -0.015,
+                                        val2: +0.015,
+                                        loopDuration: 2000,
+                                    },
+                                    translationY: {
+                                        animType: "cosOscillation",
+                                        val1: -0.015,
+                                        val2: +0.015,
+                                        loopDuration: 2000,
+                                    }
+                                }
+                            }];
+
+                            await TokenMagic.addUpdateFilters(spawnToken, velkozParams);
+                            console.log(`[Raynart] Applied Token Magic FX floating effect to Velkoz`);
+                        } catch (error) {
+                            console.warn(`[Raynart] Could not apply Token Magic FX to Velkoz:`, error);
+                        }
+                    }
 
                     allCreatedInvocations[invocationType].push({
                         type: invocationType,

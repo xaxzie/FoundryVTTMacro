@@ -490,7 +490,8 @@
         const newValue = currentValue + savedMana;
 
         await armureEffect.update({
-            "flags.statuscounter.value": newValue
+            "flags.statuscounter.value": newValue,
+            "flags.statuscounter.visible": true
         });
 
         console.log(`[Raynart] Armure Infini counter updated: ${currentValue} -> ${newValue} (+${savedMana} mana saved)`);
@@ -658,7 +659,8 @@
                 if (existingResistance) {
                     // Update existing
                     await existingResistance.update({
-                        "flags.statuscounter.value": resistanceValue
+                        "flags.statuscounter.value": resistanceValue,
+                         "flags.statuscounter.visible": true
                     });
                 } else {
                     // Create new
@@ -1294,7 +1296,7 @@
                     <hr>
                     <p>Indiquez le nombre de tours passés dans ces modes:</p>
                     <div style="margin: 10px 0;">
-                        <label>Tours en Extension d'Invocations (5 mana/tour):</label>
+                        <label>Tours en Extension d'Invocations (2 mana/tour):</label>
                         <input type="number" id="extension-turns" min="0" value="0" style="width: 60px;">
                     </div>
                     <div style="margin: 10px 0;">
@@ -1556,7 +1558,7 @@
         if (effectConfig.hasStatusCounter) {
             effectData.flags.statuscounter = {
                 value: effectConfig.statusCounterValue || 0,
-                visible: effectConfig.statusCounterVisible || false
+                visible: true
             };
         }
 
