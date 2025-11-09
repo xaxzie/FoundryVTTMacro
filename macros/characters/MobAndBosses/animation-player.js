@@ -869,7 +869,6 @@
                 {
                     timing: "after",
                     target: "caster",
-                    duration: 10000,
                     params: [{
                         filterType: "images",
                         nbImage: 3,
