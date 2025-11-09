@@ -251,6 +251,176 @@ Cette macro est le cœur du système d'invocations de Raynart. Elle permet de :
   - Destruction : Explosion orange
 - **Usage** : Protection d'alliés vulnérables, absorption de dégâts
 
+## ⚔️ Sorts Offensifs et Utilitaires
+
+### 🛡️ Champs de Force
+
+**Type** : Défensif - Protection avancée
+**Fichier** : `champs-de-force.js`
+
+- **Coût** : 4 mana (focusable)
+- **Niveau** : Sort niveau 1
+- **Mécaniques** :
+  - Détection automatique des Velkoz sur le terrain
+  - Sélection interactive des Velkoz participants
+  - Boost de mana optionnel :
+    - +1 dé : 4 mana (non-focusable, demi-focus avec Armure Infini)
+    - +2 dés : 8 mana (non-focusable, demi-focus avec Armure Infini)
+  - Animation simultanée depuis tous les Velkoz
+- **Jet de Défense** :
+  - Raynart ciblé : Esprit + bonus + (2 × Velkoz supplémentaires)
+  - Autre cible : Dextérité + bonus + (2 × Velkoz supplémentaires)
+  - Dés : d7
+- **Capacité de Blocage** :
+  - Premier Velkoz : Esprit × 2
+  - Chaque Velkoz supplémentaire : Esprit × 1
+  - Exemple (8 Esprit, 3 Velkoz) : 16 + 16 = 32 dégâts max
+- **Animations** :
+  - Faisceaux d'énergie bleue (energy_strands)
+  - Boucliers multiples avec glow oranges
+  - Explosion finale avec glow rouge
+- **Usage** : Protection tactique contre attaques massives, défense d'objectifs
+
+---
+
+### 🔫 Tir de Tourelles
+
+**Type** : Offensif - Contrôle de tourelles
+**Fichier** : `tir-tourelles.js`
+
+- **Coût** : Aucun (utilisation des tourelles déjà invoquées)
+- **Incompatible** : Mode Big Gun
+- **Balliste** :
+  - Jet de touché : Esprit (Sort niveau 1)
+  - Dégâts : 1d4 + Esprit
+  - Mode : Tir simple mono-cible
+  - Animation : Rayon laser rouge-orange
+- **Gatling** :
+  - Jet de touché : Esprit (Sort niveau 2)
+  - Modes :
+    - Mono-cible : 2d4 + 2 + Esprit×2
+    - Double-cible : 1d4 + 2 + Esprit (2 cibles)
+    - Cône : 1d4 + Esprit/cible (cône 25°, 10 cases)
+  - Animation : Séquence bullet avec trails rouges
+- **Spécial** :
+  - Sélection interactive des tourelles
+  - Animation de ciblage radar pendant sélection
+  - Tirs simultanés avec délais aléatoires
+- **Usage** : Attaquer depuis positions avantageuses sans exposer Raynart
+
+---
+
+### 💥 IronMegumin
+
+**Type** : Offensif - Destruction massive
+**Fichier** : `IronMegumin.js`
+
+- **Coût** : 7 mana (demi-focusable, focusable avec Armure Infini)
+- **Niveau** : Sort niveau 2
+- **Mécaniques** :
+  - Fait exploser simultanément toutes les invocations sélectionnées
+  - Jet d'attaque unique : Esprit (pour toutes les explosions)
+  - Dégâts : 1d6 + Esprit/2 par explosion
+  - Zone : 2 cases de rayon par invocation
+  - Limite : Maximum 3 explosions/cible (3 meilleurs résultats)
+  - Dégâts sur esquive : Moitié des dégâts
+- **Invocations explosives** :
+  - Mur Mécanique, Balliste, Gatling, Araignée, ParaTonnerre, Velkoz
+- **Workflow** :
+  - Sélection des invocations à détruire
+  - Aperçu des cibles touchées
+  - Jet d'attaque + jets de dégâts
+  - Animations simultanées (délai 0-200ms)
+  - Destruction et récupération de complexité
+- **Animations** :
+  - Explosions multiples avec ondes de choc
+  - Délais aléatoires pour effet chaotique
+- **Usage** : Finisher dévastateur, clear de zone, situations désespérées
+
+---
+
+### ⚡ Rayon Explosif
+
+**Type** : Offensif - Artillerie à chargement
+**Fichier** : `rayon-explosif.js`
+
+- **Coût** : 6 mana (demi-focusable, focusable avec Armure Infini)
+- **Niveau** : Sort niveau 2
+- **Phase 1 - Chargement** :
+  - Applique effet "ChargementTir"
+  - Animation persistante orbite
+  - Compte les tours de charge
+- **Phase 2 - Tir** :
+  - Mode Normal : Xd4 + Esprit (2.5 cases rayon, X = tours de charge)
+  - Mode Fléau : 3d6 + Esprit (cible unique concentrée)
+  - Mode Stellaire : 3 rayons simultanés (2d6 + Esprit chacun)
+    - Perce-armure : Esprit/2 (arrondi sup.)
+    - Dégâts réduits sur répétition : 1d6 + Esprit/2
+- **Mode Stellaire** :
+  - Requiert Mode Stellaire actif
+  - 3 débris orbitaux + 3 tirs simultanés
+  - Gère les cibles répétées automatiquement
+- **Animations** :
+  - Chargement : Orbes énergétiques orbitaux
+  - Tir Normal : Projectile orange explosif
+  - Tir Fléau : Rayon laser concentré rouge
+  - Tir Stellaire : 3 rayons bleus simultanés
+- **Usage** : Attaque préparée puissante, alpha strike, contrôle de zone
+
+---
+
+### 🔧 Mécanique Armé
+
+**Type** : Utilitaire - Buff d'arme
+**Fichier** : `mecanique-arme.js`
+
+- **Coût** : Variable selon le buff
+- **Durée** : Jusqu'à annulation manuelle
+- **Types de buffs** :
+  - **Allonge** (2 mana) : +1 allonge, -1d7 au toucher
+  - **Booster** (1 mana) : +3 dégâts
+  - **Bond** (1 mana/utilisation) : Change trajectoire projectiles
+- **Mécaniques** :
+  - Ciblage Portal pour sélectionner allié
+  - Buffs cumulables sur même cible
+  - Effets actifs jusqu'à désactivation
+- **Animations** :
+  - Cast : Cercle mécanique sur Raynart
+  - Application : Effet énergétique sur cible
+- **Usage** : Support d'alliés martiaux, augmenter polyvalence de l'équipe
+
+---
+
+### ⭐ Étoile du Renouveau
+
+**Type** : Ultime - Transformation/Artillerie
+**Fichier** : `etoile-du-renouveau.js`
+**Sous-titre** : Forge de Xanathar
+
+- **Phase 1 - Création** :
+  - Sacrifice TOUTES les invocations
+  - Crée un soleil artificiel persistant
+  - Animation épique de fusion énergétique
+- **Phase 2 - Tir** :
+  - Coût : X mana par tir (non-focusable, demi-focus avec Armure Infini)
+  - Jet : Esprit (Sort niveau 3)
+  - Dégâts : (Esprit/2) × mana dépensé (perforant)
+  - Animation : Rayon solaire dévastateur
+- **Phase 2 - Destruction** :
+  - Détruit le soleil manuellement
+  - Animation d'explosion solaire
+- **Mécaniques** :
+  - Détection automatique de toutes les invocations
+  - Validation du sacrifice
+  - Effet persistant "EtoileRenouveau"
+  - Tirs multiples possibles tant que le soleil existe
+- **Animations** :
+  - Fusion : Absorption invocations → formation soleil
+  - Persistant : Orbe énergétique géant pulsant
+  - Tir : Faisceau solaire concentré
+  - Destruction : Supernova
+- **Usage** : Transformation tactique ultime, artillerie mobile dévastatrice, boss killer
+
 ## 🎮 Utilisation
 
 ### Création d'invocations
@@ -610,6 +780,22 @@ Toutes les invocations utilisent des animations JB2A et Animated Spell Effects :
 | ----------------------------- | -------------------------------- | ---------------------------------- |
 | `HandleRaynartInvocations.js` | Gestion complète des invocations | Créer/détruire invocations         |
 | `HandleRaynartEffect.js`      | Gestion des modes et effets      | Activer/désactiver modes de combat |
+
+### Sorts Offensifs/Utilitaires
+
+| Sort                | Type       | Coût     | Niveau | Description courte                  |
+| ------------------- | ---------- | -------- | ------ | ----------------------------------- |
+| Champs de Force     | Défensif   | 4        | 1      | Boucliers Velkoz, blocage dynamique |
+| Tir de Tourelles    | Offensif   | 0        | 1-2    | Contrôle Balliste/Gatling           |
+| IronMegumin         | Offensif   | 7        | 2      | Explosions massives d'invocations   |
+| Rayon Explosif      | Offensif   | 6        | 2      | Artillerie à chargement progressif  |
+| Mécanique Armé      | Utilitaire | 1-2      | -      | Buff d'armes (allonge/dégâts/bond)  |
+| Étoile du Renouveau | Ultime     | Variable | 3      | Sacrifice→Soleil→Tirs dévastateurs  |
+
+**Notes** :
+
+- Coûts indiqués sont de base (modificateurs Armure Infini/Focus non inclus)
+- Types de focusabilité : voir tableau "Coûts Mana avec Armure Infini"
 
 ### Complexité des Invocations
 

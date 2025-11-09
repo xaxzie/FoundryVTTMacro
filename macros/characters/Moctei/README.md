@@ -1,13 +1,14 @@
 # Moctei - Mage des Ombres
 
-Moctei est un mage des ombres mystérieux et très discret, spécialisé dans la magie sombre et les attaques furtives.
+**Moctei** est un mage des ombres mystérieux et très discret, spécialisé dans la magie sombre, les attaques furtives, le contrôle de terrain et la manipulation des ombres pour des effets dévastateurs
 
 ## 🌑 Caractéristiques du Personnage
 
-- **Spécialité** : Magie des ombres
-- **Style de combat** : Discret, attaques rapides et précises
-- **Caractéristique principale** : Dextérité
-- **Thème visuel** : Ombres, violet sombre, effets d'obscurité
+- **Caractéristiques Principales** : Dextérité (attaques), Sens (contrôle)
+- **Style de Combat** : Mage furtif avec contrôle de zone, attaques continues, et téléportation
+- **Spécialité** : Magie des ombres, feu noir, immobilisation, téléportation
+- **Thème Visuel** : Ombres, violet sombre, noir profond, effets d'obscurité
+- **Complexité** : Élevée - gestion d'effets persistants, coûts de maintenance, zones tactiques
 
 ## 📁 Fichiers du Système
 
