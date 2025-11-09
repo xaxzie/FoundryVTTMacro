@@ -129,6 +129,19 @@
 
     console.log(`[MecaniqueArme] Raynart detected: ${raynartActor.name}`);
 
+    // ===== DETECT COMBAT STANCE =====
+    function detectCombatStance(actor) {
+        const currentStance = actor?.effects?.contents?.find(e =>
+            ['focus', 'offensif', 'defensif'].includes(e.name?.toLowerCase())
+        )?.name?.toLowerCase() || null;
+
+        console.log(`[MecaniqueArme] Current stance detected: ${currentStance || 'No stance'}`);
+        return currentStance;
+    }
+
+    const currentStance = detectCombatStance(raynartActor);
+    const isFocusActive = currentStance === 'focus';
+
     // ===== VÉRIFICATION MODULE PORTAL =====
     if (typeof Portal === "undefined") {
         ui.notifications.error("❌ Le module Portal n'est pas disponible ! Veuillez l'activer.");
@@ -138,6 +151,11 @@
     // ===== DIALOG: SELECT BUFF TYPE =====
     const selectedBuff = await new Promise((resolve) => {
         const buffOptions = Object.entries(SPELL_CONFIG.buffs).map(([key, config]) => {
+            const actualCost = isFocusActive ? 0 : config.manaCost;
+            const costDisplay = isFocusActive
+                ? `<span style="color: #4caf50; font-weight: bold;">GRATUIT (Focus)</span>`
+                : `${config.manaCost} mana`;
+
             return `
                 <div class="buff-option" data-buff="${key}" style="
                     margin: 10px 0;
@@ -153,12 +171,20 @@
                         <div style="flex: 1;">
                             <h4 style="margin: 0; color: ${config.color};">${config.displayName}</h4>
                             <p style="margin: 4px 0 0 0; font-size: 0.9em; color: #666;">${config.description}</p>
-                            <p style="margin: 4px 0 0 0; font-weight: bold; color: ${config.color};">Coût: ${config.manaCost} mana</p>
+                            <p style="margin: 4px 0 0 0; font-weight: bold; color: ${config.color};">Coût: ${costDisplay}</p>
                         </div>
                     </div>
                 </div>
             `;
         }).join('');
+
+        const stanceDisplay = isFocusActive
+            ? `<div style="background: #e8f5e9; padding: 8px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #4caf50;">
+                <strong style="color: #2e7d32;">⚡ Position Focus Active</strong> - Tous les sorts sont GRATUITS !
+               </div>`
+            : `<div style="background: #fff3e0; padding: 8px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #ff9800;">
+                <strong style="color: #e65100;">ℹ️ Aucune position Focus</strong> - Coûts normaux appliqués
+               </div>`;
 
         const dialogContent = `
             <style>
@@ -168,6 +194,7 @@
             <div class="mecanique-arme-dialog">
                 <h3 style="color: #2196f3; margin-bottom: 15px;">🔧 Mécanique Armé</h3>
                 <p style="margin-bottom: 15px;"><strong>Mage:</strong> ${raynartActor.name}</p>
+                ${stanceDisplay}
                 <p style="margin-bottom: 15px;">Choisissez le type d'enchantement mécanique :</p>
                 ${buffOptions}
             </div>
@@ -214,7 +241,10 @@
     }
 
     const buffConfig = SPELL_CONFIG.buffs[selectedBuff];
-    console.log(`[MecaniqueArme] Selected buff: ${buffConfig.name}`);
+    const actualManaCost = isFocusActive ? 0 : buffConfig.manaCost;
+    const baseCost = buffConfig.manaCost; // Coût de base pour le changement d'arme
+
+    console.log(`[MecaniqueArme] Selected buff: ${buffConfig.name} (Cost: ${actualManaCost} mana, Focus: ${isFocusActive})`);
 
     // ===== TARGETING: SELECT TARGET =====
     ui.notifications.info(`🎯 Sélectionnez la cible pour ${buffConfig.name}...`);
@@ -304,6 +334,10 @@
     }
 
     // ===== CHAT MESSAGE =====
+    const costDisplay = isFocusActive
+        ? `<span style="color: #4caf50; font-weight: bold;">GRATUIT</span> <span style="font-size: 0.85em; color: #666;">(Focus)</span>`
+        : `${actualManaCost} mana`;
+
     const chatContent = `
         <div style="font-family: 'Signika', sans-serif; background: linear-gradient(135deg, ${buffConfig.bgColor}, #fff); padding: 15px; border-radius: 10px; border: 3px solid ${buffConfig.color};">
             <div style="text-align: center; margin-bottom: 12px;">
@@ -325,8 +359,16 @@
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em; margin-top: 8px;">
                     <div><strong>Cible:</strong> ${targetName}</div>
-                    <div><strong>Coût:</strong> ${buffConfig.manaCost} mana</div>
+                    <div><strong>Coût:</strong> ${costDisplay}</div>
                 </div>
+            </div>
+
+            <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 0.85em; border-left: 3px solid #2196f3;">
+                <strong style="color: #1565c0;">⚡ Action Immédiate - Changement d'Arme</strong><br>
+                <span style="color: #666;">
+                    Raynart peut transférer cet effet vers une autre arme en <strong>action immédiate</strong>.<br>
+                    Coût: <strong>${baseCost} mana NON focusable</strong>.
+                </span>
             </div>
 
             <div style="background: #fff8e1; padding: 10px; border-radius: 6px; text-align: center; font-size: 0.85em; color: #666;">
@@ -342,8 +384,12 @@
     });
 
     // ===== FINAL NOTIFICATION =====
-    ui.notifications.info(`🔧 ${buffConfig.name} appliqué à ${targetName} ! (${buffConfig.manaCost} mana)`);
+    const notificationText = isFocusActive
+        ? `🔧 ${buffConfig.name} appliqué à ${targetName} ! (GRATUIT - Focus)`
+        : `🔧 ${buffConfig.name} appliqué à ${targetName} ! (${actualManaCost} mana)`;
 
-    console.log(`[MecaniqueArme] Spell complete - ${buffConfig.name} applied to ${targetName}`);
+    ui.notifications.info(notificationText);
+
+    console.log(`[MecaniqueArme] Spell complete - ${buffConfig.name} applied to ${targetName} (Cost: ${actualManaCost} mana, Focus: ${isFocusActive})`);
 
 })();
