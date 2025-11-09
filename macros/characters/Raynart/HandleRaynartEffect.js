@@ -274,7 +274,7 @@
             name: "Mode Eclipse",
             icon: "icons/magic/light/explosion-star-small-blue-yellow.webp",
             flags: [],
-            description: "Partage l'esprit avec ses créations, doublant sa capacité de création complexe. Ne peut plus esquiver. Jet Volonté DD 25 + PV manquants pour garder contrôle si dégâts subis. Interdit: explosions et magie stellaire. Force posture Focus.",
+            description: "Partage l'esprit avec ses créations, doublant sa capacité de création complexe. Ne peut plus esquiver. Jet Volonté DD 25 + PV manquants pour garder contrôle si dégâts subis. Interdit: explosions et magie stellaire. Force posture Focus. Peut corrompre 1 objet mécanique/tour (action immédiate, jet Volonté): si DD dépassé de 10+, gratuit, sinon 5 mana.",
             category: "custom",
             increasable: false,
             manaCost: 6,
