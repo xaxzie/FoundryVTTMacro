@@ -324,6 +324,25 @@
                 }
             }
         },
+        "ChargementTir": {
+            name: "ChargementTir",
+            icon: "icons/magic/movement/portal-vortex-orange.webp",
+            flags: [],
+            description: "Raynart charge son Rayon Explosif. Permet d'annuler le chargement sans tirer.",
+            category: "custom",
+            increasable: false,
+            manaCost: 0, // Pas de coût, déjà payé lors de l'activation
+            costType: "special",
+            isPerTurn: false,
+            hasAnimation: false, // Pas d'animation à la désactivation
+            cleanupPersistentAnimations: true, // Flag spécial pour nettoyer les animations
+            persistentAnimationNames: [
+                "rayon-explosif-charging",
+                "rayon-explosif-debris-0",
+                "rayon-explosif-debris-1",
+                "rayon-explosif-debris-2"
+            ]
+        },
         "InvocationsComplexe": {
             name: "InvocationsComplexe",
             icon: "icons/magic/symbols/runes-star-pentagon-orange.webp",
@@ -1801,6 +1820,16 @@
         if (key === "Expansion du Monde Intérieur") {
             const result = await removeResistanceFromInvocations();
             console.log(`[Raynart] Removed resistance from ${result.success}/${result.total} invocations`);
+        }
+
+        // Special handling for ChargementTir - cleanup persistent animations
+        if (effectConfig.cleanupPersistentAnimations && effectConfig.persistentAnimationNames) {
+            console.log(`[Raynart] Cleaning up persistent animations for ${key}`);
+            for (const animName of effectConfig.persistentAnimationNames) {
+                const fullName = `${animName}-${token.id}`;
+                Sequencer.EffectManager.endEffects({ name: fullName });
+                console.log(`[Raynart] Ended persistent animation: ${fullName}`);
+            }
         }
 
         // Stop persistent animations
