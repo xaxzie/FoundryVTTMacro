@@ -38,11 +38,12 @@
     // ===== CONFIGURATION DU SORT =====
     const SPELL_CONFIG = {
         name: "Champs de Force",
+        spellLevel: 1, // Niveau de sort de base
         manaCost: 4,
         isFocusable: true,
         raynartActorId: "4bandVHr1d92RYuL",
         velkozActorId: "DCUdL8S8N6t9eSMF",
-        velkozBlockCapacity: 25, // Dégâts max bloqués par Velkoz
+        // Capacité de blocage : Premier Velkoz = Esprit × 2, chaque Velkoz supplémentaire = Esprit × 1
 
         manaBoost: {
             oneDie: {
@@ -58,11 +59,12 @@
         },
 
         animation: {
-            beam: "animated-spell-effects.energy.beam.ray.02",
-            shield: "jb2a_patreon.shield.03.loop.red",
-            shieldBaseScale: 0.6,
-            shieldRandomScale: 0.1, // Random entre 0 et 0.1
-            shieldDuration: 3000
+            beam: "jb2a_patreon.energy_strands.range.standard.blue",
+            beamGlowColor: 0xffaa00,
+            shieldLoop: "jb2a_patreon.shield.03.loop.blue",
+            shieldOutro: "jb2a_patreon.shield.03.outro_explode.blue",
+            shieldScale: 2,
+            shieldDuration: 1500 // Durée avant le outro
         }
     };
 
@@ -517,52 +519,74 @@
 
     // ===== CALCUL DES DÉS DE DÉFENSE =====
     const baseDice = characteristicInfo.final; // Caractéristique (Esprit ou Dex)
-    const extraVelkozDice = Math.max(0, (selectedVelkoz.length - 1) * 2); // 2 dés par Velkoz supplémentaire
-    const totalDice = baseDice + manualBonus + manaBoostDice + extraVelkozDice;
+    const spellLevelBonus = SPELL_CONFIG.spellLevel * 2; // +2 pour niveau 1
+    const velkozBonus = (selectedVelkoz.length - 1) * 2; // +2 bonus par Velkoz supplémentaire (premier Velkoz déjà compté dans le niveau)
+    const totalDice = baseDice + manualBonus + manaBoostDice;
+    const totalBonus = spellLevelBonus + velkozBonus;
 
-    console.log(`[Champs de Force] Defense dice: ${baseDice} (char) + ${manualBonus} (manual) + ${manaBoostDice} (boost) + ${extraVelkozDice} (extra velkoz) = ${totalDice}d7`);
+    console.log(`[Champs de Force] Defense: ${totalDice}d7 + ${totalBonus} (${baseDice} char + ${manualBonus} manual + ${manaBoostDice} boost dice, +${spellLevelBonus} spell level + ${velkozBonus} from ${selectedVelkoz.length - 1} extra velkoz)`);
 
     // ===== ANIMATIONS SIMULTANÉES =====
     console.log(`[Champs de Force] Playing animations for ${selectedVelkoz.length} Velkoz beams`);
 
-    const animationSequence = new Sequence();
+    // Créer une séquence par Velkoz pour la simultanéité
+    const allAnimations = [];
 
-    // Rayons depuis chaque Velkoz vers la cible (simultanés)
     for (let i = 0; i < selectedVelkoz.length; i++) {
         const velkoz = selectedVelkoz[i];
-        const velkozAnimation = new Sequence();
 
-        velkozAnimation
+        // Délai aléatoire entre 0 et 500ms pour chaque Velkoz
+        const randomDelay = Math.random() * 1000;
+
+        // Scale aléatoire entre 1.9 et 2.1
+        const randomScale = 1.6 + (Math.random() * 0.8);
+
+        const velkozSequence = new Sequence()
+            .wait(randomDelay)
             .effect()
             .file(SPELL_CONFIG.animation.beam)
             .atLocation(velkoz.token)
             .stretchTo(targetToken)
-            .play();
-    }
-
-    // Boucliers sur la cible (un par Velkoz)
-    for (let i = 0; i < selectedVelkoz.length; i++) {
-        const randomScale = Math.random() * SPELL_CONFIG.animation.shieldRandomScale;
-        const shieldScale = SPELL_CONFIG.animation.shieldBaseScale + randomScale;
-
-        animationSequence
-            .effect()
-            .file(SPELL_CONFIG.animation.shield)
-            .attachTo(targetToken)
-            .scale(shieldScale)
-            .opacity(0.8)
-            .duration(SPELL_CONFIG.animation.shieldDuration)
+            .filter("Glow", { color: SPELL_CONFIG.animation.beamGlowColor, outerStrength: 1 })
             .fadeIn(200)
-            .fadeOut(500);
+            .belowTokens(true)
+            .fadeOut(100)
+            .waitUntilFinished(-1500)
+            .effect()
+            .file(SPELL_CONFIG.animation.shieldLoop)
+            .atLocation(targetToken)
+            .scaleToObject(randomScale)
+            .opacity(0.8 / ( selectedVelkoz.length ))
+            .fadeIn(200)
+            .fadeOut(1000)
+            .filter("Glow", { color: SPELL_CONFIG.animation.beamGlowColor, outerStrength: 2 })
+            .waitUntilFinished(-1500)
+            .effect()
+            .file(SPELL_CONFIG.animation.shieldOutro)
+            .atLocation(targetToken)
+            .fadeIn(500)
+            .opacity(0.8 / ( selectedVelkoz.length ))
+            .scaleToObject(randomScale)
+            .filter("Glow", { color: 0xFF0000, outerStrength: 1 });
+
+        allAnimations.push(velkozSequence.play());
     }
 
-    await animationSequence.play();
+    // Attendre que toutes les animations se terminent
+    await Promise.all(allAnimations);
 
     // ===== JET DE DÉFENSE =====
-    const defenseRoll = new Roll(`${totalDice}d7`);
+    const defenseRollFormula = totalBonus > 0 ? `${totalDice}d7 + ${totalBonus}` : `${totalDice}d7`;
+    const defenseRoll = new Roll(defenseRollFormula);
     await defenseRoll.evaluate({ async: true });
 
-    const totalBlockCapacity = selectedVelkoz.length * SPELL_CONFIG.velkozBlockCapacity;
+    // ===== CALCUL DE LA CAPACITÉ DE BLOCAGE =====
+    // Premier Velkoz : Esprit × 2
+    // Chaque Velkoz supplémentaire : Esprit × 1
+    const espritValue = characteristicInfo.final;
+    const totalBlockCapacity = (espritValue * 2) + ((selectedVelkoz.length - 1) * espritValue);
+
+    console.log(`[Champs de Force] Block capacity: ${espritValue} × 2 (first) + ${selectedVelkoz.length - 1} × ${espritValue} (extra) = ${totalBlockCapacity}`);
 
     // ===== MESSAGE DANS LE CHAT =====
     const stanceInfo = currentStance ? ` (Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)})` : '';
@@ -572,40 +596,72 @@
             ? `${totalManaCost} mana (${totalSavedMana} économisée)`
             : `${totalManaCost} mana`;
 
-    const boostInfo = manaBoostDice > 0
-        ? `<p><strong>Boost de Mana:</strong> +${manaBoostDice} dé${manaBoostDice > 1 ? 's' : ''} (${manaBoostCost} mana${hasArmure ? ' - demi-focus' : ''})</p>`
-        : '';
+    const velkozList = selectedVelkoz.map(v => v.name).join(', ');
 
-    const manualBonusInfo = manualBonus > 0
-        ? `<p><strong>Bonus Manuel:</strong> +${manualBonus}</p>`
-        : '';
+    // Construire les détails de calcul
+    let diceBreakdown = `${baseDice} (${defensiveCharacteristic === "esprit" ? "Esprit" : "Dextérité"})`;
+    if (manualBonus > 0) diceBreakdown += ` + ${manualBonus} (manuel)`;
+    if (manaBoostDice > 0) diceBreakdown += ` + ${manaBoostDice} (boost mana)`;
 
-    const velkozList = selectedVelkoz.map(v => `👁️ ${v.name}`).join(', ');
+    let bonusBreakdown = `${spellLevelBonus} (niveau ${SPELL_CONFIG.spellLevel})`;
+    if (velkozBonus > 0) bonusBreakdown += ` + ${velkozBonus} (${selectedVelkoz.length - 1} Velkoz extra)`;
 
     const chatContent = `
-        <div class="spell-result" style="font-family: 'Signika', sans-serif;">
-            <h3 style="border-bottom: 2px solid #e91e63; padding-bottom: 5px;">
-                🛡️ ${SPELL_CONFIG.name}
-            </h3>
-            <p><strong>Lanceur:</strong> ${actor.name}${stanceInfo}</p>
-            <p><strong>Cible Protégée:</strong> ${targetToken.name}</p>
-            <p><strong>Coût:</strong> ${manaCostDisplay}</p>
-            ${boostInfo}
-            ${manualBonusInfo}
-            <hr style="margin: 10px 0;" />
-            <p><strong>Velkoz Utilisés:</strong> ${velkozList}</p>
-            <p><strong>Caractéristique:</strong> ${defensiveCharacteristic === "esprit" ? "Esprit" : "Dextérité"} ${characteristicInfo.final}</p>
-            <p><strong>Calcul des dés:</strong></p>
-            <ul style="margin: 5px 0; padding-left: 20px; font-size: 0.9em;">
-                <li>${defensiveCharacteristic === "esprit" ? "Esprit" : "Dextérité"}: ${baseDice} dés</li>
-                ${manualBonus > 0 ? `<li>Bonus manuel: +${manualBonus} dé${manualBonus > 1 ? 's' : ''}</li>` : ''}
-                ${manaBoostDice > 0 ? `<li>Boost de mana: +${manaBoostDice} dé${manaBoostDice > 1 ? 's' : ''}</li>` : ''}
-                ${extraVelkozDice > 0 ? `<li>Velkoz supplémentaires: +${extraVelkozDice} dés (${selectedVelkoz.length - 1} × 2)</li>` : ''}
-            </ul>
-            <p><strong>Jet de Défense:</strong> ${totalDice}d7 = ${defenseRoll.total}</p>
-            <hr style="margin: 10px 0;" />
-            <p style="font-size: 1.1em; color: #e91e63;"><strong>🛡️ Capacité de Blocage: ${totalBlockCapacity} dégâts maximum</strong></p>
-            <p style="font-size: 0.85em; color: #666;">(${SPELL_CONFIG.velkozBlockCapacity} dégâts/Velkoz × ${selectedVelkoz.length} Velkoz)</p>
+        <div style="font-family: 'Signika', sans-serif; background: linear-gradient(135deg, #e3f2fd, #f3e5f5); padding: 15px; border-radius: 10px; border: 3px solid #e91e63;">
+            <div style="text-align: center; margin-bottom: 12px;">
+                <h3 style="margin: 0; color: #e91e63; font-size: 1.5em; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);">
+                    🛡️ ${SPELL_CONFIG.name}
+                </h3>
+                <div style="margin-top: 6px; font-size: 0.95em; color: #666;">
+                    <strong>Lanceur:</strong> ${actor.name}${stanceInfo}
+                </div>
+            </div>
+
+            <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #2196f3;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em;">
+                    <div><strong>Cible Protégée:</strong> ${targetToken.name}</div>
+                    <div><strong>Velkoz Utilisés:</strong> ${selectedVelkoz.length}</div>
+                    <div><strong>Caractéristique:</strong> ${defensiveCharacteristic === "esprit" ? "Esprit" : "Dextérité"} ${characteristicInfo.final}</div>
+                    <div><strong>Coût:</strong> ${manaCostDisplay}</div>
+                </div>
+                ${manaBoostDice > 0 ? `<div style="margin-top: 8px; padding: 8px; background: #fff3e0; border-radius: 4px; font-size: 0.85em;"><strong>⚡ Boost de Mana:</strong> +${manaBoostDice} dé${manaBoostDice > 1 ? 's' : ''} (${manaBoostCost} mana${hasArmure ? ' - demi-focus' : ''})</div>` : ''}
+                ${manualBonus > 0 ? `<div style="margin-top: 8px; padding: 8px; background: #e8f5e9; border-radius: 4px; font-size: 0.85em;"><strong>📝 Bonus Manuel:</strong> +${manualBonus}</div>` : ''}
+            </div>
+
+            <div style="background: #fff8e1; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 2px solid #4caf50;">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <h4 style="margin: 0; color: #2e7d32; font-size: 1.1em;">🎯 Jet de Défense</h4>
+                </div>
+                <div style="background: white; padding: 10px; border-radius: 6px; margin-bottom: 8px;">
+                    <div style="font-size: 0.85em; color: #666; margin-bottom: 4px;">
+                        <strong>Dés:</strong> ${diceBreakdown} = ${totalDice}d7
+                    </div>
+                    <div style="font-size: 0.85em; color: #666; margin-bottom: 8px;">
+                        <strong>Bonus:</strong> ${bonusBreakdown} = +${totalBonus}
+                    </div>
+                    <div style="font-size: 0.9em; color: #666; margin-bottom: 4px;">
+                        <strong>Formule:</strong> ${defenseRollFormula}
+                    </div>
+                    <div style="font-size: 1.5em; color: #2e7d32; font-weight: bold; text-align: center;">
+                        🛡️ ${defenseRoll.total}
+                    </div>
+                </div>
+                <div style="font-size: 0.85em; color: #666; text-align: center;">
+                    👁️ ${velkozList}
+                </div>
+            </div>
+
+            <div style="background: white; padding: 12px; border-radius: 8px; border: 2px solid #e91e63;">
+                <div style="text-align: center;">
+                    <h4 style="margin: 0 0 8px 0; color: #e91e63; font-size: 1.1em;">🛡 Capacité de Blocage</h4>
+                    <div style="font-size: 1.8em; color: #c2185b; font-weight: bold;">
+                        ${totalBlockCapacity} dégâts maximum
+                    </div>
+                    <div style="font-size: 0.85em; color: #666; margin-top: 6px;">
+                        (Esprit × 2 pour le 1er Velkoz${selectedVelkoz.length > 1 ? ` + Esprit × ${selectedVelkoz.length - 1} supplémentaire${selectedVelkoz.length > 2 ? 's' : ''}` : ''})
+                    </div>
+                </div>
+            </div>
         </div>
     `;
 
