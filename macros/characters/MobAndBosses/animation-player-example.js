@@ -903,12 +903,6 @@
             mode: "projectile",
             sequence: [
                 {
-                    file: "jb2a.template_circle.aura.03.inward.003.complete.combined.blue",
-                    atLocation: true,
-                    scale: 0.5,
-                    waitUntilFinished: -500
-                },
-                {
                     file: "jb2a_patreon.energy_strands.range.standard.purple.01",
                     atLocation: true,
                     stretchTo: "target",
