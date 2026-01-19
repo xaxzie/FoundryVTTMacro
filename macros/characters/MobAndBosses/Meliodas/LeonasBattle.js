@@ -182,6 +182,21 @@
                     persist: true
                 }
             ]
+        },
+
+        "force_sphere_purple": {
+            name: "Merlin - Sphère de Force Jaune",
+            description: "Sphère de force violette persistante sur le lanceur",
+            mode: "self",
+            sequence: [
+                {
+                    file: "jb2a_patreon.wall_of_force.horizontal.yellow",
+                    atLocation: true,
+                    attachTo: true,
+                    scaleToObject: 1,
+                    persist: true
+                }
+            ]
         }
     };
 
