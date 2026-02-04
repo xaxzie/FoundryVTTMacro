@@ -39,11 +39,13 @@
     let targetPosition;
 
     try {
-        targetPosition = await Portal.pick({
-            range: 120,
-            token: controlledToken,
-            drawBoundries: true,
-        });
+        const portal = new Portal()
+            .origin(controlledToken)
+            .range(120)
+            .color('#87ceeb')
+            .texture('modules/jb2a_patreon/Library/Generic/Marker/MarkerLight_01_Regular_Blue_400x400.webm');
+
+        targetPosition = await portal.pick();
     } catch (error) {
         console.log("Animation annulée par l'utilisateur");
         return;
