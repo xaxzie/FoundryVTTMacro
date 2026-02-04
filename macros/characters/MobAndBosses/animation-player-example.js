@@ -591,6 +591,19 @@
         },
       ],
     },
+    guiding_bolt: {
+      name: "Dark bolt",
+      description: "Projectile noir guidé vers la cible",
+      mode: "projectile",
+      sequence: [
+        {
+          file: "jb2a_patreon.guiding_bolt.02.dark_bluewhite",
+          atLocation: true,
+          stretchTo: "target",
+          waitUntilFinished: -300,
+        }
+      ],
+    },
     complex_showcase: {
       name: "🎨 Démonstration Complète",
       description: "Animation utilisant toutes les fonctionnalités Sequencer",
