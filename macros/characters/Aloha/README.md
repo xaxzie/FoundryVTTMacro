@@ -132,6 +132,77 @@ Modules requis (parmi les plus importants) : Sequencer, JB2A (free et/ou patreon
 
 ---
 
+### Charge Éclair
+
+**Fichier** : `charge-eclair.js`
+**Type** : Sort de déplacement offensif en ligne (niveau 1)
+**Coût** : 3 mana (focalisable — gratuit en Position Focus)
+**Portée** : Ligne droite de 6 cases, direction via Portal
+
+**Description** : Aloha fonce en ligne droite et percute toutes les cibles sur sa trajectoire. Si un mur bloque son élan avant la fin des 6 cases, les cases non parcourues infligent des dégâts bonus supplémentaires à chaque cible touchée.
+
+**Mécaniques** :
+- **Caractéristique** : Physique (jet de touché et dégâts)
+- **Niveau** : 1 (+2 au jet de touché)
+- **Jet de touché** : `Physiqued7 + 2 (niv.1) + bonus manuels`
+- **Dégâts de base** : `1d6 + Physique`
+  - **1ère cible** : score complet
+  - **Cibles suivantes** : moitié du score (arrondi inférieur)
+- **Bonus mur** : Si Aloha est stoppé par une paroi, chaque case restante inflige `×2` en dégâts plats supplémentaires à toutes les cibles touchées
+- **Déplacement** : Aloha est physiquement déplacé jusqu'à la dernière case libre de son chemin
+
+**Détection automatique des cibles** :
+- Toutes les cibles présentes sur les cases traversées sont détectées dans l'ordre d'impact
+- Fonctionne en ligne droite snappée aux 8 directions (cardinal + diagonal)
+
+**Combat Stance Integration** ⚔️ :
+- **Position Focus** : **GRATUIT** (0 mana)
+- **Position Offensive** : 3 mana, jets normaux
+- **Position Défensive/Normale** : 3 mana, jets normaux
+
+**Ciblage** : Portal — sélectionner un point dans la direction de la charge
+**Animations** : Traînée de charge orange, impacts sur chaque cible, crash sur mur si applicable
+**Modules requis** : Sequencer, JB2A, Portal
+
+---
+
+### Sous Haute Pression
+
+**Fichier** : `sous-haute-pression.js`
+**Type** : Sort d'explosion thermique en zone (niveau 2)
+**Coût** : 8 mana NON FOCUSABLE − Résistance Thermique actuelle (minimum 0)
+**Zone** : 2 cases de rayon, centré sur Aloha (aucun ciblage manuel)
+
+**Description** : Aloha relâche en une seule explosion toute la chaleur accumulée. Plus il a de Résistance Thermique, moins le sort coûte cher, plus il fait de dégâts, et plus loin il projette ses ennemis. Après le sort, la Résistance Thermique est ineffective pendant 2 tours.
+
+**Mécaniques** :
+- **Caractéristique** : Physique
+- **Niveau** : 2 (+4 au jet de touché)
+- **Jet de touché** : `Physiqued7 + 4 (niv.2) + bonus manuel`
+- **Dégâts** : `2d6 + Physique + Résistance Thermique`
+- **Coût dynamique** : `max(0, 8 − Résistance Thermique)`
+- **Projection** (indicative, non appliquée) : `1d(RT ÷ 2)` cases par cible
+- **Esquive** :
+  - Cible à **≤ 1 case** : **impossible** — trop proche
+  - Cible à **2 cases** : demi-dégâts autorisés
+- **Post-sort** : Résistance Thermique ineffective 2 tours (effet maintenu, simplement non comptabilisé)
+
+**Synergie avec la Résistance Thermique :**
+
+| RT | Coût | Bonus dégâts | Projection |
+|:---:|:---:|:---:|:---:|
+| 0 | 8 mana | +0 | — |
+| 3 | 5 mana | +3 | 1d1 case |
+| 6 | 2 mana | +6 | 1d3 cases |
+| 8 | 0 mana | +8 | 1d4 cases |
+
+*Plus Aloha est blessé (donc plus il a de RT), plus cette explosion est dévastatrice et économique.*
+
+**Animation** : `jb2a_patreon.fireball.explosion.orange` centrée sur Aloha
+**Modules requis** : Sequencer, JB2A
+
+---
+
 ## 🛠️ Macros Utilitaires
 
 ### Handle Aloha Effect

@@ -136,6 +136,50 @@
             }
         }
 
+        "Livre de Compagnie": {
+            displayName: "Livre de Compagnie",
+            icon: "icons/creatures/claws/claw-talons-yellow-red.webp",
+            description: "Livre de compagnie amplifiant les dégâts de la cible",
+            sectionTitle: "📖 Livres de Compagnie",
+            sectionIcon: "📖",
+            cssClass: "companion-book-effect",
+            borderColor: "#9c27b0",
+            bgColor: "#f3e5f5",
+            // Détection par flag world.livreCompagnie
+            detectFlags: [
+                { path: "flags.world.livreCompagnieCaster", matchValue: "CASTER_ID" }
+            ],
+            // Animation de suppression : fin de la chauve-souris persistante
+            removeAnimation: null,
+            shouldTriggerAnimation: false,
+            // Nettoyer l'effet Sequencer persistant
+            cleanup: {
+                sequencerName: "flags.world.sequencerName"
+            },
+            getDynamicDescription: (effect) => {
+                const bonus = effect.flags?.world?.damageBonus || effect.flags?.damage?.value || 0;
+                return `Livre de compagnie actif — +${bonus} dégâts`;
+            },
+            getExtraData: (effect) => ({
+                damageBonus: effect.flags?.world?.damageBonus || effect.flags?.damage?.value || 0,
+                sequencerName: effect.flags?.world?.sequencerName || null
+            }),
+            // Nettoyage de l'animation Sequencer lors de la suppression
+            onRemove: async (effect) => {
+                const seqName = effect.flags?.world?.sequencerName;
+                if (seqName && typeof Sequencer !== "undefined") {
+                    try {
+                        if (Sequencer.EffectManager.getEffects({ name: seqName }).length > 0) {
+                            await Sequencer.EffectManager.endEffects({ name: seqName });
+                            console.log(`[DEBUG] Ended Sequencer effect: ${seqName}`);
+                        }
+                    } catch (err) {
+                        console.warn(`[DEBUG] Could not end Sequencer effect ${seqName}:`, err);
+                    }
+                }
+            }
+        },
+
         /*
          * ===== EXEMPLE POUR AJOUTER UN NOUVEL EFFET =====
          *
@@ -570,6 +614,13 @@
                         type: "Défensif"
                     });
                     console.log(`[DEBUG] Queued ${BookCount} defensive book(s) for Urgen counter update`);
+                } else if (effectInfo.effectType === "Livre de Compagnie") {
+                    removedEffects.books.push({
+                        name: effectInfo.name,
+                        damageBonus: effectInfo.damageBonus || 0,
+                        type: "Compagnie"
+                    });
+                    console.log(`[DEBUG] Removed Livre de Compagnie from ${effectInfo.name}`);
                 } else if (effectInfo.effectType === "Book") {
                     // Si on supprime directement l'effet Book de Urgen, ne pas le compter
                     removedEffects.books.push({
@@ -688,6 +739,23 @@
                         <div style="font-size: 1.1em; color: #1565c0; margin-bottom: 6px;"><strong>${config.sectionTitle} Détachés</strong></div>
                         <div style="font-size: 1.0em; font-weight: bold;">${bookList}</div>
                         <div style="font-size: 0.8em; color: #666; margin-top: 4px;">La protection magique se dissipe</div>
+                    </div>
+                `;
+            }
+
+            // Afficher les livres de compagnie détachés
+            const companionBooks = removedEffects.books.filter(b => b.type === "Compagnie");
+            if (companionBooks.length > 0) {
+                const config = EFFECT_CONFIG["Livre de Compagnie"];
+                const bookList = companionBooks.map(b =>
+                    `${b.name} (+${b.damageBonus} dégâts)`
+                ).join(', ');
+
+                chatContent += `
+                    <div style="text-align: center; margin: 8px 0; padding: 10px; background: ${config.bgColor}; border-radius: 4px;">
+                        <div style="font-size: 1.1em; color: #9c27b0; margin-bottom: 6px;"><strong>${config.sectionTitle} Détachés</strong></div>
+                        <div style="font-size: 1.0em; font-weight: bold;">${bookList}</div>
+                        <div style="font-size: 0.8em; color: #666; margin-top: 4px;">Le livre de compagnie retourne à son créateur</div>
                     </div>
                 `;
             }

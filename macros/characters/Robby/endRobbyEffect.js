@@ -68,6 +68,27 @@
                 const resistance = effect.flags?.statuscounter?.value || 0;
                 return `Bonus de résistance de +${resistance}`;
             }
+        },
+        "LienDeSang": {
+            displayName: "Lien de Sang - Robby",
+            icon: "icons/magic/light/light-bolt-beam-yellow.webp",
+            description: "Lien sanguin créé par Robby",
+            sectionTitle: "🩸 Liens de Sang",
+            sectionIcon: "🩸",
+            cssClass: "bond-effect",
+            borderColor: "#8b0000",
+            bgColor: "#fff0f0",
+            // Détection par le casterId stocké dans flags.world
+            detectFlags: [
+                { path: "flags.world.casterId", matchValue: "CASTER_ID" }
+            ],
+            getExtraData: (effect) => ({
+                casterEsprit: effect.flags?.world?.casterEsprit || 0
+            }),
+            getDynamicDescription: (effect) => {
+                const esprit = effect.flags?.world?.casterEsprit || 0;
+                return `Lié à Robby — sacrifice jusqu'à ${esprit} PV/tour pour soigner cet allié`;
+            }
         }
         // TODO: Add more Robby's specific effects here when other spells are created
     };
@@ -169,6 +190,11 @@
                     else if (effectType === "RalentissementSanguin" &&
                         (effect.name === "Ralentissement" ||
                             effect.name.toLowerCase().includes("ralentissement"))) {
+                        isMatch = true;
+                    }
+                    // Vérification pour le Lien de Sang : détection directe par flag
+                    else if (effectType === "LienDeSang" &&
+                        effect.flags?.world?.lieSangRobby === true) {
                         isMatch = true;
                     }
 

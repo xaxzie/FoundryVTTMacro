@@ -46,6 +46,29 @@ Sort de contrôle avancé qui enlace et affaiblit une cible.
 
 ---
 
+#### 🌪️ Cheveux Déchaînés
+**Fichier :** `cheveux-dechaines.js`
+
+Missy libère une explosion capillaire explosive en cône qui frappe jusqu'à 3 ennemis simultanément. La direction du cône est choisie via Portal.
+
+- **Caractéristique :** Dextérité
+- **Coût :** 6 mana | **Demi-Focus :** 3 mana si en Position Focus
+- **Zone :** Cône de 120° sur 4 cases de rayon (direction via Portal)
+- **Animation :** Trois cônes violets simultanés (axe central ±40°)
+- **Cibles :** Auto-détectées dans la zone, modifiables (max 3)
+- **Type :** Sort de zone à dégâts multiples
+
+**Mécanique de dégâts selon le nombre de cibles :**
+| Cibles choisies | Cible principale | Cible(s) secondaire(s) |
+|:---:|:---:|:---:|
+| 1 | `2d4 + Dex` | — |
+| 2 | `2d4 + Dex` | `1d4 + Dex/2` |
+| 3 | `1d4 + Dex/2` | `1d4 + Dex/2` × 2 |
+
+*Usage : Sort de zone idéal pour frapper plusieurs ennemis groupés. Plus efficace contre 1 cible (dégâts maximaux) mais utile pour toucher tout un groupe à moindre coût de mana grâce au Demi-Focus.*
+
+---
+
 ### 🛡️ Effets Défensifs
 
 #### 🛡️ Cheveuxlerie
@@ -73,6 +96,7 @@ Protection capillaire formant un bouclier défensif.
 ### ✨ Animations (JB2A)
 - **Matraque :** `jb2a.melee_generic.creature_attack.fist.002.blue.1` (teinté violet)
 - **Etreinte :** `jb2a_patreon.energy_strands.complete.pinkyellow.01` (persistant)
+- **Cheveux Déchaînés :** `jb2a_patreon.cone_of_cold.purple` × 3 simultanés (0°, −40°, +40°)
 - **Cast :** `jb2a_patreon.markers.02.pink`
 
 ---

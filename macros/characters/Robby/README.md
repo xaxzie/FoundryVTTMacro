@@ -31,6 +31,15 @@ Robby est un personnage polyvalent axé sur la magie du sang et les attaques phy
   - Les effets persistants (ralentissement / résistance) sont appliqués via ActiveEffect et identifiés par des flags `flags.world.spellCaster` / `flags.world.spellName`.
   - Note importante : le comportement a été ajusté pour éviter l'accumulation indésirable — si un effet (ralentissement ou résistance) existe déjà sur la cible, la macro ne l'incrémente pas et affiche dans le chat que la valeur a été "réinitialisée" (affiche la valeur actuelle).
 
+- `lien-de-sang.js`
+
+  - Lien de Sang : crée un lien sanguin mystique entre Robby et ses alliés présents sur le canvas.
+  - Détecte automatiquement les alliés (Missy, Urgen, Aloha) présents sur la scène.
+  - Robby choisit d'activer ou désactiver le lien sur chacun indépendamment.
+  - Animation de projectile de sang vers l'allié lors de l'activation (aucune animation à la désactivation).
+  - Permet à Robby de sacrifier jusqu'à [Esprit] PV par tour pour soigner ses alliés liés.
+  - L'effet est identifié par le flag `flags.world.lieSangRobby = true` et `flags.world.casterId`.
+
 - `endRobbyEffect.js`
   - Gestionnaire pour détecter et terminer les effets appliqués par Robby sur la scène.
   - Fournit une interface pour lister et retirer les effets (ralentissements, résistances, etc.).
@@ -38,7 +47,7 @@ Robby est un personnage polyvalent axé sur la magie du sang et les attaques phy
 
 ## Détails d'implémentation et flags
 
-- Les macros utilisent des ActiveEffects avec des flags personnalisés (par exemple `flags.world.spellCaster` et `flags.world.spellName`) pour identifier les effets applicables et permettre à `endRobbyEffect.js` de les retrouver.
+- Les macros utilisent des ActiveEffects avec des flags personnalisés (par exemple `flags.world.spellCaster`/`flags.world.spellName` pour les sorts offensifs, `flags.world.lieSangRobby`/`flags.world.casterId` pour Lien de Sang) pour identifier les effets applicables et permettre à `endRobbyEffect.js` de les retrouver.
 - Les animations sont gérées avec `Sequencer` et les ciblages avec `Portal`. Les fichiers d'animation référencent souvent la librairie `jb2a`.
 - Les macros respectent les positions/stances (`focus`, `offensif`, `defensif`) lorsqu'elles calculent coûts/mécaniques (ex : coût 0 si en Focus, maximisation des dégâts en position Offensif).
 

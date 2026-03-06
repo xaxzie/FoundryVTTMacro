@@ -862,8 +862,22 @@
                         icon: postureData.icon || postureData.img,
                         origin: actor.uuid,
                         duration: { seconds: 86400 }, // 24 hours default duration
-                        statuses: [postureData.id]
+                        statuses: [postureData.id],
+                        flags: {}
                     };
+
+                    // Add characteristic bonuses for specific postures
+                    if (postureData.id.toLowerCase() === 'focus') {
+                        effectConfig.flags.agilite = { value: -1 };
+                        console.log(`[DEBUG] Robby Effect: Applied Focus posture with -1 Agilité`);
+                    } else if (postureData.id.toLowerCase() === 'offensif') {
+                        effectConfig.flags.agilite = { value: -3 };
+                        console.log(`[DEBUG] Robby Effect: Applied Offensif posture with -3 Agilité`);
+
+                    } else if (postureData.id.toLowerCase() === 'defensif') {
+                        // Add defensive posture bonuses if needed
+                        // effectConfig.flags.physique = { value: 1 };
+                    }
 
                     await actor.createEmbeddedDocuments("ActiveEffect", [effectConfig]);
                     addedEffects.push(postureData.name || postureData.label);
