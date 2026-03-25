@@ -401,6 +401,71 @@
         },
       ],
     },
+    Cercle_necro: {
+      name: "Cercle necro",
+      description: "Cercle Necro persist",
+      mode: "target",
+      sequence: [
+        {
+          file: "jb2a_patreon.magic_signs.circle.02.necromancy.intro.purple",
+          atLocation: "target",
+          scale: 0.7,
+          fadeIn: 300,
+          waitUntilFinished: -500,
+          belowTokens: true,
+        },
+        {
+          file: "jb2a_patreon.magic_signs.rune.necromancy.intro.purple",
+          atLocation: "target",
+          belowTokens: true,
+        },
+        {
+          file: "jb2a_patreon.magic_signs.circle.02.necromancy.loop.purple",
+          atLocation: "target",
+          scale: 0.7,
+          persist: true,
+          opacity: 0.8,
+          fadeOut: 500,
+          belowTokens: true,
+        },
+        // Shine layer: a pulsing glow on top of the persistent circle
+        {
+          file: "jb2a_patreon.magic_signs.circle.02.necromancy.loop.purple",
+          atLocation: "target",
+          scale: 0.7,
+          opacity: 0.8,
+          belowTokens: true,
+          fadeIn: 200,
+          fadeOut: 500,
+          // Make this a persistent, named effect so it can be stopped later
+          persist: true,
+          name: "cercle_necro_shine",
+          // Apply a more subtle Sequencer Glow for the shine
+          filter: {
+            type: "Glow",
+            config: {
+              distance: 4,
+              outerStrength: 2,
+              innerStrength: 0,
+              color: 0x9b59b6,
+            },
+          },
+          // Animate the sprite alpha to create a clearer pulsing effect
+          // increase the minimum alpha and reduce max glow intensity for visible pulsing
+          animateProperty: {
+            target: "sprite",
+            property: "alpha",
+            options: {
+              from: 0.4,
+              to: 0.6,
+              duration: 900,
+              ease: "easeInOutSine",
+              loop: true,
+            },
+          },
+        },
+      ],
+    },
 
     // === ANIMATIONS PROJECTILE (depuis token vers cible) ===
     fire_bolt: {
@@ -601,7 +666,7 @@
           atLocation: true,
           stretchTo: "target",
           waitUntilFinished: -300,
-        }
+        },
       ],
     },
     complex_showcase: {
