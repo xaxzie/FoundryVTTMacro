@@ -20,107 +20,120 @@
  */
 
 (async () => {
-    // ===== CONFIGURATION =====
-    const SPELL_CONFIG = {
-        name: "Sous Haute Pression",
-        spellLevel: 2,                     // → +4 au jet de touché
-        characteristic: "physique",
-        characteristicDisplay: "Physique",
-        manaCostBase: 8,
-        isFocusable: false,                // Jamais réductible par Focus
-        aoeRadius: 2,                      // cases de rayon
-        resistanceEffectName: "Résistance Thermique",
-        animation: "jb2a_patreon.fireball.explosion.orange"
-    };
+  // ===== CONFIGURATION =====
+  const SPELL_CONFIG = {
+    name: "Sous Haute Pression",
+    spellLevel: 2, // → +4 au jet de touché
+    characteristic: "physique",
+    characteristicDisplay: "Physique",
+    manaCostBase: 8,
+    isFocusable: false, // Jamais réductible par Focus
+    aoeRadius: 2, // cases de rayon
+    resistanceEffectName: "Résistance Thermique",
+    animation: "jb2a_patreon.fireball.explosion.orange",
+  };
 
-    // ===== VALIDATION =====
-    if (!canvas.tokens.controlled.length) {
-        ui.notifications.warn("⚠️ Sélectionnez le token d'Aloha !");
-        return;
+  // ===== VALIDATION =====
+  if (!canvas.tokens.controlled.length) {
+    ui.notifications.warn("⚠️ Sélectionnez le token d'Aloha !");
+    return;
+  }
+
+  const caster = canvas.tokens.controlled[0];
+  const actor = caster.actor;
+  if (!actor) {
+    ui.notifications.error("❌ Aucun acteur trouvé !");
+    return;
+  }
+
+  // ===== UTILITY FUNCTIONS =====
+  function getCurrentStance(actor) {
+    return (
+      actor?.effects?.contents
+        ?.find((e) =>
+          ["focus", "offensif", "defensif"].includes(e.name?.toLowerCase()),
+        )
+        ?.name?.toLowerCase() || null
+    );
+  }
+
+  function getActiveEffectBonus(actor, flagKey) {
+    if (!actor?.effects) return 0;
+    let total = 0;
+    for (const effect of actor.effects.contents) {
+      const v = effect.flags?.[flagKey]?.value;
+      if (typeof v === "number") total += v;
     }
+    return total;
+  }
 
-    const caster = canvas.tokens.controlled[0];
-    const actor = caster.actor;
-    if (!actor) {
-        ui.notifications.error("❌ Aucun acteur trouvé !");
-        return;
+  function getCharacteristicValue(actor, characteristic) {
+    const attr = actor.system.attributes?.[characteristic];
+    if (!attr) {
+      ui.notifications.error(
+        `❌ Caractéristique '${characteristic}' non trouvée !`,
+      );
+      return null;
     }
+    const base = attr.value || 3;
+    const injuryEffect = actor?.effects?.contents?.find(
+      (e) => e.name?.toLowerCase() === "blessures",
+    );
+    const injuryStacks = injuryEffect?.flags?.statuscounter?.value || 0;
+    const effectBonus = getActiveEffectBonus(actor, characteristic);
+    const injuryAdjusted = Math.max(1, base - injuryStacks);
+    const final = Math.max(1, injuryAdjusted + effectBonus);
+    return { base, injuries: injuryStacks, effectBonus, injuryAdjusted, final };
+  }
 
-    // ===== UTILITY FUNCTIONS =====
-    function getCurrentStance(actor) {
-        return actor?.effects?.contents?.find(e =>
-            ['focus', 'offensif', 'defensif'].includes(e.name?.toLowerCase())
-        )?.name?.toLowerCase() || null;
-    }
+  // ===== READ RÉSISTANCE THERMIQUE =====
+  function getThermalResistance(actor) {
+    const rtEffect = actor?.effects?.contents?.find(
+      (e) => e.name === SPELL_CONFIG.resistanceEffectName,
+    );
+    if (!rtEffect) return 0;
+    return rtEffect.flags?.statuscounter?.value || 0;
+  }
 
-    function getActiveEffectBonus(actor, flagKey) {
-        if (!actor?.effects) return 0;
-        let total = 0;
-        for (const effect of actor.effects.contents) {
-            const v = effect.flags?.[flagKey]?.value;
-            if (typeof v === 'number') total += v;
-        }
-        return total;
-    }
+  // ===== STATS =====
+  const currentStance = getCurrentStance(actor);
+  const charInfo = getCharacteristicValue(actor, SPELL_CONFIG.characteristic);
+  if (!charInfo) return;
 
-    function getCharacteristicValue(actor, characteristic) {
-        const attr = actor.system.attributes?.[characteristic];
-        if (!attr) {
-            ui.notifications.error(`❌ Caractéristique '${characteristic}' non trouvée !`);
-            return null;
-        }
-        const base = attr.value || 3;
-        const injuryEffect = actor?.effects?.contents?.find(e => e.name?.toLowerCase() === 'blessures');
-        const injuryStacks = injuryEffect?.flags?.statuscounter?.value || 0;
-        const effectBonus = getActiveEffectBonus(actor, characteristic);
-        const injuryAdjusted = Math.max(1, base - injuryStacks);
-        const final = Math.max(1, injuryAdjusted + effectBonus);
-        return { base, injuries: injuryStacks, effectBonus, injuryAdjusted, final };
-    }
+  const thermalResistance = getThermalResistance(actor);
+  const levelBonus = SPELL_CONFIG.spellLevel * 2; // +4
 
-    // ===== READ RÉSISTANCE THERMIQUE =====
-    function getThermalResistance(actor) {
-        const rtEffect = actor?.effects?.contents?.find(
-            e => e.name === SPELL_CONFIG.resistanceEffectName
-        );
-        if (!rtEffect) return 0;
-        return rtEffect.flags?.statuscounter?.value || 0;
-    }
+  // Mana cost: 8 - RT (minimum 0), never focusable
+  const actualManaCost = Math.max(
+    0,
+    SPELL_CONFIG.manaCostBase - thermalResistance,
+  );
 
-    // ===== STATS =====
-    const currentStance = getCurrentStance(actor);
-    const charInfo = getCharacteristicValue(actor, SPELL_CONFIG.characteristic);
-    if (!charInfo) return;
+  // Knockback dice sides: floor(RT / 2). If 0, no knockback roll.
+  const knockbackDiceSides = Math.floor(thermalResistance / 2);
 
-    const thermalResistance = getThermalResistance(actor);
-    const levelBonus = SPELL_CONFIG.spellLevel * 2; // +4
-
-    // Mana cost: 8 - RT (minimum 0), never focusable
-    const actualManaCost = Math.max(0, SPELL_CONFIG.manaCostBase - thermalResistance);
-
-    // Knockback dice sides: floor(RT / 2). If 0, no knockback roll.
-    const knockbackDiceSides = Math.floor(thermalResistance / 2);
-
-    // ===== CONFIG DIALOG =====
-    const bonusAttack = await new Promise(resolve => {
-        const rtNote = thermalResistance > 0
-            ? `<div style="padding:8px 12px; background:rgba(255,152,0,0.2); border-radius:6px;
+  // ===== CONFIG DIALOG =====
+  const bonusAttack = await new Promise((resolve) => {
+    const rtNote =
+      thermalResistance > 0
+        ? `<div style="padding:8px 12px; background:rgba(255,152,0,0.2); border-radius:6px;
                 border-left:4px solid #ff9800; margin:8px 0; color:#fff; font-size:0.9em;">
                 🔥 <strong>Résistance Thermique active :</strong> ${thermalResistance}
                 <br><span style="font-size:0.85em; color:#ffcc80;">
                 → Coût réduit à <strong>${actualManaCost} mana</strong> (8 − ${thermalResistance})
                 &nbsp;|&nbsp; Bonus dégâts : <strong>+${thermalResistance}</strong>
-                &nbsp;|&nbsp; Projection : <strong>1d${knockbackDiceSides > 0 ? knockbackDiceSides : '—'}</strong> cases
+                &nbsp;|&nbsp; Projection : <strong>1d${knockbackDiceSides > 0 ? knockbackDiceSides : "—"}</strong> cases
                 </span>
                </div>`
-            : `<div style="padding:8px 12px; background:rgba(255,255,255,0.1); border-radius:6px;
+        : `<div style="padding:8px 12px; background:rgba(255,255,255,0.1); border-radius:6px;
                 margin:8px 0; color:#ffab91; font-size:0.9em;">
                 ❄️ Aucune Résistance Thermique active — coût plein : <strong>8 mana</strong>
                </div>`;
 
-        new Dialog({
-            title: "💥 Sous Haute Pression",
-            content: `
+    new Dialog(
+      {
+        title: "💥 Sous Haute Pression",
+        content: `
                 <div style="padding:12px; background:linear-gradient(135deg,#4a0000,#c62828); border-radius:8px;">
                     <div style="text-align:center; margin-bottom:12px;">
                         <h3 style="margin:0; color:#ffccbc; text-shadow:0 0 8px #ff7043;">
@@ -130,7 +143,7 @@
                             <strong>${actor.name}</strong> &nbsp;|&nbsp;
                             Niveau <strong>${SPELL_CONFIG.spellLevel}</strong> &nbsp;|&nbsp;
                             NON FOCUSABLE
-                            ${currentStance ? ` &nbsp;|&nbsp; Position : <strong>${currentStance}</strong>` : ''}
+                            ${currentStance ? ` &nbsp;|&nbsp; Position : <strong>${currentStance}</strong>` : ""}
                         </div>
                     </div>
 
@@ -141,7 +154,7 @@
                         <div style="margin-top:4px;">💥 <strong>Dégâts :</strong> 2d6 + ${charInfo.final} (Physique) + ${thermalResistance} (RT) = 2d6 + ${charInfo.final + thermalResistance}</div>
                         <div style="margin-top:4px;">📐 <strong>Zone :</strong> ${SPELL_CONFIG.aoeRadius} cases de rayon autour d'Aloha</div>
                         <div style="margin-top:4px;">🛡️ <strong>Esquive :</strong> Demi-dégâts uniquement à 2 cases (impossible à 1 case ou moins)</div>
-                        <div style="margin-top:4px;">🌪️ <strong>Projection :</strong> ${knockbackDiceSides > 0 ? `1d${knockbackDiceSides} cases` : 'Aucune (RT insuffisante)'} <em style="font-size:0.85em;color:#ffcc80;">(indicatif — cibles non déplacées)</em></div>
+                        <div style="margin-top:4px;">🌪️ <strong>Projection :</strong> ${knockbackDiceSides > 0 ? `1d${knockbackDiceSides} cases` : "Aucune (RT insuffisante)"} <em style="font-size:0.85em;color:#ffcc80;">(indicatif — cibles non déplacées)</em></div>
                     </div>
 
                     <div style="padding:8px; background:rgba(255,87,34,0.25); border-radius:6px;
@@ -157,138 +170,158 @@
                     </div>
                 </div>
             `,
-            buttons: {
-                cast: {
-                    icon: '<i class="fas fa-fire"></i>',
-                    label: "EXPLOSER !",
-                    callback: html => resolve(parseInt(html.find('#bonusAtk').val()) || 0)
-                },
-                cancel: {
-                    icon: '<i class="fas fa-times"></i>',
-                    label: "Annuler",
-                    callback: () => resolve(null)
-                }
-            },
-            default: "cast"
-        }, { width: 450 }).render(true);
-    });
+        buttons: {
+          cast: {
+            icon: '<i class="fas fa-fire"></i>',
+            label: "EXPLOSER !",
+            callback: (html) =>
+              resolve(parseInt(html.find("#bonusAtk").val()) || 0),
+          },
+          cancel: {
+            icon: '<i class="fas fa-times"></i>',
+            label: "Annuler",
+            callback: () => resolve(null),
+          },
+        },
+        default: "cast",
+      },
+      { width: 450 },
+    ).render(true);
+  });
 
-    if (bonusAttack === null) {
-        ui.notifications.info("❌ Sort annulé.");
-        return;
+  if (bonusAttack === null) {
+    ui.notifications.info("❌ Sort annulé.");
+    return;
+  }
+
+  // ===== AUTO-DETECT TARGETS IN AOE =====
+  const gridSize = canvas.grid.size;
+  const casterCenterX = caster.x + caster.w / 2;
+  const casterCenterY = caster.y + caster.h / 2;
+  const aoeRadiusPx = SPELL_CONFIG.aoeRadius * gridSize;
+
+  const targetsData = [];
+
+  for (const token of canvas.tokens.placeables) {
+    if (token === caster) continue;
+    if (!token.visible) continue;
+
+    const tokenCenterX = token.x + token.w / 2;
+    const tokenCenterY = token.y + token.h / 2;
+
+    const dx = tokenCenterX - casterCenterX;
+    const dy = tokenCenterY - casterCenterY;
+    const distPx = Math.sqrt(dx * dx + dy * dy);
+    const distCases = distPx / gridSize;
+
+    if (distPx <= aoeRadiusPx) {
+      // Dodge eligibility: only if strictly > 1 case away (i.e. between 1 and 2 cases)
+      const canDodge = distCases > 1.0;
+
+      targetsData.push({
+        token,
+        name: token.name,
+        actor: token.actor,
+        distPx,
+        distCases,
+        canDodge,
+      });
     }
+  }
 
-    // ===== AUTO-DETECT TARGETS IN AOE =====
-    const gridSize = canvas.grid.size;
-    const casterCenterX = caster.x + caster.w / 2;
-    const casterCenterY = caster.y + caster.h / 2;
-    const aoeRadiusPx = SPELL_CONFIG.aoeRadius * gridSize;
+  // Sort by distance (closest first)
+  targetsData.sort((a, b) => a.distPx - b.distPx);
 
-    const targetsData = [];
+  console.log(
+    `[DEBUG] Sous Haute Pression — ${targetsData.length} cible(s) dans la zone, RT=${thermalResistance}`,
+  );
 
-    for (const token of canvas.tokens.placeables) {
-        if (token === caster) continue;
-        if (!token.visible) continue;
-
-        const tokenCenterX = token.x + token.w / 2;
-        const tokenCenterY = token.y + token.h / 2;
-
-        const dx = tokenCenterX - casterCenterX;
-        const dy = tokenCenterY - casterCenterY;
-        const distPx = Math.sqrt(dx * dx + dy * dy);
-        const distCases = distPx / gridSize;
-
-        if (distPx <= aoeRadiusPx) {
-            // Dodge eligibility: only if strictly > 1 case away (i.e. between 1 and 2 cases)
-            const canDodge = distCases > 1.0;
-
-            targetsData.push({
-                token,
-                name: token.name,
-                actor: token.actor,
-                distPx,
-                distCases,
-                canDodge
-            });
-        }
+  // ===== ANIMATION =====
+  async function playExplosionAnimation() {
+    if (typeof Sequence === "undefined") {
+      console.warn("[DEBUG] Sous Haute Pression: Sequencer not available.");
+      return;
     }
-
-    // Sort by distance (closest first)
-    targetsData.sort((a, b) => a.distPx - b.distPx);
-
-    console.log(`[DEBUG] Sous Haute Pression — ${targetsData.length} cible(s) dans la zone, RT=${thermalResistance}`);
-
-    // ===== ANIMATION =====
-    async function playExplosionAnimation() {
-        if (typeof Sequence === "undefined") {
-            console.warn("[DEBUG] Sous Haute Pression: Sequencer not available.");
-            return;
-        }
-        try {
-            await new Sequence()
-                .effect()
-                .file(SPELL_CONFIG.animation)
-                .atLocation(caster)
-                .scale(1.5)
-                .fadeIn(200)
-                .fadeOut(500)
-                .duration(1800)
-                .play();
-        } catch (err) {
-            console.warn("[DEBUG] Animation error:", err);
-        }
+    try {
+      await new Sequence()
+        .effect()
+        .file(SPELL_CONFIG.animation)
+        .atLocation(caster)
+        .scale(1.5)
+        .fadeIn(200)
+        .fadeOut(500)
+        .duration(1800)
+        .play();
+    } catch (err) {
+      console.warn("[DEBUG] Animation error:", err);
     }
+  }
 
-    await playExplosionAnimation();
+  await playExplosionAnimation();
 
-    // ===== ROLLS =====
-    // Attack roll
-    const physiqueDice = charInfo.final + getActiveEffectBonus(actor, SPELL_CONFIG.characteristic);
-    const attackFormula = `${physiqueDice}d7 + ${levelBonus}${bonusAttack !== 0 ? ` + ${bonusAttack}` : ''}`;
-    const attackRoll = new Roll(attackFormula);
-    await attackRoll.evaluate({ async: true });
+  // ===== COMBINED ATTACK, DAMAGE AND KNOCKBACK ROLLS =====
+  const physiqueDice =
+    charInfo.final + getActiveEffectBonus(actor, SPELL_CONFIG.characteristic);
+  const attackFormula = `${physiqueDice}d7 + ${levelBonus}${bonusAttack !== 0 ? ` + ${bonusAttack}` : ""}`;
 
-    // Damage roll: 2d6 + Physique + RT
-    const damageBonus = charInfo.final + thermalResistance;
-    const damageFormula = `2d6 + ${damageBonus}`;
-    const damageRoll = new Roll(damageFormula);
-    await damageRoll.evaluate({ async: true });
+  // Damage roll: 2d6 + Physique + RT
+  const damageBonus = charInfo.final + thermalResistance;
+  const damageFormula = `2d6 + ${damageBonus}`;
 
-    const baseDamage = damageRoll.total;
-    const halfDamage = Math.floor(baseDamage / 2);
+  // Build combined roll parts: attack, damage, and knockback for each target
+  let combinedRollParts = [attackFormula, damageFormula];
 
-    // Knockback roll (per target) — stored for display only, targets NOT moved
-    async function rollKnockback() {
-        if (knockbackDiceSides <= 0) return null;
-        const kbRoll = new Roll(`1d${knockbackDiceSides}`);
-        await kbRoll.evaluate({ async: true });
-        return kbRoll.total;
+  // Add knockback rolls for each target
+  for (let i = 0; i < targetsData.length; i++) {
+    if (knockbackDiceSides > 0) {
+      combinedRollParts.push(`1d${knockbackDiceSides}`);
     }
+  }
 
-    // Roll knockback for each target
-    for (const t of targetsData) {
-        t.knockback = await rollKnockback();
+  // Create and evaluate combined roll
+  const combinedRoll = new Roll(`{${combinedRollParts.join(", ")}}`);
+  await combinedRoll.evaluate({ async: true });
+
+  // Extract results
+  const attackRoll = { total: combinedRoll.terms[0].results[0].result };
+  const baseDamage = combinedRoll.terms[0].results[1].result;
+  const halfDamage = Math.floor(baseDamage / 2);
+
+  // Extract knockback results and assign to targets
+  let knockbackResultIndex = 2;
+  for (let i = 0; i < targetsData.length; i++) {
+    if (knockbackDiceSides > 0) {
+      targetsData[i].knockback =
+        combinedRoll.terms[0].results[knockbackResultIndex].result;
+      knockbackResultIndex++;
+    } else {
+      targetsData[i].knockback = null;
     }
+  }
 
-    // ===== BUILD CHAT =====
-    const manaCostDisplay = `${actualManaCost} mana${thermalResistance > 0 ? ` (8 − ${thermalResistance} RT)` : ''}`;
-    const stanceLabel = currentStance
-        ? ` · Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)}`
-        : '';
+  // ===== BUILD CHAT =====
+  const manaCostDisplay = `${actualManaCost} mana${thermalResistance > 0 ? ` (8 − ${thermalResistance} RT)` : ""}`;
+  const stanceLabel = currentStance
+    ? ` · Position ${currentStance.charAt(0).toUpperCase() + currentStance.slice(1)}`
+    : "";
 
-    // Target rows
-    const targetRows = targetsData.length > 0
-        ? targetsData.map(t => {
-            const distLabel = t.distCases <= 1.0
+  // Target rows
+  const targetRows =
+    targetsData.length > 0
+      ? targetsData
+          .map((t) => {
+            const distLabel =
+              t.distCases <= 1.0
                 ? `<span style="color:#ef9a9a;">≤ 1 case</span>`
                 : `<span style="color:#a5d6a7;">~${t.distCases.toFixed(1)} cases</span>`;
 
             const dodgeNote = t.canDodge
-                ? `<span style="color:#80cbc4; font-size:0.8em;">🛡️ Esquive possible → demi-dégâts (${halfDamage})</span>`
-                : `<span style="color:#ef9a9a; font-size:0.8em;">🚫 Trop proche — pas d'esquive</span>`;
+              ? `<span style="color:#80cbc4; font-size:0.8em;">🛡️ Esquive possible → demi-dégâts (${halfDamage})</span>`
+              : `<span style="color:#ef9a9a; font-size:0.8em;">🚫 Trop proche — pas d'esquive</span>`;
 
-            const kbNote = t.knockback !== null
-                ? `<span style="color:#ffe082; font-size:0.8em;">🌪️ Projection : <strong>${t.knockback}</strong> case${t.knockback > 1 ? 's' : ''} (indicatif)</span>`
+            const kbNote =
+              t.knockback !== null
+                ? `<span style="color:#ffe082; font-size:0.8em;">🌪️ Projection : <strong>${t.knockback}</strong> case${t.knockback > 1 ? "s" : ""} (indicatif)</span>`
                 : `<span style="color:#bdbdbd; font-size:0.8em;">🌪️ Pas de projection (RT insuffisante)</span>`;
 
             const tokenImg = t.token.document.texture.src;
@@ -307,10 +340,11 @@
                         <div style="margin-top:2px;">${kbNote}</div>
                     </div>
                 </div>`;
-        }).join('')
-        : `<div style="color:#999; font-style:italic; padding:8px; text-align:center;">Aucune cible dans la zone (${SPELL_CONFIG.aoeRadius} cases).</div>`;
+          })
+          .join("")
+      : `<div style="color:#999; font-style:italic; padding:8px; text-align:center;">Aucune cible dans la zone (${SPELL_CONFIG.aoeRadius} cases).</div>`;
 
-    const chatContent = `
+  const chatContent = `
         <div style="background:linear-gradient(135deg,#3e0000,#b71c1c); padding:14px; border-radius:10px;
             border:2px solid #ff5722; margin:8px 0;">
             <div style="text-align:center; margin-bottom:12px;">
@@ -363,27 +397,34 @@
                 🔥 <strong>Physique :</strong> ${charInfo.final}
                 &nbsp;|&nbsp; <strong>RT :</strong> ${thermalResistance}
                 &nbsp;|&nbsp; <strong>Total bonus dégâts :</strong> +${damageBonus}
-                ${knockbackDiceSides > 0 ? `&nbsp;|&nbsp; <strong>Projection :</strong> 1d${knockbackDiceSides} cases (indicatif)` : ''}
-                ${bonusAttack !== 0 ? `&nbsp;|&nbsp; <strong>Bonus manuel :</strong> +${bonusAttack}` : ''}
+                ${knockbackDiceSides > 0 ? `&nbsp;|&nbsp; <strong>Projection :</strong> 1d${knockbackDiceSides} cases (indicatif)` : ""}
+                ${bonusAttack !== 0 ? `&nbsp;|&nbsp; <strong>Bonus manuel :</strong> +${bonusAttack}` : ""}
             </div>
         </div>
     `;
 
-    await attackRoll.toMessage({
-        speaker: ChatMessage.getSpeaker({ token: caster }),
-        flavor: chatContent,
-        rollMode: game.settings.get("core", "rollMode")
-    });
+  await combinedRoll.toMessage({
+    speaker: ChatMessage.getSpeaker({ token: caster }),
+    flavor: chatContent,
+    rollMode: game.settings.get("core", "rollMode"),
+  });
 
-    // ===== NOTIFICATION =====
-    const targetSummary = targetsData.length > 0
-        ? targetsData.map(t => `${t.name} (${baseDamage}${t.canDodge ? ` ou ${halfDamage}` : ''})`).join(', ')
-        : 'aucune cible';
+  // ===== NOTIFICATION =====
+  const targetSummary =
+    targetsData.length > 0
+      ? targetsData
+          .map(
+            (t) =>
+              `${t.name} (${baseDamage}${t.canDodge ? ` ou ${halfDamage}` : ""})`,
+          )
+          .join(", ")
+      : "aucune cible";
 
-    ui.notifications.info(
-        `💥 Sous Haute Pression ! Touché: ${attackRoll.total} | Dégâts: ${baseDamage} | ${targetSummary} | ${manaCostDisplay} | ⚠️ RT ineffective 2 tours`
-    );
+  ui.notifications.info(
+    `💥 Sous Haute Pression ! Touché: ${attackRoll.total} | Dégâts: ${baseDamage} | ${targetSummary} | ${manaCostDisplay} | ⚠️ RT ineffective 2 tours`,
+  );
 
-    console.log(`[DEBUG] Sous Haute Pression — atk: ${attackRoll.total}, dmg: ${baseDamage}, RT: ${thermalResistance}, targets: ${targetsData.length}, manaCost: ${actualManaCost}`);
-
+  console.log(
+    `[DEBUG] Sous Haute Pression — atk: ${attackRoll.total}, dmg: ${baseDamage}, RT: ${thermalResistance}, targets: ${targetsData.length}, manaCost: ${actualManaCost}`,
+  );
 })();
